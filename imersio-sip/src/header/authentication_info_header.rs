@@ -113,7 +113,7 @@ impl std::fmt::Display for AuthenticationInfoHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}",
+            "Authentication-Info: {}",
             self.0
                 .iter()
                 .map(|info| info.to_string())

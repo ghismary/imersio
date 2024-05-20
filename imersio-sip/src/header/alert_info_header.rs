@@ -32,7 +32,7 @@ impl std::fmt::Display for AlertInfoHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}",
+            "Alert-Info: {}",
             self.0
                 .iter()
                 .map(|alert| alert.to_string())
