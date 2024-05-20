@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    combinator::{map, opt, recognize},
+    combinator::{map, opt, recognize, verify},
     error::context,
     multi::{count, many0, many_m_n},
     sequence::{delimited, pair, preceded, separated_pair},
@@ -12,8 +12,8 @@ use nom::{
 use crate::{
     method::parser::method,
     parser::{
-        alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, quoted_string, raquot, rdquot,
-        semi, slash, token, ParserResult,
+        alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
+        rdquot, semi, slash, token, ParserResult,
     },
     uri::parser::{absolute_uri, host},
 };
@@ -25,6 +25,7 @@ use super::{
     alert_info_header::{AlertInfoHeader, AlertParam},
     allow_header::AllowHeader,
     authentication_info_header::{AInfo, AuthenticationInfoHeader},
+    authorization_header::{AuthParam, AuthorizationHeader, Credentials},
     Header,
 };
 
@@ -388,6 +389,168 @@ fn authentication_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     })
 }
 
+#[inline]
+fn username_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    quoted_string(input)
+}
+
+fn username(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(tag("username"), equal, username_value)(input)
+        .map(|(rest, (_, value))| (rest, AuthParam::Username(value.into_owned())))
+}
+
+#[inline]
+fn realm_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    quoted_string(input)
+}
+
+fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(tag("realm"), equal, realm_value)(input)
+        .map(|(rest, (_, value))| (rest, AuthParam::Realm(value.into_owned())))
+}
+
+fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(tag("nonce"), equal, nonce_value)(input)
+        .map(|(rest, (_, value))| (rest, AuthParam::Nonce(value.into_owned())))
+}
+
+fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    // TODO: Handel rquest-uri
+    // delimited(ldquot, rquest_uri, rdquot)(input)
+    quoted_string(input)
+}
+
+fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(tag("uri"), equal, digest_uri_value)(input)
+        .map(|(rest, (_, value))| (rest, AuthParam::DigestUri(value.into_owned())))
+}
+
+fn request_digest(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    delimited(ldquot, recognize(many_m_n(32, 32, lhex)), rdquot)(input)
+        .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
+}
+
+fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(tag("response"), equal, request_digest)(input)
+        .map(|(rest, (_, value))| (rest, AuthParam::DResponse(value.into_owned())))
+}
+
+fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(
+        tag("algorithm"),
+        equal,
+        alt((
+            map(tag("MD5"), String::from_utf8_lossy),
+            map(tag("MD5-sess"), String::from_utf8_lossy),
+            token,
+        )),
+    )(input)
+    .map(|(rest, (_, value))| (rest, AuthParam::Algorithm(Cow::Owned(value.into_owned()))))
+}
+
+fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(tag("opaque"), equal, quoted_string)(input)
+        .map(|(rest, (_, value))| (rest, AuthParam::Opaque(value.into_owned())))
+}
+
+#[inline]
+fn auth_param_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    token(input)
+}
+
+fn auth_param(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    separated_pair(auth_param_name, equal, alt((token, quoted_string)))(input)
+        .map(|(rest, (key, value))| (rest, AuthParam::Other(key.to_string(), value.to_string())))
+}
+
+fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+    alt((
+        username,
+        realm,
+        nonce,
+        digest_uri,
+        dresponse,
+        algorithm,
+        map(cnonce, |ainfo| ainfo.try_into().unwrap()),
+        opaque,
+        map(message_qop, |ainfo| ainfo.try_into().unwrap()),
+        map(nonce_count, |ainfo| ainfo.try_into().unwrap()),
+        verify(auth_param, |param| {
+            ![
+                "username",
+                "realm",
+                "nonce",
+                "uri",
+                "response",
+                "algorithm",
+                "cnonce",
+                "opaque",
+                "qop",
+                "nc",
+            ]
+            .contains(&param.key())
+        }),
+    ))(input)
+}
+
+fn digest_response(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParam>> {
+    pair(dig_resp, many0(preceded(comma, dig_resp)))(input).map(
+        |(rest, (first_param, mut other_params))| {
+            other_params.insert(0, first_param);
+            (rest, other_params)
+        },
+    )
+}
+
+#[inline]
+fn auth_scheme(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    token(input)
+}
+
+fn auth_params(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParam>> {
+    pair(auth_param, many0(preceded(comma, auth_param)))(input).map(
+        |(rest, (first_param, mut other_params))| {
+            other_params.insert(0, first_param);
+            (rest, other_params)
+        },
+    )
+}
+
+fn digest_credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
+    separated_pair(
+        map(tag("Digest"), String::from_utf8_lossy),
+        lws,
+        digest_response,
+    )(input)
+    .map(|(rest, (_, params))| (rest, Credentials::Digest(params)))
+}
+
+fn other_response(input: &[u8]) -> ParserResult<&[u8], Credentials> {
+    separated_pair(
+        verify(auth_scheme, |s: &Cow<'_, str>| s != "Digest"),
+        lws,
+        auth_params,
+    )(input)
+    .map(|(rest, (scheme, params))| (rest, Credentials::Other(scheme.to_string(), params)))
+}
+
+fn credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
+    alt((digest_credentials, other_response))(input)
+}
+
+fn authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "authorization",
+        separated_pair(tag("Authorization"), hcolon, credentials),
+    )(input)
+    .map(|(rest, (_, credentials))| {
+        (
+            rest,
+            Header::Authorization(AuthorizationHeader::new(credentials)),
+        )
+    })
+}
+
 pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
@@ -398,6 +561,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             alert_info,
             allow,
             authentication_info,
+            authorization,
         )),
     )(input)
 }

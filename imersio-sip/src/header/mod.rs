@@ -6,6 +6,7 @@ mod accept_language_header;
 mod alert_info_header;
 mod allow_header;
 mod authentication_info_header;
+mod authorization_header;
 mod parser;
 
 use std::str::FromStr;
@@ -16,6 +17,7 @@ use accept_language_header::AcceptLanguageHeader;
 use alert_info_header::AlertInfoHeader;
 use allow_header::AllowHeader;
 use authentication_info_header::AuthenticationInfoHeader;
+use authorization_header::AuthorizationHeader;
 
 use crate::Error;
 
@@ -34,6 +36,8 @@ pub enum Header {
     Allow(AllowHeader),
     /// An Authentication-Info header.
     AuthenticationInfo(AuthenticationInfoHeader),
+    /// An Authorization header.
+    Authorization(AuthorizationHeader),
 }
 
 impl Header {
@@ -56,6 +60,7 @@ impl std::fmt::Display for Header {
                 Header::AlertInfo(header) => header.to_string(),
                 Header::Allow(header) => header.to_string(),
                 Header::AuthenticationInfo(header) => header.to_string(),
+                Header::Authorization(header) => header.to_string(),
             }
         )
     }

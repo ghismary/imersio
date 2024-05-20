@@ -3,9 +3,9 @@ use thiserror::Error;
 /// A generic error for SIP
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Remaining unparsed data.
-    #[error("remaining unparsed data")]
-    RemainingUnparsedData,
+    /// Failed converting AInfo to AuthParam.
+    #[error("failed converting AInfo to AuthParam")]
+    FailedConvertingAInfoToAuthParam,
     /// Invalid message header.
     #[error("invalid message header")]
     InvalidMessageHeader(String),
@@ -30,6 +30,9 @@ pub enum Error {
     /// Invalid SIP version.
     #[error("invalid sip version")]
     InvalidVersion(String),
+    /// Remaining unparsed data.
+    #[error("remaining unparsed data")]
+    RemainingUnparsedData,
 }
 
 impl From<std::convert::Infallible> for Error {
