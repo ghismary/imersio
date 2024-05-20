@@ -12,101 +12,6 @@ impl AuthenticationInfoHeader {
     pub fn count(&self) -> usize {
         self.0.len()
     }
-
-    /// Tells whether the Authentication-Info header contains a `nextnonce` value.
-    pub fn has_next_nonce(&self) -> bool {
-        self.0.iter().any(|ai| matches!(ai, AInfo::NextNonce(_)))
-    }
-
-    /// Tells whether the Authentication-Info header contains a `qop` value.
-    pub fn has_message_qop(&self) -> bool {
-        self.0.iter().any(|ai| matches!(ai, AInfo::MessageQop(_)))
-    }
-
-    /// Tells whether the Authentication-Info header contains a `rspauth` value.
-    pub fn has_response_auth(&self) -> bool {
-        self.0.iter().any(|ai| matches!(ai, AInfo::ResponseAuth(_)))
-    }
-
-    /// Tells whether the Authentication-Info header contains a `cnonce` value.
-    pub fn has_cnonce(&self) -> bool {
-        self.0.iter().any(|ai| matches!(ai, AInfo::CNonce(_)))
-    }
-
-    /// Tells whether the Authentication-Info header contains a `nc` value.
-    pub fn has_nonce_count(&self) -> bool {
-        self.0.iter().any(|ai| matches!(ai, AInfo::NonceCount(_)))
-    }
-
-    /// Get the `nextnonce` value from the Authentication-Info header.
-    pub fn next_nonce(&self) -> Option<&str> {
-        self.0
-            .iter()
-            .find(|ai| matches!(ai, AInfo::NextNonce(_)))
-            .map(|ai| {
-                if let AInfo::NextNonce(value) = ai {
-                    value
-                } else {
-                    ""
-                }
-            })
-    }
-
-    /// Get the `qop` value from the Authentication-Info header.
-    pub fn message_qop(&self) -> Option<&str> {
-        self.0
-            .iter()
-            .find(|ai| matches!(ai, AInfo::MessageQop(_)))
-            .map(|ai| {
-                if let AInfo::MessageQop(value) = ai {
-                    value
-                } else {
-                    ""
-                }
-            })
-    }
-
-    /// Get the `rspauth` value from the Authentication-Info header.
-    pub fn response_auth(&self) -> Option<&str> {
-        self.0
-            .iter()
-            .find(|ai| matches!(ai, AInfo::ResponseAuth(_)))
-            .map(|ai| {
-                if let AInfo::ResponseAuth(value) = ai {
-                    value
-                } else {
-                    ""
-                }
-            })
-    }
-
-    /// Get the `cnonce` value from the Authentication-Info header.
-    pub fn cnonce(&self) -> Option<&str> {
-        self.0
-            .iter()
-            .find(|ai| matches!(ai, AInfo::CNonce(_)))
-            .map(|ai| {
-                if let AInfo::CNonce(value) = ai {
-                    value
-                } else {
-                    ""
-                }
-            })
-    }
-
-    /// Get the `nc` value from the Authentication-Info header.
-    pub fn nonce_count(&self) -> Option<&str> {
-        self.0
-            .iter()
-            .find(|ai| matches!(ai, AInfo::NonceCount(_)))
-            .map(|ai| {
-                if let AInfo::NonceCount(value) = ai {
-                    value
-                } else {
-                    ""
-                }
-            })
-    }
 }
 
 impl std::fmt::Display for AuthenticationInfoHeader {
@@ -144,6 +49,45 @@ impl PartialEq<AuthenticationInfoHeader> for &AuthenticationInfoHeader {
 }
 
 impl Eq for AuthenticationInfoHeader {}
+
+macro_rules! authentication_info_header {
+    (
+        $(
+            ($token:ident, $has_token:ident, $enum_name:ident);
+        )+
+    ) => {
+        impl AuthenticationInfoHeader {
+            $(
+                /// Tells whether the Authentication-Info header contains a `$token` value.
+                pub fn $has_token(&self) -> bool {
+                    self.0.iter().any(|ai| matches!(ai, AInfo::$enum_name(_)))
+                }
+
+                /// Get the `$token` value from the Authentication-Info header.
+                pub fn $token(&self) -> Option<&str> {
+                    self.0
+                        .iter()
+                        .find(|ai| matches!(ai, AInfo::$enum_name(_)))
+                        .map(|ai| {
+                            if let AInfo::$enum_name(value) = ai {
+                                value
+                            } else {
+                                ""
+                            }
+                        })
+                }
+            )+
+        }
+    }
+}
+
+authentication_info_header! {
+    (next_nonce, has_next_nonce, NextNonce);
+    (message_qop, has_message_qop, MessageQop);
+    (response_auth, has_response_auth, ResponseAuth);
+    (cnonce, has_cnonce, CNonce);
+    (nonce_count, has_nonce_count, NonceCount);
+}
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
