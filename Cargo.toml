@@ -1,0 +1,14 @@
+[workspace]
+members = ["imersio-sip"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+repository = "https://github.com/ghismary/imersio"
+license = "Apache-2.0"
+version = "0.1.0"
+authors = ["Ghislain MARY <ghislain@ghislainmary.fr>"]
+rust-version = "1.70"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
