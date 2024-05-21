@@ -136,6 +136,26 @@ impl Uri {
         parse_uri(input)
     }
 
+    /// Gets the `Uri` as an `AbsoluteUri`.
+    ///
+    /// It returns None if the uri is not an `AbsoluteUri`.
+    pub fn as_absolute_uri(&self) -> Option<&AbsoluteUri> {
+        match self {
+            Uri::Absolute(uri) => Some(uri),
+            _ => None,
+        }
+    }
+
+    /// Gets the `Uri` as a `SipUri`.
+    ///
+    /// It returns None if the uri is not a `SipUri`.
+    pub fn as_sip_uri(&self) -> Option<&SipUri> {
+        match self {
+            Uri::Sip(uri) => Some(uri),
+            _ => None,
+        }
+    }
+
     /// Tells whether this `Uri` is a SIP URI.
     pub fn is_sip(&self) -> bool {
         matches!(self, Uri::Sip(_))
@@ -1171,7 +1191,7 @@ pub(crate) mod parser {
             .map(|(rest, opaque_part)| (rest, String::from_utf8_lossy(opaque_part)))
     }
 
-    pub(crate) fn absolute_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
+    pub(crate) fn absolute_uri(input: &[u8]) -> ParserResult<&[u8], AbsoluteUri> {
         context(
             "absolute_uri",
             separated_pair(
@@ -1185,18 +1205,21 @@ pub(crate) mod parser {
         .map(|(rest, (scheme, opaque_part))| {
             (
                 rest,
-                Uri::Absolute(AbsoluteUri {
+                AbsoluteUri {
                     scheme: Scheme::Other(scheme.into_owned()),
                     opaque_part: opaque_part.into_owned(),
                     parameters: Parameters::default(),
                     headers: Headers::default(),
-                }),
+                },
             )
         })
     }
 
     pub(crate) fn uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
-        context("uri", alt((sip_uri, sips_uri, absolute_uri)))(input)
+        context(
+            "uri",
+            alt((sip_uri, sips_uri, map(absolute_uri, Uri::Absolute))),
+        )(input)
     }
 }
 

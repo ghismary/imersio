@@ -8,6 +8,7 @@ mod allow_header;
 mod authentication_info_header;
 mod authorization_header;
 mod call_id_header;
+mod call_info_header;
 mod parser;
 
 use std::str::FromStr;
@@ -20,6 +21,7 @@ use allow_header::AllowHeader;
 use authentication_info_header::AuthenticationInfoHeader;
 use authorization_header::AuthorizationHeader;
 use call_id_header::CallIdHeader;
+use call_info_header::CallInfoHeader;
 
 use crate::Error;
 
@@ -42,6 +44,8 @@ pub enum Header {
     Authorization(AuthorizationHeader),
     /// A Call-ID header.
     CallId(CallIdHeader),
+    /// A Call-Info header.
+    CallInfo(CallInfoHeader),
 }
 
 impl Header {
@@ -66,6 +70,7 @@ impl std::fmt::Display for Header {
                 Header::AuthenticationInfo(header) => header.to_string(),
                 Header::Authorization(header) => header.to_string(),
                 Header::CallId(header) => header.to_string(),
+                Header::CallInfo(header) => header.to_string(),
             }
         )
     }

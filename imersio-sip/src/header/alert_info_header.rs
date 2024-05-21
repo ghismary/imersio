@@ -1,14 +1,14 @@
 use std::{collections::HashSet, hash::Hash};
 
-use crate::Uri;
+use crate::uri::AbsoluteUri;
 
 use super::accept_header::AcceptParameter;
 
 #[derive(Clone, Debug)]
-pub struct AlertInfoHeader(Vec<AlertParam>);
+pub struct AlertInfoHeader(Vec<AlertParameter>);
 
 impl AlertInfoHeader {
-    pub(crate) fn new(alerts: Vec<AlertParam>) -> Self {
+    pub(crate) fn new(alerts: Vec<AlertParameter>) -> Self {
         AlertInfoHeader(alerts)
     }
 
@@ -18,12 +18,12 @@ impl AlertInfoHeader {
     }
 
     /// Tells whether Alert-Info header contains the given `Uri`.
-    pub fn contains(&self, uri: &Uri) -> bool {
+    pub fn contains(&self, uri: &AbsoluteUri) -> bool {
         self.0.iter().any(|a| a.uri == uri)
     }
 
     /// Gets the `AlertParam` corresponding to the given `Uri`.
-    pub fn get(&self, uri: &Uri) -> Option<&AlertParam> {
+    pub fn get(&self, uri: &AbsoluteUri) -> Option<&AlertParameter> {
         self.0.iter().find(|a| a.uri == uri)
     }
 }
@@ -65,18 +65,18 @@ impl PartialEq<AlertInfoHeader> for &AlertInfoHeader {
 impl Eq for AlertInfoHeader {}
 
 #[derive(Clone, Debug)]
-pub struct AlertParam {
-    uri: Uri,
+pub struct AlertParameter {
+    uri: AbsoluteUri,
     parameters: Vec<AcceptParameter>,
 }
 
-impl AlertParam {
-    pub(crate) fn new(uri: Uri, parameters: Vec<AcceptParameter>) -> Self {
-        AlertParam { uri, parameters }
+impl AlertParameter {
+    pub(crate) fn new(uri: AbsoluteUri, parameters: Vec<AcceptParameter>) -> Self {
+        AlertParameter { uri, parameters }
     }
 }
 
-impl std::fmt::Display for AlertParam {
+impl std::fmt::Display for AlertParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -92,7 +92,7 @@ impl std::fmt::Display for AlertParam {
     }
 }
 
-impl PartialEq for AlertParam {
+impl PartialEq for AlertParameter {
     fn eq(&self, other: &Self) -> bool {
         if self.uri != other.uri {
             return false;
@@ -104,21 +104,21 @@ impl PartialEq for AlertParam {
     }
 }
 
-impl PartialEq<&AlertParam> for AlertParam {
-    fn eq(&self, other: &&AlertParam) -> bool {
+impl PartialEq<&AlertParameter> for AlertParameter {
+    fn eq(&self, other: &&AlertParameter) -> bool {
         self == *other
     }
 }
 
-impl PartialEq<AlertParam> for &AlertParam {
-    fn eq(&self, other: &AlertParam) -> bool {
+impl PartialEq<AlertParameter> for &AlertParameter {
+    fn eq(&self, other: &AlertParameter) -> bool {
         *self == other
     }
 }
 
-impl Eq for AlertParam {}
+impl Eq for AlertParameter {}
 
-impl Hash for AlertParam {
+impl Hash for AlertParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.uri.hash(state);
         let mut sorted_params = self.parameters.clone();
@@ -138,9 +138,12 @@ mod tests {
         assert!(header.is_ok());
         if let Header::AlertInfo(header) = header.unwrap() {
             assert_eq!(header.count(), 1);
-            assert!(
-                header.contains(&Uri::from_str("http://www.example.com/sounds/moo.wav").unwrap())
-            );
+            assert!(header.contains(
+                Uri::from_str("http://www.example.com/sounds/moo.wav")
+                    .unwrap()
+                    .as_absolute_uri()
+                    .unwrap()
+            ));
         } else {
             panic!("Not an Alert-Info header");
         }

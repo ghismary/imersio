@@ -38,8 +38,8 @@ impl PartialEq<AuthorizationHeader> for &AuthorizationHeader {
 
 #[derive(Clone, Debug)]
 pub enum Credentials {
-    Digest(Vec<AuthParam>),
-    Other(String, Vec<AuthParam>),
+    Digest(Vec<AuthParameter>),
+    Other(String, Vec<AuthParameter>),
 }
 
 impl Credentials {
@@ -59,7 +59,7 @@ impl Credentials {
 
     /// Gets the `AuthParam` corresponding to the given authorization
     /// parameter key.
-    pub fn get(&self, key: &str) -> Option<&AuthParam> {
+    pub fn get(&self, key: &str) -> Option<&AuthParameter> {
         self.auth_params().iter().find(|p| p.key() == key)
     }
 
@@ -77,7 +77,7 @@ impl Credentials {
     }
 
     /// Get a reference to the `AuthParam`s in the Credentials.
-    pub fn auth_params(&self) -> &Vec<AuthParam> {
+    pub fn auth_params(&self) -> &Vec<AuthParameter> {
         match self {
             Self::Digest(params) => params,
             Self::Other(_, params) => params,
@@ -158,7 +158,7 @@ macro_rules! credentials {
                 /// Tells whether the Authorization header contains a `$token` value.
                 pub fn $has_token(&self) -> bool {
                     match self {
-                        Self::Digest(params) => params.iter().any(|param| matches!(param, AuthParam::$enum_name(_))),
+                        Self::Digest(params) => params.iter().any(|param| matches!(param, AuthParameter::$enum_name(_))),
                         _ => false
                     }
                 }
@@ -168,9 +168,9 @@ macro_rules! credentials {
                     match self {
                         Self::Digest(params) => params
                         .iter()
-                        .find(|param| matches!(param, AuthParam::$enum_name(_)))
+                        .find(|param| matches!(param, AuthParameter::$enum_name(_)))
                         .map(|param| {
-                            if let AuthParam::$enum_name(value) = param {
+                            if let AuthParameter::$enum_name(value) = param {
                                 value
                             } else {
                                 ""
@@ -198,7 +198,7 @@ credentials! {
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum AuthParam {
+pub enum AuthParameter {
     Username(String),
     Realm(String),
     Nonce(String),
@@ -212,7 +212,7 @@ pub enum AuthParam {
     Other(String, String),
 }
 
-impl AuthParam {
+impl AuthParameter {
     pub const ALGORITHM_MD5: Self = Self::Algorithm(Cow::Borrowed("MD5"));
     pub const ALGORITHM_MD5_SESS: Self = Self::Algorithm(Cow::Borrowed("MD5-sess"));
 
@@ -249,7 +249,7 @@ impl AuthParam {
     }
 }
 
-impl std::fmt::Display for AuthParam {
+impl std::fmt::Display for AuthParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (key, value) = match self {
             Self::Username(value) => ("username".to_string(), format!("\"{value}\"")),
@@ -268,26 +268,26 @@ impl std::fmt::Display for AuthParam {
     }
 }
 
-impl PartialEq<&AuthParam> for AuthParam {
-    fn eq(&self, other: &&AuthParam) -> bool {
+impl PartialEq<&AuthParameter> for AuthParameter {
+    fn eq(&self, other: &&AuthParameter) -> bool {
         self == *other
     }
 }
 
-impl PartialEq<AuthParam> for &AuthParam {
-    fn eq(&self, other: &AuthParam) -> bool {
+impl PartialEq<AuthParameter> for &AuthParameter {
+    fn eq(&self, other: &AuthParameter) -> bool {
         *self == other
     }
 }
 
-impl TryFrom<AInfo> for AuthParam {
+impl TryFrom<AInfo> for AuthParameter {
     type Error = Error;
 
     fn try_from(value: AInfo) -> Result<Self, Self::Error> {
         match value {
-            AInfo::CNonce(value) => Ok(AuthParam::CNonce(value)),
-            AInfo::MessageQop(value) => Ok(AuthParam::MessageQop(value)),
-            AInfo::NonceCount(value) => Ok(AuthParam::NonceCount(value)),
+            AInfo::CNonce(value) => Ok(AuthParameter::CNonce(value)),
+            AInfo::MessageQop(value) => Ok(AuthParameter::MessageQop(value)),
+            AInfo::NonceCount(value) => Ok(AuthParameter::NonceCount(value)),
             _ => Err(Error::FailedConvertingAInfoToAuthParam),
         }
     }
@@ -295,7 +295,7 @@ impl TryFrom<AInfo> for AuthParam {
 
 #[cfg(test)]
 mod tests {
-    use crate::{header::authorization_header::AuthParam, Header};
+    use crate::{header::authorization_header::AuthParameter, Header};
     use std::str::FromStr;
 
     #[test]
@@ -380,12 +380,12 @@ mod tests {
             assert!(credentials.has_algorithm());
             assert_eq!(
                 credentials.auth_params().first().unwrap(),
-                AuthParam::ALGORITHM_MD5
+                AuthParameter::ALGORITHM_MD5
             );
             assert!(credentials.contains("algorithm"));
             assert_eq!(
                 credentials.get("algorithm"),
-                Some(&AuthParam::ALGORITHM_MD5)
+                Some(&AuthParameter::ALGORITHM_MD5)
             );
         }
 

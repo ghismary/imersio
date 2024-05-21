@@ -6,7 +6,7 @@ use nom::{
     combinator::{map, opt, recognize, verify},
     error::context,
     multi::{count, many0, many_m_n},
-    sequence::{delimited, pair, preceded, separated_pair},
+    sequence::{delimited, pair, preceded, separated_pair, tuple},
 };
 
 use crate::{
@@ -16,17 +16,19 @@ use crate::{
         rdquot, semi, slash, token, word, ParserResult,
     },
     uri::parser::{absolute_uri, host},
+    GenericParameter,
 };
 
 use super::{
     accept_encoding_header::{AcceptEncodingHeader, Encoding},
     accept_header::{AcceptHeader, AcceptParameter, AcceptRange, MediaRange},
     accept_language_header::{AcceptLanguageHeader, Language},
-    alert_info_header::{AlertInfoHeader, AlertParam},
+    alert_info_header::{AlertInfoHeader, AlertParameter},
     allow_header::AllowHeader,
     authentication_info_header::{AInfo, AuthenticationInfoHeader},
-    authorization_header::{AuthParam, AuthorizationHeader, Credentials},
+    authorization_header::{AuthParameter, AuthorizationHeader, Credentials},
     call_id_header::CallIdHeader,
+    call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter},
     Header,
 };
 
@@ -115,17 +117,18 @@ fn gen_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     alt((token, host, quoted_string))(input)
 }
 
-fn generic_param(input: &[u8]) -> ParserResult<&[u8], AcceptParameter> {
-    pair(token, opt(preceded(equal, gen_value)))(input).map(|(rest, (key, value))| {
-        (
-            rest,
-            AcceptParameter::new(key.into_owned(), value.map(|v| v.into_owned())),
-        )
-    })
+fn generic_param(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
+    map(
+        pair(token, opt(preceded(equal, gen_value))),
+        |(key, value)| GenericParameter::new(key.to_string(), value.map(|v| v.to_string())),
+    )(input)
 }
 
 fn accept_param(input: &[u8]) -> ParserResult<&[u8], AcceptParameter> {
-    context("accept_param", alt((q_param, generic_param)))(input)
+    context(
+        "accept_param",
+        alt((q_param, map(generic_param, Into::into))),
+    )(input)
 }
 
 fn accept_range(input: &[u8]) -> ParserResult<&[u8], AcceptRange> {
@@ -244,15 +247,15 @@ fn accept_language(input: &[u8]) -> ParserResult<&[u8], Header> {
     })
 }
 
-fn alert_param(input: &[u8]) -> ParserResult<&[u8], AlertParam> {
+fn alert_param(input: &[u8]) -> ParserResult<&[u8], AlertParameter> {
     context(
         "alert_param",
         pair(
             delimited(laquot, absolute_uri, raquot),
-            many0(preceded(semi, generic_param)),
+            many0(preceded(semi, map(generic_param, Into::into))),
         ),
     )(input)
-    .map(|(rest, (uri, params))| (rest, AlertParam::new(uri, params)))
+    .map(|(rest, (uri, params))| (rest, AlertParameter::new(uri, params)))
 }
 
 fn alert_info(input: &[u8]) -> ParserResult<&[u8], Header> {
@@ -395,9 +398,9 @@ fn username_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     quoted_string(input)
 }
 
-fn username(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn username(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     separated_pair(tag("username"), equal, username_value)(input)
-        .map(|(rest, (_, value))| (rest, AuthParam::Username(value.into_owned())))
+        .map(|(rest, (_, value))| (rest, AuthParameter::Username(value.into_owned())))
 }
 
 #[inline]
@@ -405,14 +408,14 @@ fn realm_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     quoted_string(input)
 }
 
-fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     separated_pair(tag("realm"), equal, realm_value)(input)
-        .map(|(rest, (_, value))| (rest, AuthParam::Realm(value.into_owned())))
+        .map(|(rest, (_, value))| (rest, AuthParameter::Realm(value.into_owned())))
 }
 
-fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     separated_pair(tag("nonce"), equal, nonce_value)(input)
-        .map(|(rest, (_, value))| (rest, AuthParam::Nonce(value.into_owned())))
+        .map(|(rest, (_, value))| (rest, AuthParameter::Nonce(value.into_owned())))
 }
 
 fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -421,9 +424,9 @@ fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     quoted_string(input)
 }
 
-fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     separated_pair(tag("uri"), equal, digest_uri_value)(input)
-        .map(|(rest, (_, value))| (rest, AuthParam::DigestUri(value.into_owned())))
+        .map(|(rest, (_, value))| (rest, AuthParameter::DigestUri(value.into_owned())))
 }
 
 fn request_digest(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -431,12 +434,12 @@ fn request_digest(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
         .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
 }
 
-fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     separated_pair(tag("response"), equal, request_digest)(input)
-        .map(|(rest, (_, value))| (rest, AuthParam::DResponse(value.into_owned())))
+        .map(|(rest, (_, value))| (rest, AuthParameter::DResponse(value.into_owned())))
 }
 
-fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     separated_pair(
         tag("algorithm"),
         equal,
@@ -446,12 +449,17 @@ fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
             token,
         )),
     )(input)
-    .map(|(rest, (_, value))| (rest, AuthParam::Algorithm(Cow::Owned(value.into_owned()))))
+    .map(|(rest, (_, value))| {
+        (
+            rest,
+            AuthParameter::Algorithm(Cow::Owned(value.into_owned())),
+        )
+    })
 }
 
-fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     separated_pair(tag("opaque"), equal, quoted_string)(input)
-        .map(|(rest, (_, value))| (rest, AuthParam::Opaque(value.into_owned())))
+        .map(|(rest, (_, value))| (rest, AuthParameter::Opaque(value.into_owned())))
 }
 
 #[inline]
@@ -459,12 +467,18 @@ fn auth_param_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
 }
 
-fn auth_param(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
-    separated_pair(auth_param_name, equal, alt((token, quoted_string)))(input)
-        .map(|(rest, (key, value))| (rest, AuthParam::Other(key.to_string(), value.to_string())))
+fn auth_param(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+    separated_pair(auth_param_name, equal, alt((token, quoted_string)))(input).map(
+        |(rest, (key, value))| {
+            (
+                rest,
+                AuthParameter::Other(key.to_string(), value.to_string()),
+            )
+        },
+    )
 }
 
-fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
+fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     alt((
         username,
         realm,
@@ -494,7 +508,7 @@ fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParam> {
     ))(input)
 }
 
-fn digest_response(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParam>> {
+fn digest_response(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParameter>> {
     pair(dig_resp, many0(preceded(comma, dig_resp)))(input).map(
         |(rest, (first_param, mut other_params))| {
             other_params.insert(0, first_param);
@@ -508,7 +522,7 @@ fn auth_scheme(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
 }
 
-fn auth_params(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParam>> {
+fn auth_params(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParameter>> {
     pair(auth_param, many0(preceded(comma, auth_param)))(input).map(
         |(rest, (first_param, mut other_params))| {
             other_params.insert(0, first_param);
@@ -565,6 +579,56 @@ fn call_id(input: &[u8]) -> ParserResult<&[u8], Header> {
     .map(|(rest, (_, call_id))| (rest, Header::CallId(CallIdHeader::new(call_id.to_string()))))
 }
 
+fn info_param(input: &[u8]) -> ParserResult<&[u8], CallInfoParameter> {
+    map(
+        alt((
+            map(
+                separated_pair(
+                    map(tag("purpose"), String::from_utf8_lossy),
+                    equal,
+                    map(
+                        alt((
+                            map(tag("icon"), String::from_utf8_lossy),
+                            map(tag("info"), String::from_utf8_lossy),
+                            map(tag("card"), String::from_utf8_lossy),
+                            token,
+                        )),
+                        Some,
+                    ),
+                ),
+                |(key, value)| GenericParameter::new(key.to_string(), value.map(Into::into)),
+            ),
+            generic_param,
+        )),
+        Into::into,
+    )(input)
+}
+
+fn info(input: &[u8]) -> ParserResult<&[u8], CallInfo> {
+    tuple((
+        laquot,
+        absolute_uri,
+        raquot,
+        many0(preceded(semi, info_param)),
+    ))(input)
+    .map(|(rest, (_, uri, _, params))| (rest, CallInfo::new(uri, params)))
+}
+
+fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "call_info",
+        separated_pair(
+            tag("Call-Info"),
+            hcolon,
+            pair(info, many0(preceded(comma, info))),
+        ),
+    )(input)
+    .map(|(rest, (_, (first_info, mut other_infos)))| {
+        other_infos.insert(0, first_info);
+        (rest, Header::CallInfo(CallInfoHeader::new(other_infos)))
+    })
+}
+
 pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
@@ -577,6 +641,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             authentication_info,
             authorization,
             call_id,
+            call_info,
         )),
     )(input)
 }

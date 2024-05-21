@@ -4,8 +4,6 @@
 
 #![deny(warnings, missing_docs, missing_debug_implementations)]
 
-pub mod parser;
-
 pub mod header;
 pub mod method;
 pub mod reason;
@@ -14,12 +12,16 @@ pub mod response;
 pub mod uri;
 pub mod version;
 
+mod common;
 mod error;
+mod parser;
 mod utils;
 
 pub use bytes::Bytes;
 
+pub use crate::common::GenericParameter;
 pub use crate::error::Error;
+
 pub use crate::header::Header;
 pub use crate::method::Method;
 pub use crate::reason::{Reason, StatusCode};

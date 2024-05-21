@@ -1,5 +1,7 @@
 use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
+use crate::GenericParameter;
+
 #[derive(Clone, Debug, Default)]
 pub struct AcceptHeader(Vec<AcceptRange>);
 
@@ -192,6 +194,15 @@ impl Ord for AcceptParameter {
             ord => return ord,
         }
         self.value.cmp(&other.value)
+    }
+}
+
+impl From<GenericParameter> for AcceptParameter {
+    fn from(value: GenericParameter) -> Self {
+        Self {
+            key: value.key().to_string(),
+            value: value.value().map(Into::into),
+        }
     }
 }
 
