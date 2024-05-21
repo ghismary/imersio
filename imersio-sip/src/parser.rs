@@ -277,6 +277,15 @@ pub(crate) fn token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
         .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
 }
 
+pub(crate) fn word(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    input
+        .split_at_position1_complete(
+            |item| !(is_alphanumeric(item) || b"-.!%*_+`'~()<>:\\\"/[]?{}".contains(&item)),
+            ErrorKind::AlphaNumeric,
+        )
+        .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
+}
+
 pub(crate) fn ttl(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     recognize(many_m_n(1, 3, digit))(input)
 }

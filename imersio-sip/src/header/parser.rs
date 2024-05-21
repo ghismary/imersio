@@ -13,7 +13,7 @@ use crate::{
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
-        rdquot, semi, slash, token, ParserResult,
+        rdquot, semi, slash, token, word, ParserResult,
     },
     uri::parser::{absolute_uri, host},
 };
@@ -26,6 +26,7 @@ use super::{
     allow_header::AllowHeader,
     authentication_info_header::{AInfo, AuthenticationInfoHeader},
     authorization_header::{AuthParam, AuthorizationHeader, Credentials},
+    call_id_header::CallIdHeader,
     Header,
 };
 
@@ -551,6 +552,19 @@ fn authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
     })
 }
 
+fn callid(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    recognize(pair(word, opt(pair(tag("@"), word))))(input)
+        .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
+}
+
+fn call_id(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "call_id",
+        separated_pair(alt((tag("Call-ID"), tag("i"))), hcolon, callid),
+    )(input)
+    .map(|(rest, (_, call_id))| (rest, Header::CallId(CallIdHeader::new(call_id.to_string()))))
+}
+
 pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
@@ -562,6 +576,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             allow,
             authentication_info,
             authorization,
+            call_id,
         )),
     )(input)
 }
