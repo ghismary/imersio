@@ -6,7 +6,7 @@ use nom::branch::alt;
 use nom::bytes::complete::{tag, take};
 use nom::character::complete::crlf;
 use nom::character::{is_alphabetic, is_alphanumeric, is_digit};
-use nom::combinator::{map_res, opt, recognize, verify};
+use nom::combinator::{map, map_res, opt, recognize, verify};
 use nom::error::{ErrorKind, VerboseError};
 use nom::multi::{count, many0, many1, many_m_n};
 use nom::sequence::{pair, preceded, tuple};
@@ -15,7 +15,7 @@ use nom::{IResult, InputTakeAtPosition};
 pub(crate) type ParserResult<T, U> = IResult<T, U, VerboseError<T>>;
 
 pub(crate) fn take1(input: &[u8]) -> ParserResult<&[u8], u8> {
-    take(1usize)(input).map(|(rest, result)| (rest, result[0]))
+    map(take(1usize), |b: &[u8]| b[0])(input)
 }
 
 pub(crate) fn is_reserved(b: u8) -> bool {
@@ -187,13 +187,15 @@ fn quoted_pair(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
 }
 
 pub(crate) fn quoted_string(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    tuple((
-        sws,
-        dquote,
-        recognize(many0(alt((qdtext, quoted_pair)))),
-        dquote,
-    ))(input)
-    .map(|(rest, (_, _, value, _))| (rest, String::from_utf8_lossy(value)))
+    map(
+        tuple((
+            sws,
+            dquote,
+            recognize(many0(alt((qdtext, quoted_pair)))),
+            dquote,
+        )),
+        |(_, _, value, _)| String::from_utf8_lossy(value),
+    )(input)
 }
 
 pub(crate) fn escaped(input: &[u8]) -> ParserResult<&[u8], &[u8]> {

@@ -760,16 +760,14 @@ pub(crate) mod parser {
     }
 
     fn user(input: &[u8]) -> ParserResult<&[u8], String> {
-        context("user", many1(alt((unreserved, escaped, user_unreserved))))(input).map(
-            |(rest, user)| {
-                (
-                    rest,
-                    user.iter()
-                        .map(|b| String::from_utf8_lossy(b))
-                        .collect::<String>(),
-                )
-            },
-        )
+        context(
+            "user",
+            map(many1(alt((unreserved, escaped, user_unreserved))), |user| {
+                user.iter()
+                    .map(|b| String::from_utf8_lossy(b))
+                    .collect::<String>()
+            }),
+        )(input)
     }
 
     #[inline]
@@ -784,26 +782,27 @@ pub(crate) mod parser {
     fn password(input: &[u8]) -> ParserResult<&[u8], String> {
         context(
             "password",
-            many0(alt((unreserved, escaped, password_special_char))),
+            map(
+                many0(alt((unreserved, escaped, password_special_char))),
+                |password| {
+                    password
+                        .iter()
+                        .map(|b| String::from_utf8_lossy(b))
+                        .collect::<String>()
+                },
+            ),
         )(input)
-        .map(|(rest, password)| {
-            (
-                rest,
-                password
-                    .iter()
-                    .map(|b| String::from_utf8_lossy(b))
-                    .collect::<String>(),
-            )
-        })
     }
 
     fn userinfo(input: &[u8]) -> ParserResult<&[u8], UserInfo> {
-        tuple((
-            user, // TODO: alt((user, telephone_subscriber)),
-            opt(preceded(tag(":"), password)),
-            tag("@"),
-        ))(input)
-        .map(|(rest, (user, password, _))| (rest, UserInfo { user, password }))
+        map(
+            tuple((
+                user, // TODO: alt((user, telephone_subscriber)),
+                opt(preceded(tag(":"), password)),
+                tag("@"),
+            )),
+            |(user, password, _)| UserInfo { user, password },
+        )(input)
     }
 
     fn is_valid_hostname(input: &str) -> bool {
@@ -855,24 +854,25 @@ pub(crate) mod parser {
     }
 
     fn ipv4_address_number(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-        recognize(many_m_n(1, 3, digit))(input)
-            .map(|(rest, num)| (rest, String::from_utf8_lossy(num)))
+        map(recognize(many_m_n(1, 3, digit)), String::from_utf8_lossy)(input)
     }
 
     fn ipv4_address(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
         context(
             "ipv4_address",
-            recognize(tuple((
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-                tag("."),
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-                tag("."),
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-                tag("."),
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-            ))),
+            map(
+                recognize(tuple((
+                    verify(ipv4_address_number, is_valid_ipv4_address_number),
+                    tag("."),
+                    verify(ipv4_address_number, is_valid_ipv4_address_number),
+                    tag("."),
+                    verify(ipv4_address_number, is_valid_ipv4_address_number),
+                    tag("."),
+                    verify(ipv4_address_number, is_valid_ipv4_address_number),
+                ))),
+                String::from_utf8_lossy,
+            ),
         )(input)
-        .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
     }
 
     fn hex4(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
@@ -901,9 +901,11 @@ pub(crate) mod parser {
     fn ipv6_reference(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
         context(
             "ipv6_reference",
-            recognize(tuple((tag("["), ipv6_address, tag("]")))),
+            map(
+                recognize(tuple((tag("["), ipv6_address, tag("]")))),
+                String::from_utf8_lossy,
+            ),
         )(input)
-        .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
     }
 
     pub(crate) fn host(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -916,61 +918,74 @@ pub(crate) mod parser {
     }
 
     fn hostport(input: &[u8]) -> ParserResult<&[u8], HostPort> {
-        pair(host, opt(preceded(tag(":"), port)))(input).map(|(rest, (host, port))| {
-            (
-                rest,
-                HostPort {
-                    host: host.to_string(),
-                    port,
-                },
-            )
-        })
+        map(pair(host, opt(preceded(tag(":"), port))), |(host, port)| {
+            HostPort {
+                host: host.to_string(),
+                port,
+            }
+        })(input)
     }
 
     fn transport_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
         context(
             "transport_param",
-            separated_pair(tag("transport"), tag("="), token),
+            map(
+                separated_pair(tag("transport"), tag("="), token),
+                |(name, value)| (String::from_utf8_lossy(name), value),
+            ),
         )(input)
-        .map(|(rest, (name, value))| (rest, (String::from_utf8_lossy(name), value)))
     }
 
     fn user_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
-        context("user_param", separated_pair(tag("user"), tag("="), token))(input)
-            .map(|(rest, (name, value))| (rest, (String::from_utf8_lossy(name), value)))
+        context(
+            "user_param",
+            map(
+                separated_pair(tag("user"), tag("="), token),
+                |(name, value)| (String::from_utf8_lossy(name), value),
+            ),
+        )(input)
     }
 
     fn method_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
         context(
             "method_param",
-            separated_pair(tag("method"), tag("="), token),
+            map(
+                separated_pair(tag("method"), tag("="), token),
+                |(name, value)| (String::from_utf8_lossy(name), value),
+            ),
         )(input)
-        .map(|(rest, (name, value))| (rest, (String::from_utf8_lossy(name), value)))
     }
 
     fn ttl_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
-        context("ttl_param", separated_pair(tag("ttl"), tag("="), ttl))(input).map(
-            |(rest, (name, value))| {
-                (
-                    rest,
+        context(
+            "ttl_param",
+            map(
+                separated_pair(tag("ttl"), tag("="), ttl),
+                |(name, value)| {
                     (
                         String::from_utf8_lossy(name),
                         String::from_utf8_lossy(value),
-                    ),
-                )
-            },
-        )
+                    )
+                },
+            ),
+        )(input)
     }
 
     fn maddr_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
-        context("maddr_param", separated_pair(tag("maddr"), tag("="), host))(input)
-            .map(|(rest, (name, value))| (rest, (String::from_utf8_lossy(name), value)))
+        context(
+            "maddr_param",
+            map(
+                separated_pair(tag("maddr"), tag("="), host),
+                |(name, value)| (String::from_utf8_lossy(name), value),
+            ),
+        )(input)
     }
 
     #[inline]
     fn lr_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
-        context("lr_param", tag("lr"))(input)
-            .map(|(rest, name)| (rest, (String::from_utf8_lossy(name), Cow::from(""))))
+        map(context("lr_param", tag("lr")), |name| {
+            (String::from_utf8_lossy(name), Cow::from(""))
+        })(input)
     }
 
     #[inline]
@@ -987,34 +1002,39 @@ pub(crate) mod parser {
     }
 
     fn pname(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-        context("pname", many1(paramchar))(input).map(|(rest, pname)| {
-            (
-                rest,
+        context(
+            "pname",
+            map(many1(paramchar), |pname| {
                 pname
                     .iter()
                     .map(|b| String::from_utf8_lossy(b))
                     .collect::<String>()
-                    .into(),
-            )
-        })
+                    .into()
+            }),
+        )(input)
     }
 
     fn pvalue(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-        context("pvalue", many1(paramchar))(input).map(|(rest, pvalue)| {
-            (
-                rest,
+        context(
+            "pvalue",
+            map(many1(paramchar), |pvalue| {
                 pvalue
                     .iter()
                     .map(|b| String::from_utf8_lossy(b))
                     .collect::<String>()
-                    .into(),
-            )
-        })
+                    .into()
+            }),
+        )(input)
     }
 
     fn other_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
-        context("other_param", pair(pname, opt(preceded(tag("="), pvalue))))(input)
-            .map(|(rest, (name, value))| (rest, (name, value.unwrap_or_default())))
+        context(
+            "other_param",
+            map(
+                pair(pname, opt(preceded(tag("="), pvalue))),
+                |(name, value)| (name, value.unwrap_or_default()),
+            ),
+        )(input)
     }
 
     fn uri_parameter(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
@@ -1030,28 +1050,26 @@ pub(crate) mod parser {
     }
 
     fn uri_parameters(input: &[u8]) -> ParserResult<&[u8], Parameters> {
-        context("uri_parameters", many0(preceded(tag(";"), uri_parameter)))(input).map(
-            |(rest, parameters)| {
-                (
-                    rest,
-                    Parameters(
-                        parameters
-                            .into_iter()
-                            .map(|(k, v)| {
-                                (
-                                    k.into_owned(),
-                                    if v.is_empty() {
-                                        None
-                                    } else {
-                                        Some(v.into_owned())
-                                    },
-                                )
-                            })
-                            .collect::<Vec<(String, Option<String>)>>(),
-                    ),
+        context(
+            "uri_parameters",
+            map(many0(preceded(tag(";"), uri_parameter)), |parameters| {
+                Parameters(
+                    parameters
+                        .into_iter()
+                        .map(|(k, v)| {
+                            (
+                                k.into_owned(),
+                                if v.is_empty() {
+                                    None
+                                } else {
+                                    Some(v.into_owned())
+                                },
+                            )
+                        })
+                        .collect::<Vec<(String, Option<String>)>>(),
                 )
-            },
-        )
+            }),
+        )(input)
     }
 
     #[inline]
@@ -1064,30 +1082,26 @@ pub(crate) mod parser {
     }
 
     fn hname(input: &[u8]) -> ParserResult<&[u8], String> {
-        context("hname", many1(alt((hnv_unreserved, unreserved, escaped))))(input).map(
-            |(rest, name)| {
-                (
-                    rest,
-                    name.iter()
-                        .map(|b| String::from_utf8_lossy(b))
-                        .collect::<String>(),
-                )
-            },
-        )
+        context(
+            "hname",
+            map(many1(alt((hnv_unreserved, unreserved, escaped))), |name| {
+                name.iter()
+                    .map(|b| String::from_utf8_lossy(b))
+                    .collect::<String>()
+            }),
+        )(input)
     }
 
     fn hvalue(input: &[u8]) -> ParserResult<&[u8], String> {
-        context("hvalue", many0(alt((hnv_unreserved, unreserved, escaped))))(input).map(
-            |(rest, value)| {
-                (
-                    rest,
-                    value
-                        .iter()
-                        .map(|b| String::from_utf8_lossy(b))
-                        .collect::<String>(),
-                )
-            },
-        )
+        context(
+            "hvalue",
+            map(many0(alt((hnv_unreserved, unreserved, escaped))), |value| {
+                value
+                    .iter()
+                    .map(|b| String::from_utf8_lossy(b))
+                    .collect::<String>()
+            }),
+        )(input)
     }
 
     fn header(input: &[u8]) -> ParserResult<&[u8], (String, String)> {
@@ -1097,71 +1111,68 @@ pub(crate) mod parser {
     fn headers(input: &[u8]) -> ParserResult<&[u8], Headers> {
         context(
             "headers",
-            pair(
-                preceded(tag("?"), header),
-                many0(preceded(tag("&"), header)),
+            map(
+                pair(
+                    preceded(tag("?"), header),
+                    many0(preceded(tag("&"), header)),
+                ),
+                |(first_header, mut other_headers)| {
+                    let mut headers = vec![first_header];
+                    headers.append(&mut other_headers);
+                    Headers(headers.into_iter().collect::<Vec<(String, String)>>())
+                },
             ),
         )(input)
-        .map(|(rest, (first_header, mut other_headers))| {
-            let mut headers = vec![first_header];
-            headers.append(&mut other_headers);
-            (
-                rest,
-                Headers(headers.into_iter().collect::<Vec<(String, String)>>()),
-            )
-        })
     }
 
     fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
         context(
             "sip",
-            tuple((
-                tag_no_case("sip:"),
-                opt(userinfo),
-                hostport,
-                cut(verify(uri_parameters, |params| {
-                    has_unique_elements(params.iter().map(|p| &p.0))
-                })),
-                opt(headers),
-            )),
-        )(input)
-        .map(|(rest, (_, userinfo, hostport, parameters, headers))| {
-            (
-                rest,
-                Uri::Sip(SipUri {
-                    scheme: Scheme::SIP,
-                    userinfo,
+            map(
+                tuple((
+                    tag_no_case("sip:"),
+                    opt(userinfo),
                     hostport,
-                    parameters,
-                    headers: headers.unwrap_or_default(),
-                }),
-            )
-        })
+                    cut(verify(uri_parameters, |params| {
+                        has_unique_elements(params.iter().map(|p| &p.0))
+                    })),
+                    opt(headers),
+                )),
+                |(_, userinfo, hostport, parameters, headers)| {
+                    Uri::Sip(SipUri {
+                        scheme: Scheme::SIP,
+                        userinfo,
+                        hostport,
+                        parameters,
+                        headers: headers.unwrap_or_default(),
+                    })
+                },
+            ),
+        )(input)
     }
 
     fn sips_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
         context(
             "sips_uri",
-            tuple((
-                tag_no_case("sips:"),
-                opt(userinfo),
-                hostport,
-                uri_parameters,
-                opt(headers),
-            )),
-        )(input)
-        .map(|(rest, (_, userinfo, hostport, parameters, headers))| {
-            (
-                rest,
-                Uri::Sip(SipUri {
-                    scheme: Scheme::SIPS,
-                    userinfo,
+            map(
+                tuple((
+                    tag_no_case("sips:"),
+                    opt(userinfo),
                     hostport,
-                    parameters,
-                    headers: headers.unwrap_or_default(),
-                }),
-            )
-        })
+                    uri_parameters,
+                    opt(headers),
+                )),
+                |(_, userinfo, hostport, parameters, headers)| {
+                    Uri::Sip(SipUri {
+                        scheme: Scheme::SIPS,
+                        userinfo,
+                        hostport,
+                        parameters,
+                        headers: headers.unwrap_or_default(),
+                    })
+                },
+            ),
+        )(input)
     }
 
     fn uric(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
@@ -1181,38 +1192,39 @@ pub(crate) mod parser {
     fn scheme(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
         context(
             "scheme",
-            recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
+            map(
+                recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
+                String::from_utf8_lossy,
+            ),
         )(input)
-        .map(|(rest, scheme)| (rest, String::from_utf8_lossy(scheme)))
     }
 
     fn opaque_part(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-        recognize(pair(uric_no_slash, many0(uric)))(input)
-            .map(|(rest, opaque_part)| (rest, String::from_utf8_lossy(opaque_part)))
+        map(
+            recognize(pair(uric_no_slash, many0(uric))),
+            String::from_utf8_lossy,
+        )(input)
     }
 
     pub(crate) fn absolute_uri(input: &[u8]) -> ParserResult<&[u8], AbsoluteUri> {
         context(
             "absolute_uri",
-            separated_pair(
-                verify(scheme, |s: &str| {
-                    !(s.eq_ignore_ascii_case("sip") || s.eq_ignore_ascii_case("sips"))
-                }),
-                tag(":"),
-                opaque_part,
-            ),
-        )(input)
-        .map(|(rest, (scheme, opaque_part))| {
-            (
-                rest,
-                AbsoluteUri {
+            map(
+                separated_pair(
+                    verify(scheme, |s: &str| {
+                        !(s.eq_ignore_ascii_case("sip") || s.eq_ignore_ascii_case("sips"))
+                    }),
+                    tag(":"),
+                    opaque_part,
+                ),
+                |(scheme, opaque_part)| AbsoluteUri {
                     scheme: Scheme::Other(scheme.into_owned()),
                     opaque_part: opaque_part.into_owned(),
                     parameters: Parameters::default(),
                     headers: Headers::default(),
                 },
-            )
-        })
+            ),
+        )(input)
     }
 
     pub(crate) fn uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
