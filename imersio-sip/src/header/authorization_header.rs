@@ -1,6 +1,9 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::collections::HashSet;
 
-use crate::Error;
+use crate::{
+    common::{Algorithm, MessageQop},
+    Error,
+};
 
 use super::authentication_info_header::AInfo;
 
@@ -81,6 +84,60 @@ impl Credentials {
         match self {
             Self::Digest(params) => params,
             Self::Other(_, params) => params,
+        }
+    }
+
+    /// Tells whether the Authorization header contains a `algorithm` value.
+    pub fn has_algorithm(&self) -> bool {
+        match self {
+            Self::Digest(params) => params
+                .iter()
+                .any(|param| matches!(param, AuthParameter::Algorithm(_))),
+            _ => false,
+        }
+    }
+
+    /// Get the `algorithm` value from the Authorization header.
+    pub fn algorithm(&self) -> Option<&Algorithm> {
+        match self {
+            Self::Digest(params) => params
+                .iter()
+                .find(|param| matches!(param, AuthParameter::Algorithm(_)))
+                .and_then(|param| {
+                    if let AuthParameter::Algorithm(value) = param {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                }),
+            _ => None,
+        }
+    }
+
+    /// Tells whether the Authorization header contains a `qop` value.
+    pub fn has_message_qop(&self) -> bool {
+        match self {
+            Self::Digest(params) => params
+                .iter()
+                .any(|param| matches!(param, AuthParameter::MessageQop(_))),
+            _ => false,
+        }
+    }
+
+    /// Get the `qop` value from the Authorization header.
+    pub fn message_qop(&self) -> Option<&MessageQop> {
+        match self {
+            Self::Digest(params) => params
+                .iter()
+                .find(|param| matches!(param, AuthParameter::MessageQop(_)))
+                .and_then(|param| {
+                    if let AuthParameter::MessageQop(value) = param {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                }),
+            _ => None,
         }
     }
 }
@@ -190,10 +247,8 @@ credentials! {
     (nonce, has_nonce, Nonce);
     (digest_uri, has_digest_uri, DigestUri);
     (dresponse, has_dresponse, DResponse);
-    (algorithm, has_algorithm, Algorithm);
     (cnonce, has_cnonce, CNonce);
     (opaque, has_opaque, Opaque);
-    (message_qop, has_message_qop, MessageQop);
     (nonce_count, has_nonce_count, NonceCount);
 }
 
@@ -204,18 +259,15 @@ pub enum AuthParameter {
     Nonce(String),
     DigestUri(String),
     DResponse(String),
-    Algorithm(Cow<'static, str>),
+    Algorithm(Algorithm),
     CNonce(String),
     Opaque(String),
-    MessageQop(String),
+    MessageQop(MessageQop),
     NonceCount(String),
     Other(String, String),
 }
 
 impl AuthParameter {
-    pub const ALGORITHM_MD5: Self = Self::Algorithm(Cow::Borrowed("MD5"));
-    pub const ALGORITHM_MD5_SESS: Self = Self::Algorithm(Cow::Borrowed("MD5-sess"));
-
     pub fn key(&self) -> &str {
         match self {
             Self::Username(_) => "username",
@@ -239,10 +291,10 @@ impl AuthParameter {
             Self::Nonce(value) => value,
             Self::DigestUri(value) => value,
             Self::DResponse(value) => value,
-            Self::Algorithm(value) => value,
+            Self::Algorithm(value) => value.value(),
             Self::CNonce(value) => value,
             Self::Opaque(value) => value,
-            Self::MessageQop(value) => value,
+            Self::MessageQop(value) => value.value(),
             Self::NonceCount(value) => value,
             Self::Other(_, value) => value,
         }
@@ -260,7 +312,7 @@ impl std::fmt::Display for AuthParameter {
             Self::Algorithm(value) => ("algorithm".to_string(), value.to_string()),
             Self::CNonce(value) => ("cnonce".to_string(), format!("\"{value}\"")),
             Self::Opaque(value) => ("opaque".to_string(), format!("\"{value}\"")),
-            Self::MessageQop(value) => ("qop".to_string(), value.clone()),
+            Self::MessageQop(value) => ("qop".to_string(), value.value().to_string()),
             Self::NonceCount(value) => ("nc".to_string(), value.clone()),
             Self::Other(key, value) => (key.clone(), value.clone()),
         };
@@ -295,7 +347,11 @@ impl TryFrom<AInfo> for AuthParameter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{header::authorization_header::AuthParameter, Header};
+    use crate::{
+        common::{Algorithm, MessageQop},
+        header::authorization_header::AuthParameter,
+        Header,
+    };
     use std::str::FromStr;
 
     #[test]
@@ -351,7 +407,7 @@ mod tests {
             assert!(credentials.has_digest_uri());
             assert_eq!(credentials.digest_uri(), Some("sip:bob@biloxi.com"));
             assert!(credentials.has_message_qop());
-            assert_eq!(credentials.message_qop(), Some("auth"));
+            assert_eq!(credentials.message_qop(), Some(&MessageQop::Auth));
             assert!(credentials.has_nonce_count());
             assert_eq!(credentials.nonce_count(), Some("00000001"));
             assert!(credentials.has_cnonce());
@@ -380,12 +436,12 @@ mod tests {
             assert!(credentials.has_algorithm());
             assert_eq!(
                 credentials.auth_params().first().unwrap(),
-                AuthParameter::ALGORITHM_MD5
+                AuthParameter::Algorithm(Algorithm::Md5)
             );
             assert!(credentials.contains("algorithm"));
             assert_eq!(
                 credentials.get("algorithm"),
-                Some(&AuthParameter::ALGORITHM_MD5)
+                Some(&AuthParameter::Algorithm(Algorithm::Md5))
             );
         }
 

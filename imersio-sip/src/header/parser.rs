@@ -10,7 +10,7 @@ use nom::{
 };
 
 use crate::{
-    common::AcceptParameter,
+    common::{AcceptParameter, Algorithm, MessageQop},
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
@@ -329,7 +329,7 @@ fn message_qop(input: &[u8]) -> ParserResult<&[u8], AInfo> {
         "message_qop",
         map(
             separated_pair(tag("qop"), equal, qop_value),
-            |(_, value)| AInfo::MessageQop(value.into_owned()),
+            |(_, value)| AInfo::MessageQop(MessageQop::new(value.into_owned())),
         ),
     )(input)
 }
@@ -478,7 +478,7 @@ fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
                 token,
             )),
         ),
-        |(_, value)| AuthParameter::Algorithm(Cow::Owned(value.into_owned())),
+        |(_, value)| AuthParameter::Algorithm(Algorithm::new(value.into_owned())),
     )(input)
 }
 

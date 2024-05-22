@@ -134,3 +134,89 @@ impl From<GenericParameter> for AcceptParameter {
         Self::Other(value.key().to_string(), value.value().map(Into::into))
     }
 }
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum Algorithm {
+    Md5,
+    Md5Sess,
+    Other(String),
+}
+
+impl Algorithm {
+    pub(crate) fn new(algo: String) -> Self {
+        match algo.as_str() {
+            "MD5" => Self::Md5,
+            "MD5-Sess" => Self::Md5Sess,
+            _ => Self::Other(algo),
+        }
+    }
+
+    pub fn value(&self) -> &str {
+        match self {
+            Self::Md5 => "MD5",
+            Self::Md5Sess => "MD5-Sess",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl std::fmt::Display for Algorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value())
+    }
+}
+
+impl PartialEq<&Algorithm> for Algorithm {
+    fn eq(&self, other: &&Algorithm) -> bool {
+        self == *other
+    }
+}
+
+impl PartialEq<Algorithm> for &Algorithm {
+    fn eq(&self, other: &Algorithm) -> bool {
+        *self == other
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum MessageQop {
+    Auth,
+    AuthInt,
+    Other(String),
+}
+
+impl MessageQop {
+    pub(crate) fn new(qop: String) -> Self {
+        match qop.as_str() {
+            "auth" => Self::Auth,
+            "auth-int" => Self::AuthInt,
+            _ => Self::Other(qop),
+        }
+    }
+
+    pub fn value(&self) -> &str {
+        match self {
+            Self::Auth => "auth",
+            Self::AuthInt => "auth-int",
+            Self::Other(value) => value,
+        }
+    }
+}
+
+impl std::fmt::Display for MessageQop {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value())
+    }
+}
+
+impl PartialEq<&MessageQop> for MessageQop {
+    fn eq(&self, other: &&MessageQop) -> bool {
+        self == *other
+    }
+}
+
+impl PartialEq<MessageQop> for &MessageQop {
+    fn eq(&self, other: &MessageQop) -> bool {
+        *self == other
+    }
+}

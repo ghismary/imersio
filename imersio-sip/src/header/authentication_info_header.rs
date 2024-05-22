@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use crate::common::MessageQop;
+
 #[derive(Clone, Debug)]
 pub struct AuthenticationInfoHeader(Vec<AInfo>);
 
@@ -11,6 +13,25 @@ impl AuthenticationInfoHeader {
     /// Get the number of `AInfo` in the Authentication-Info header.
     pub fn count(&self) -> usize {
         self.0.len()
+    }
+
+    /// Tells whether the Authentication-Info header contains a `qop` value.
+    pub fn has_message_qop(&self) -> bool {
+        self.0.iter().any(|ai| matches!(ai, AInfo::MessageQop(_)))
+    }
+
+    /// Get the `qop` value from the Authentication-Info header.
+    pub fn message_qop(&self) -> Option<&MessageQop> {
+        self.0
+            .iter()
+            .find(|ai| matches!(ai, AInfo::MessageQop(_)))
+            .and_then(|ai| {
+                if let AInfo::MessageQop(value) = ai {
+                    Some(value)
+                } else {
+                    None
+                }
+            })
     }
 }
 
@@ -83,7 +104,6 @@ macro_rules! authentication_info_header {
 
 authentication_info_header! {
     (next_nonce, has_next_nonce, NextNonce);
-    (message_qop, has_message_qop, MessageQop);
     (response_auth, has_response_auth, ResponseAuth);
     (cnonce, has_cnonce, CNonce);
     (nonce_count, has_nonce_count, NonceCount);
@@ -93,7 +113,7 @@ authentication_info_header! {
 #[non_exhaustive]
 pub enum AInfo {
     NextNonce(String),
-    MessageQop(String),
+    MessageQop(MessageQop),
     ResponseAuth(String),
     CNonce(String),
     NonceCount(String),
@@ -103,7 +123,7 @@ impl std::fmt::Display for AInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (key, value) = match self {
             Self::NextNonce(value) => ("nextnonce", format!("\"{value}\"")),
-            Self::MessageQop(value) => ("qop", value.clone()),
+            Self::MessageQop(value) => ("qop", value.value().to_string()),
             Self::ResponseAuth(value) => ("rspauth", format!("\"{value}\"")),
             Self::CNonce(value) => ("cnonce", format!("\"{value}\"")),
             Self::NonceCount(value) => ("nc", value.clone()),
@@ -114,7 +134,7 @@ impl std::fmt::Display for AInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::Header;
+    use crate::{common::MessageQop, Header};
     use std::str::FromStr;
 
     #[test]
@@ -140,7 +160,7 @@ mod tests {
             assert_eq!(header.count(), 1);
             assert!(!header.has_next_nonce());
             assert!(header.has_message_qop());
-            assert_eq!(header.message_qop(), Some("auth"));
+            assert_eq!(header.message_qop(), Some(&MessageQop::Auth));
             assert!(!header.has_cnonce());
             assert!(!header.has_nonce_count());
             assert!(!header.has_response_auth());

@@ -93,8 +93,7 @@ impl Encoding {
         self.parameters
             .iter()
             .find(|param| matches!(param, AcceptParameter::Q(_)))
-            .map(|param| param.q())
-            .flatten()
+            .and_then(|param| param.q())
     }
 }
 
