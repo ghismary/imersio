@@ -10,6 +10,7 @@ use nom::{
 };
 
 use crate::{
+    common::AcceptParameter,
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
@@ -21,7 +22,7 @@ use crate::{
 
 use super::{
     accept_encoding_header::{AcceptEncodingHeader, Encoding},
-    accept_header::{AcceptHeader, AcceptParameter, AcceptRange, MediaRange},
+    accept_header::{AcceptHeader, AcceptRange, MediaRange},
     accept_language_header::{AcceptLanguageHeader, Language},
     alert_info_header::{AlertInfoHeader, AlertParameter},
     allow_header::AllowHeader,
@@ -440,7 +441,7 @@ fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
 }
 
 fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    // TODO: Handel rquest-uri
+    // TODO: Handle rquest-uri
     // delimited(ldquot, rquest_uri, rdquot)(input)
     quoted_string(input)
 }

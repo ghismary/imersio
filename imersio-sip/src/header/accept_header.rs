@@ -1,6 +1,6 @@
-use std::{cmp::Ordering, collections::HashSet, hash::Hash};
+use std::{collections::HashSet, hash::Hash};
 
-use crate::GenericParameter;
+use crate::common::AcceptParameter;
 
 #[derive(Clone, Debug, Default)]
 pub struct AcceptHeader(Vec<AcceptRange>);
@@ -140,69 +140,6 @@ impl Hash for AcceptRange {
         let mut sorted_params = self.parameters.clone();
         sorted_params.sort();
         sorted_params.hash(state);
-    }
-}
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct AcceptParameter {
-    pub(crate) key: String,
-    pub(crate) value: Option<String>,
-}
-
-impl AcceptParameter {
-    pub(crate) fn new(key: String, value: Option<String>) -> Self {
-        AcceptParameter { key, value }
-    }
-}
-
-impl std::fmt::Display for AcceptParameter {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}",
-            self.key,
-            match &self.value {
-                Some(value) => format!("; {}", value),
-                None => "".to_string(),
-            }
-        )
-    }
-}
-
-impl PartialEq<&AcceptParameter> for AcceptParameter {
-    fn eq(&self, other: &&AcceptParameter) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<AcceptParameter> for &AcceptParameter {
-    fn eq(&self, other: &AcceptParameter) -> bool {
-        *self == other
-    }
-}
-
-impl PartialOrd for AcceptParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for AcceptParameter {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self.key.cmp(&other.key) {
-            Ordering::Equal => {}
-            ord => return ord,
-        }
-        self.value.cmp(&other.value)
-    }
-}
-
-impl From<GenericParameter> for AcceptParameter {
-    fn from(value: GenericParameter) -> Self {
-        Self {
-            key: value.key().to_string(),
-            value: value.value().map(Into::into),
-        }
     }
 }
 

@@ -1,8 +1,6 @@
 use std::{collections::HashSet, hash::Hash};
 
-use crate::uri::AbsoluteUri;
-
-use super::accept_header::AcceptParameter;
+use crate::{common::AcceptParameter, uri::AbsoluteUri};
 
 #[derive(Clone, Debug)]
 pub struct AlertInfoHeader(Vec<AlertParameter>);

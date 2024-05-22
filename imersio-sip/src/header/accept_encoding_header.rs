@@ -1,6 +1,6 @@
 use std::{collections::HashSet, hash::Hash};
 
-use super::accept_header::AcceptParameter;
+use crate::common::AcceptParameter;
 
 #[derive(Clone, Debug)]
 pub struct AcceptEncodingHeader(Vec<Encoding>);
@@ -79,6 +79,22 @@ impl Encoding {
             encoding,
             parameters,
         }
+    }
+
+    pub fn encoding(&self) -> &str {
+        &self.encoding
+    }
+
+    pub fn parameters(&self) -> &Vec<AcceptParameter> {
+        &self.parameters
+    }
+
+    pub fn q(&self) -> Option<f32> {
+        self.parameters
+            .iter()
+            .find(|param| matches!(param, AcceptParameter::Q(_)))
+            .map(|param| param.q())
+            .flatten()
     }
 }
 
@@ -211,7 +227,16 @@ mod tests {
             assert!(header.contains("gzip"));
             assert!(!header.contains("compress"));
             assert!(header.contains("deflate"));
-            // TODO: test parameters
+            let gzip_encoding = header.get("gzip").unwrap();
+            assert_eq!(gzip_encoding.parameters().len(), 1);
+            assert_eq!(gzip_encoding.parameters().first().unwrap().key(), "q");
+            assert_eq!(
+                gzip_encoding.parameters().first().unwrap().value(),
+                Some("1.0")
+            );
+            let gzip_q = gzip_encoding.q();
+            assert!(gzip_q.is_some());
+            assert!((gzip_q.unwrap() - 1.0).abs() < 0.01);
         } else {
             panic!("Not an Accept-Encoding header");
         }

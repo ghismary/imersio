@@ -1,6 +1,6 @@
 use std::{collections::HashSet, hash::Hash};
 
-use super::accept_header::AcceptParameter;
+use crate::common::AcceptParameter;
 
 #[derive(Clone, Debug)]
 pub struct AcceptLanguageHeader(Vec<Language>);
@@ -79,6 +79,22 @@ impl Language {
             language,
             parameters,
         }
+    }
+
+    pub fn language(&self) -> &str {
+        &self.language
+    }
+
+    pub fn parameters(&self) -> &Vec<AcceptParameter> {
+        &self.parameters
+    }
+
+    pub fn q(&self) -> Option<f32> {
+        self.parameters
+            .iter()
+            .find(|param| matches!(param, AcceptParameter::Q(_)))
+            .map(|param| param.q())
+            .flatten()
     }
 }
 
@@ -208,7 +224,29 @@ mod tests {
             assert!(header.contains("da"));
             assert!(header.contains("en-gb"));
             assert!(header.contains("en"));
-            // TODO: test parameters
+            let da_language = header.get("da").unwrap();
+            assert_eq!(da_language.parameters().len(), 0);
+            assert_eq!(da_language.q(), None);
+            let en_gb_language = header.get("en-gb").unwrap();
+            assert_eq!(en_gb_language.parameters().len(), 1);
+            assert_eq!(en_gb_language.parameters().first().unwrap().key(), "q");
+            assert_eq!(
+                en_gb_language.parameters().first().unwrap().value(),
+                Some("0.8")
+            );
+            let en_gb_language_q = en_gb_language.q();
+            assert!(en_gb_language_q.is_some());
+            assert!((en_gb_language_q.unwrap() - 0.8).abs() < 0.01);
+            let en_language = header.get("en").unwrap();
+            assert_eq!(en_language.parameters().len(), 1);
+            assert_eq!(en_language.parameters().first().unwrap().key(), "q");
+            assert_eq!(
+                en_language.parameters().first().unwrap().value(),
+                Some("0.7")
+            );
+            let en_language_q = en_language.q();
+            assert!(en_language_q.is_some());
+            assert!((en_language_q.unwrap() - 0.7).abs() < 0.01);
         } else {
             panic!("Not an Accept-Language header");
         }
