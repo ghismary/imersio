@@ -102,6 +102,10 @@ pub(crate) fn slash(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     recognize(tuple((sws, tag("/"), sws)))(input)
 }
 
+pub(crate) fn star(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+    recognize(tuple((sws, tag("*"), sws)))(input)
+}
+
 pub(crate) fn alpha(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     recognize(verify(take1, |b| is_alphabetic(*b)))(input)
 }

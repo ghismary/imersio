@@ -5,19 +5,19 @@ use nom::{
     bytes::complete::tag,
     combinator::{map, opt, recognize, verify},
     error::context,
-    multi::{count, many0, many_m_n},
+    multi::{count, many0, many1, many_m_n},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
 };
 
 use crate::{
-    common::{AcceptParameter, Algorithm, MessageQop},
+    common::{AcceptParameter, Algorithm, MessageQop, NameAddress},
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
-        rdquot, semi, slash, token, word, ParserResult,
+        rdquot, semi, slash, star, token, word, ParserResult,
     },
-    uri::parser::{absolute_uri, host},
-    GenericParameter,
+    uri::parser::{absolute_uri, host, sip_uri, sips_uri},
+    GenericParameter, Uri,
 };
 
 use super::{
@@ -30,6 +30,7 @@ use super::{
     authorization_header::{AuthParameter, AuthorizationHeader, Credentials},
     call_id_header::CallIdHeader,
     call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter},
+    contact_header::{Contact, ContactHeader, ContactParameter},
     Header,
 };
 
@@ -663,6 +664,95 @@ fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn addr_spec(input: &[u8]) -> ParserResult<&[u8], Uri> {
+    alt((sip_uri, sips_uri, map(absolute_uri, Uri::Absolute)))(input)
+}
+
+fn display_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    alt((
+        quoted_string,
+        map(recognize(many0(pair(token, lws))), String::from_utf8_lossy),
+    ))(input)
+}
+
+fn name_addr(input: &[u8]) -> ParserResult<&[u8], NameAddress> {
+    map(
+        pair(opt(display_name), delimited(laquot, addr_spec, raquot)),
+        |(display_name, uri)| NameAddress::new(uri, display_name.map(Into::into)),
+    )(input)
+}
+
+fn c_p_q(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
+    map(
+        separated_pair(map(tag("q"), String::from_utf8_lossy), equal, qvalue),
+        |(_, value)| ContactParameter::Q(value.to_string()),
+    )(input)
+}
+
+#[inline]
+fn delta_seconds(input: &[u8]) -> ParserResult<&[u8], u32> {
+    map(
+        recognize(many1(digit)),
+        |digits| match String::from_utf8_lossy(digits).parse::<u32>() {
+            Err(_) => u32::MAX, // If the value is larger than 2**32-1 (4294967295 seconds or 136 years), use the max
+            Ok(value) => value,
+        },
+    )(input)
+}
+
+fn c_p_expires(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
+    map(
+        separated_pair(
+            tag("expires"),
+            equal,
+            map(delta_seconds, |seconds| seconds.to_string()),
+        ),
+        |(_, value)| ContactParameter::Expires(value),
+    )(input)
+}
+
+#[inline]
+fn contact_extension(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
+    generic_param(input)
+}
+
+fn contact_params(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
+    alt((c_p_q, c_p_expires, map(contact_extension, Into::into)))(input)
+}
+
+fn contact_param(input: &[u8]) -> ParserResult<&[u8], Contact> {
+    map(
+        pair(
+            alt((name_addr, map(addr_spec, |uri| NameAddress::new(uri, None)))),
+            many0(preceded(semi, contact_params)),
+        ),
+        |(address, params)| Contact::new(address, params),
+    )(input)
+}
+
+fn contact(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "contact",
+        map(
+            separated_pair(
+                alt((tag("Contact"), tag("m"))),
+                hcolon,
+                alt((
+                    map(star, |_| ContactHeader::Any),
+                    map(
+                        pair(contact_param, many0(preceded(comma, contact_param))),
+                        |(first_contact, mut other_contacts)| {
+                            other_contacts.insert(0, first_contact);
+                            ContactHeader::Contacts(other_contacts)
+                        },
+                    ),
+                )),
+            ),
+            |(_, contact_header)| Header::Contact(contact_header),
+        ),
+    )(input)
+}
+
 pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
@@ -676,6 +766,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             authorization,
             call_id,
             call_info,
+            contact,
         )),
     )(input)
 }

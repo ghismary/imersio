@@ -1125,7 +1125,7 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
+    pub(crate) fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
         context(
             "sip",
             map(
@@ -1151,7 +1151,7 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn sips_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
+    pub(crate) fn sips_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
         context(
             "sips_uri",
             map(
