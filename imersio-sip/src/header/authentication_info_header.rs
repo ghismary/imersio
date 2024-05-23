@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hash};
 
 use crate::common::MessageQop;
 
@@ -109,7 +109,7 @@ authentication_info_header! {
     (nonce_count, has_nonce_count, NonceCount);
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum AInfo {
     NextNonce(String),
@@ -117,6 +117,28 @@ pub enum AInfo {
     ResponseAuth(String),
     CNonce(String),
     NonceCount(String),
+}
+
+impl AInfo {
+    pub fn key(&self) -> &str {
+        match self {
+            Self::NextNonce(_) => "nextnonce",
+            Self::MessageQop(_) => "qop",
+            Self::ResponseAuth(_) => "rspauth",
+            Self::CNonce(_) => "cnonce",
+            Self::NonceCount(_) => "nc",
+        }
+    }
+
+    pub fn value(&self) -> &str {
+        match self {
+            Self::NextNonce(value)
+            | Self::ResponseAuth(value)
+            | Self::CNonce(value)
+            | Self::NonceCount(value) => value,
+            Self::MessageQop(value) => value.value(),
+        }
+    }
 }
 
 impl std::fmt::Display for AInfo {
@@ -129,6 +151,46 @@ impl std::fmt::Display for AInfo {
             Self::NonceCount(value) => ("nc", value.clone()),
         };
         write!(f, "{}={}", key, value)
+    }
+}
+
+impl PartialEq<AInfo> for AInfo {
+    fn eq(&self, other: &AInfo) -> bool {
+        match (self, other) {
+            (Self::NextNonce(a), Self::NextNonce(b))
+            | (Self::ResponseAuth(a), Self::ResponseAuth(b))
+            | (Self::CNonce(a), Self::CNonce(b)) => a == b,
+            (Self::MessageQop(a), Self::MessageQop(b)) => a == b,
+            (Self::NonceCount(a), Self::NonceCount(b)) => a.eq_ignore_ascii_case(b),
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<&AInfo> for AInfo {
+    fn eq(&self, other: &&AInfo) -> bool {
+        self == *other
+    }
+}
+
+impl PartialEq<AInfo> for &AInfo {
+    fn eq(&self, other: &AInfo) -> bool {
+        *self == other
+    }
+}
+
+impl Eq for AInfo {}
+
+impl Hash for AInfo {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().to_ascii_lowercase().hash(state);
+        match self {
+            Self::NextNonce(value) | Self::ResponseAuth(value) | Self::CNonce(value) => {
+                value.hash(state)
+            }
+            Self::MessageQop(value) => value.value().to_ascii_lowercase().hash(state),
+            Self::NonceCount(value) => value.to_ascii_lowercase().hash(state),
+        }
     }
 }
 

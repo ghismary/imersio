@@ -383,7 +383,7 @@ impl Hash for Scheme {
 }
 
 fn parse_uri(input: &[u8]) -> Result<Uri, Error> {
-    match parser::uri(input) {
+    match parser::request_uri(input) {
         Ok((rest, uri)) => {
             if !rest.is_empty() {
                 Err(Error::RemainingUnparsedData)
@@ -1227,7 +1227,7 @@ pub(crate) mod parser {
         )(input)
     }
 
-    pub(crate) fn uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
+    pub(crate) fn request_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
         context(
             "uri",
             alt((sip_uri, sips_uri, map(absolute_uri, Uri::Absolute))),

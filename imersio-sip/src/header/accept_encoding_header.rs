@@ -74,9 +74,9 @@ pub struct Encoding {
 }
 
 impl Encoding {
-    pub(crate) fn new(encoding: String, parameters: Vec<AcceptParameter>) -> Self {
+    pub(crate) fn new<S: Into<String>>(encoding: S, parameters: Vec<AcceptParameter>) -> Self {
         Encoding {
-            encoding,
+            encoding: encoding.into(),
             parameters,
         }
     }
@@ -115,7 +115,7 @@ impl std::fmt::Display for Encoding {
 
 impl PartialEq for Encoding {
     fn eq(&self, other: &Self) -> bool {
-        if self.encoding != other.encoding {
+        if !self.encoding.eq_ignore_ascii_case(&other.encoding) {
             return false;
         }
 
@@ -141,7 +141,7 @@ impl Eq for Encoding {}
 
 impl Hash for Encoding {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.encoding.hash(state);
+        self.encoding.to_ascii_lowercase().hash(state);
         let mut sorted_params = self.parameters.clone();
         sorted_params.sort();
         sorted_params.hash(state);
@@ -191,7 +191,7 @@ mod tests {
             panic!("Not an Accept-Encoding header");
         }
 
-        // Empty Accept-Encoding header
+        // Empty Accept-Encoding header.
         let header = Header::from_str("Accept-Encoding:");
         assert!(header.is_ok());
         if let Header::AcceptEncoding(header) = header.unwrap() {
@@ -204,7 +204,7 @@ mod tests {
             panic!("Not an Accept-Encoding header");
         }
 
-        // Empty Accept-Encoding header with space characters
+        // Empty Accept-Encoding header with space characters.
         let header = Header::from_str("Accept-Encoding:     ");
         assert!(header.is_ok());
         if let Header::AcceptEncoding(header) = header.unwrap() {
@@ -217,7 +217,7 @@ mod tests {
             panic!("Not an Accept-Encoding header");
         }
 
-        // Accept-Encoding header with parameter
+        // Accept-Encoding header with parameter.
         let header = Header::from_str("Accept-Encoding: deflate, gzip;q=1.0");
         assert!(header.is_ok());
         if let Header::AcceptEncoding(header) = header.unwrap() {
@@ -243,14 +243,16 @@ mod tests {
 
     #[test]
     fn test_invalid_accept_encoding_header() {
+        // Accept-Encoding header with invalid character.
         let header = Header::from_str("Accept-Encoding: 😁");
         assert!(header.is_err());
     }
 
     #[test]
     fn test_accept_encoding_header_equality() {
+        // Same Accept-Encoding headers, with just some space characters differences.
         let first_header = Header::from_str("Accept-Encoding: gzip");
-        let second_header = Header::from_str("Accept-Encoding: gzip");
+        let second_header = Header::from_str("Accept-Encoding:  gzip");
         if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -259,6 +261,7 @@ mod tests {
             panic!("Not an Accept-Encoding header");
         }
 
+        // Same Accept-Encoding headers, with encoding in a different order.
         let first_header = Header::from_str("Accept-Encoding: gzip, deflate");
         let second_header = Header::from_str("Accept-Encoding: deflate, gzip");
         if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =

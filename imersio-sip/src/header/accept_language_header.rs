@@ -115,7 +115,7 @@ impl std::fmt::Display for Language {
 
 impl PartialEq for Language {
     fn eq(&self, other: &Self) -> bool {
-        if self.language != other.language {
+        if !self.language.eq_ignore_ascii_case(&other.language) {
             return false;
         }
 
@@ -141,7 +141,7 @@ impl Eq for Language {}
 
 impl Hash for Language {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.language.hash(state);
+        self.language.to_ascii_lowercase().hash(state);
         let mut sorted_params = self.parameters.clone();
         sorted_params.sort();
         sorted_params.hash(state);
@@ -191,6 +191,7 @@ mod tests {
             panic!("Not an Accept-Language header");
         }
 
+        // Empty Accept-Language header.
         let header = Header::from_str("Accept-Language:");
         assert!(header.is_ok());
         if let Header::AcceptLanguage(header) = header.unwrap() {
@@ -203,6 +204,7 @@ mod tests {
             panic!("Not an Accept-Language header");
         }
 
+        // Empty Accept-Language header with some spaces.
         let header = Header::from_str("Accept-Language:   ");
         assert!(header.is_ok());
         if let Header::AcceptLanguage(header) = header.unwrap() {
@@ -215,6 +217,7 @@ mod tests {
             panic!("Not an Accept-Language header");
         }
 
+        // Accept-Language header with some q-parameters.
         let header = Header::from_str("Accept-Language: da, en-gb;q=0.8, en;q=0.7");
         assert!(header.is_ok());
         if let Header::AcceptLanguage(header) = header.unwrap() {
@@ -259,8 +262,9 @@ mod tests {
 
     #[test]
     fn test_accept_language_header_equality() {
+        // Same Accept-Language header, with just some space characters differences.
         let first_header = Header::from_str("Accept-Language: fr");
-        let second_header = Header::from_str("Accept-Language: fr");
+        let second_header = Header::from_str("Accept-Language:  fr");
         if let (Header::AcceptLanguage(first_header), Header::AcceptLanguage(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -269,8 +273,20 @@ mod tests {
             panic!("Not an Accept-Language header");
         }
 
+        // Same Accept-Language header, but with the languages in a different order.
         let first_header = Header::from_str("Accept-Language: fr, en");
         let second_header = Header::from_str("Accept-Language: en, fr");
+        if let (Header::AcceptLanguage(first_header), Header::AcceptLanguage(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
+        } else {
+            panic!("Not an Accept-Language header");
+        }
+
+        // Same Accept-Language header, but with different cases.
+        let first_header = Header::from_str("Accept-Language: fr, en");
+        let second_header = Header::from_str("accept-language: EN, FR");
         if let (Header::AcceptLanguage(first_header), Header::AcceptLanguage(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {

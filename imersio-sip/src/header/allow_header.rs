@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_valid_allow_header() {
-        // Valid Allow header
+        // Valid Allow header.
         let header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
         assert!(header.is_ok());
         if let Header::Allow(header) = header.unwrap() {
@@ -85,7 +85,7 @@ mod tests {
             panic!("Not an Allow header");
         }
 
-        // Empty Allow header
+        // Empty Allow header.
         let header = Header::from_str("Allow:");
         assert!(header.is_ok());
         if let Header::Allow(header) = header.unwrap() {
@@ -97,7 +97,7 @@ mod tests {
             panic!("Not an Allow header");
         }
 
-        // Empty Allow header with space characters
+        // Empty Allow header with space characters.
         let header = Header::from_str("Allow:      ");
         assert!(header.is_ok());
         if let Header::Allow(header) = header.unwrap() {
@@ -112,6 +112,7 @@ mod tests {
 
     #[test]
     fn test_allow_header_equality() {
+        // Same Allow header with different methods order.
         let first_header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
         let second_header = Header::from_str("Allow: INVITE, BYE, CANCEL, OPTIONS, ACK");
         if let (Header::Allow(first_header), Header::Allow(second_header)) =
@@ -125,6 +126,7 @@ mod tests {
 
     #[test]
     fn test_allow_header_inequality() {
+        // Allow headers with different methods.
         let first_header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
         let second_header = Header::from_str("Allow: BYE, CANCEL, REGISTER, ACK");
         if let (Header::Allow(first_header), Header::Allow(second_header)) =
@@ -135,8 +137,20 @@ mod tests {
             panic!("Not an Allow header");
         }
 
+        // Allow headers with different methods.
         let first_header = Header::from_str("Allow: INVITE, ACK");
         let second_header = Header::from_str("Allow: INVITE, BYE, CANCEL, ACK");
+        if let (Header::Allow(first_header), Header::Allow(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_ne!(first_header, second_header);
+        } else {
+            panic!("Not an Allow header");
+        }
+
+        // Allow header with same methods with different cases.
+        let first_header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
+        let second_header = Header::from_str("allow: invite, Bye, CanCeL, OptionS, acK");
         if let (Header::Allow(first_header), Header::Allow(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {

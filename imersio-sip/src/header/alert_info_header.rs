@@ -149,23 +149,38 @@ mod tests {
 
     #[test]
     fn test_invalid_alert_info_header() {
-        // Empty Alert-Info header
+        // Empty Alert-Info header.
         let header = Header::from_str("Alert-Info:");
         assert!(header.is_err());
 
-        // Empty Alert-Info header with space characters
+        // Empty Alert-Info header with space characters.
         let header = Header::from_str("Alert-Info:       ");
         assert!(header.is_err());
 
-        // Missing brackets around the uri
+        // Missing brackets around the uri.
         let header = Header::from_str("Alert-Info: http://www.example.com/sounds/moo.wav");
         assert!(header.is_err());
     }
 
     #[test]
     fn test_alert_info_header_equality() {
+        // Same Alert-Info header, with just some space characters differences.
         let first_header = Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>");
-        let second_header = Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>");
+        let second_header =
+            Header::from_str("Alert-Info:  <http://www.example.com/sounds/moo.wav>");
+        if let (Header::AlertInfo(first_header), Header::AlertInfo(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
+        } else {
+            panic!("Not an Alert-Info header");
+        }
+
+        // Alert-Info headers with the same uri, and the same parameters with different cases.
+        let first_header =
+            Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>;myparam=test");
+        let second_header =
+            Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav> ;MyParam=TEST");
         if let (Header::AlertInfo(first_header), Header::AlertInfo(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -177,8 +192,22 @@ mod tests {
 
     #[test]
     fn test_alert_info_header_inequality() {
+        // Alert-Info headers with different uris.
         let first_header = Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>");
         let second_header = Header::from_str("Alert-Info: <http://www.example.com/sounds/bip.wav>");
+        if let (Header::AlertInfo(first_header), Header::AlertInfo(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_ne!(first_header, second_header);
+        } else {
+            panic!("Not an Alert-Info header");
+        }
+
+        // Alert-Info headers with same uri, but different parameters.
+        let first_header =
+            Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>;foo=bar");
+        let second_header =
+            Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>;foo=baz");
         if let (Header::AlertInfo(first_header), Header::AlertInfo(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {

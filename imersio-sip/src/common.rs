@@ -5,7 +5,7 @@ use std::{cmp::Ordering, hash::Hash};
 use crate::Uri;
 
 /// Representation of a generic parameter.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct GenericParameter {
     key: String,
     value: Option<String>,
@@ -13,8 +13,11 @@ pub struct GenericParameter {
 
 impl GenericParameter {
     /// Create a `GenericParam`.
-    pub fn new(key: String, value: Option<String>) -> Self {
-        Self { key, value }
+    pub fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
+        Self {
+            key: key.into(),
+            value: value.map(Into::into),
+        }
     }
 
     /// Get the key of the `GenericParam`.
@@ -40,6 +43,14 @@ impl std::fmt::Display for GenericParameter {
     }
 }
 
+impl PartialEq<GenericParameter> for GenericParameter {
+    fn eq(&self, other: &GenericParameter) -> bool {
+        self.key().eq_ignore_ascii_case(other.key())
+            && self.value().map(|v| v.to_ascii_lowercase())
+                == other.value().map(|v| v.to_ascii_lowercase())
+    }
+}
+
 impl PartialEq<&GenericParameter> for GenericParameter {
     fn eq(&self, other: &&GenericParameter) -> bool {
         self == *other
@@ -52,17 +63,28 @@ impl PartialEq<GenericParameter> for &GenericParameter {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+impl Eq for GenericParameter {}
+
+impl Hash for GenericParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().to_ascii_lowercase().hash(state);
+        self.value().map(|v| v.to_ascii_lowercase()).hash(state);
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum AcceptParameter {
     Q(String),
-    Other(String, Option<String>),
+    Other(GenericParameter),
 }
 
 impl AcceptParameter {
-    pub(crate) fn new(key: String, value: Option<String>) -> Self {
-        match (key.as_str(), value.as_deref()) {
+    pub(crate) fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
+        let key: String = key.into();
+        let value: Option<String> = value.map(Into::into);
+        match (key.as_str(), &value) {
             ("q", Some(value)) => Self::Q(value.to_string()),
-            _ => Self::Other(key.to_string(), value.map(Into::into)),
+            _ => Self::Other(GenericParameter::new(key, value)),
         }
     }
 
@@ -76,14 +98,14 @@ impl AcceptParameter {
     pub fn key(&self) -> &str {
         match self {
             Self::Q(_) => "q",
-            Self::Other(key, _) => key,
+            Self::Other(value) => value.key(),
         }
     }
 
     pub fn value(&self) -> Option<&str> {
         match self {
             Self::Q(value) => Some(value),
-            Self::Other(_, value) => value.as_deref(),
+            Self::Other(value) => value.value(),
         }
     }
 }
@@ -92,13 +114,27 @@ impl std::fmt::Display for AcceptParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Q(value) => write!(f, "q={value}"),
-            Self::Other(key, value) => write!(
+            Self::Other(value) => write!(
                 f,
                 "{}{}{}",
-                key,
-                if value.is_some() { "=" } else { "" },
-                value.as_deref().unwrap_or_default()
+                value.key(),
+                if value.value().is_some() { "=" } else { "" },
+                value.value().unwrap_or_default()
             ),
+        }
+    }
+}
+
+impl PartialEq<AcceptParameter> for AcceptParameter {
+    fn eq(&self, other: &AcceptParameter) -> bool {
+        match (self, other) {
+            (Self::Q(a), Self::Q(b)) => a == b,
+            (Self::Other(a), Self::Other(b)) => {
+                a.key().eq_ignore_ascii_case(b.key())
+                    && a.value().map(|v| v.to_ascii_lowercase())
+                        == b.value().map(|v| v.to_ascii_lowercase())
+            }
+            _ => false,
         }
     }
 }
@@ -112,6 +148,15 @@ impl PartialEq<&AcceptParameter> for AcceptParameter {
 impl PartialEq<AcceptParameter> for &AcceptParameter {
     fn eq(&self, other: &AcceptParameter) -> bool {
         *self == other
+    }
+}
+
+impl Eq for AcceptParameter {}
+
+impl Hash for AcceptParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().to_ascii_lowercase().hash(state);
+        self.value().map(|v| v.to_ascii_lowercase()).hash(state);
     }
 }
 
@@ -133,11 +178,11 @@ impl Ord for AcceptParameter {
 
 impl From<GenericParameter> for AcceptParameter {
     fn from(value: GenericParameter) -> Self {
-        Self::Other(value.key().to_string(), value.value().map(Into::into))
+        Self::Other(GenericParameter::new(value.key(), value.value()))
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Algorithm {
     Md5,
     Md5Sess,
@@ -145,10 +190,11 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    pub(crate) fn new(algo: String) -> Self {
-        match algo.as_str() {
-            "MD5" => Self::Md5,
-            "MD5-Sess" => Self::Md5Sess,
+    pub(crate) fn new<S: Into<String>>(algo: S) -> Self {
+        let algo: String = algo.into();
+        match algo.to_ascii_lowercase().as_str() {
+            "md5" => Self::Md5,
+            "md5-sess" => Self::Md5Sess,
             _ => Self::Other(algo),
         }
     }
@@ -168,6 +214,16 @@ impl std::fmt::Display for Algorithm {
     }
 }
 
+impl PartialEq<Algorithm> for Algorithm {
+    fn eq(&self, other: &Algorithm) -> bool {
+        match (self, other) {
+            (Self::Md5, Self::Md5) | (Self::Md5Sess, Self::Md5Sess) => true,
+            (Self::Other(a), Self::Other(b)) => a.eq_ignore_ascii_case(b),
+            _ => false,
+        }
+    }
+}
+
 impl PartialEq<&Algorithm> for Algorithm {
     fn eq(&self, other: &&Algorithm) -> bool {
         self == *other
@@ -180,7 +236,15 @@ impl PartialEq<Algorithm> for &Algorithm {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+impl Eq for Algorithm {}
+
+impl Hash for Algorithm {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.value().to_ascii_lowercase().hash(state);
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum MessageQop {
     Auth,
     AuthInt,
@@ -188,8 +252,9 @@ pub enum MessageQop {
 }
 
 impl MessageQop {
-    pub(crate) fn new(qop: String) -> Self {
-        match qop.as_str() {
+    pub(crate) fn new<S: Into<String>>(qop: S) -> Self {
+        let qop: String = qop.into();
+        match qop.to_ascii_lowercase().as_str() {
             "auth" => Self::Auth,
             "auth-int" => Self::AuthInt,
             _ => Self::Other(qop),
@@ -211,6 +276,16 @@ impl std::fmt::Display for MessageQop {
     }
 }
 
+impl PartialEq<MessageQop> for MessageQop {
+    fn eq(&self, other: &MessageQop) -> bool {
+        match (self, other) {
+            (Self::Auth, Self::Auth) | (Self::AuthInt, Self::AuthInt) => true,
+            (Self::Other(a), Self::Other(b)) => a.eq_ignore_ascii_case(b),
+            _ => false,
+        }
+    }
+}
+
 impl PartialEq<&MessageQop> for MessageQop {
     fn eq(&self, other: &&MessageQop) -> bool {
         self == *other
@@ -220,6 +295,14 @@ impl PartialEq<&MessageQop> for MessageQop {
 impl PartialEq<MessageQop> for &MessageQop {
     fn eq(&self, other: &MessageQop) -> bool {
         *self == other
+    }
+}
+
+impl Eq for MessageQop {}
+
+impl Hash for MessageQop {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.value().hash(state);
     }
 }
 

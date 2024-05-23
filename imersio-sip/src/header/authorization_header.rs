@@ -1,8 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hash};
 
 use crate::{
     common::{Algorithm, MessageQop},
-    Error,
+    Error, Uri,
 };
 
 use super::authentication_info_header::AInfo;
@@ -114,6 +114,33 @@ impl Credentials {
         }
     }
 
+    /// Tells whether the Authorization header contains a `uri` value.
+    pub fn has_digest_uri(&self) -> bool {
+        match self {
+            Self::Digest(params) => params
+                .iter()
+                .any(|param| matches!(param, AuthParameter::DigestUri(_))),
+            _ => false,
+        }
+    }
+
+    /// Get the `uri` value from the Authorization header.
+    pub fn digest_uri(&self) -> Option<&Uri> {
+        match self {
+            Self::Digest(params) => params
+                .iter()
+                .find(|param| matches!(param, AuthParameter::DigestUri(_)))
+                .and_then(|param| {
+                    if let AuthParameter::DigestUri(value) = param {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                }),
+            _ => None,
+        }
+    }
+
     /// Tells whether the Authorization header contains a `qop` value.
     pub fn has_message_qop(&self) -> bool {
         match self {
@@ -144,27 +171,21 @@ impl Credentials {
 
 impl std::fmt::Display for Credentials {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Digest(params) => write!(
-                f,
-                "Digest {}",
-                params
-                    .iter()
-                    .map(|param| param.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            ),
-            Self::Other(scheme, params) => write!(
-                f,
-                "{} {}",
-                scheme,
-                params
-                    .iter()
-                    .map(|param| param.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            ),
-        }
+        let (scheme, params) = match self {
+            Self::Digest(params) => ("Digest".to_string(), params),
+            Self::Other(scheme, params) => (scheme.clone(), params),
+        };
+
+        write!(
+            f,
+            "{} {}",
+            scheme,
+            params
+                .iter()
+                .map(|param| param.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
     }
 }
 
@@ -177,7 +198,7 @@ impl PartialEq for Credentials {
                 self_params == other_params
             }
             (Self::Other(self_scheme, self_params), Self::Other(other_scheme, other_params)) => {
-                if self_scheme != other_scheme {
+                if !self_scheme.eq_ignore_ascii_case(other_scheme) {
                     false
                 } else {
                     let self_params: HashSet<_> = self_params.iter().collect();
@@ -245,19 +266,18 @@ credentials! {
     (username, has_username, Username);
     (realm, has_realm, Realm);
     (nonce, has_nonce, Nonce);
-    (digest_uri, has_digest_uri, DigestUri);
     (dresponse, has_dresponse, DResponse);
     (cnonce, has_cnonce, CNonce);
     (opaque, has_opaque, Opaque);
     (nonce_count, has_nonce_count, NonceCount);
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum AuthParameter {
     Username(String),
     Realm(String),
     Nonce(String),
-    DigestUri(String),
+    DigestUri(Uri),
     DResponse(String),
     Algorithm(Algorithm),
     CNonce(String),
@@ -284,19 +304,19 @@ impl AuthParameter {
         }
     }
 
-    pub fn value(&self) -> &str {
+    pub fn value(&self) -> String {
         match self {
-            Self::Username(value) => value,
-            Self::Realm(value) => value,
-            Self::Nonce(value) => value,
-            Self::DigestUri(value) => value,
-            Self::DResponse(value) => value,
-            Self::Algorithm(value) => value.value(),
-            Self::CNonce(value) => value,
-            Self::Opaque(value) => value,
-            Self::MessageQop(value) => value.value(),
-            Self::NonceCount(value) => value,
-            Self::Other(_, value) => value,
+            Self::Username(value) => value.clone(),
+            Self::Realm(value) => value.clone(),
+            Self::Nonce(value) => value.clone(),
+            Self::DigestUri(value) => value.to_string(),
+            Self::DResponse(value) => value.clone(),
+            Self::Algorithm(value) => value.value().to_string(),
+            Self::CNonce(value) => value.clone(),
+            Self::Opaque(value) => value.clone(),
+            Self::MessageQop(value) => value.value().to_string(),
+            Self::NonceCount(value) => value.clone(),
+            Self::Other(_, value) => value.clone(),
         }
     }
 }
@@ -320,6 +340,27 @@ impl std::fmt::Display for AuthParameter {
     }
 }
 
+impl PartialEq<AuthParameter> for AuthParameter {
+    fn eq(&self, other: &AuthParameter) -> bool {
+        match (self, other) {
+            (Self::Username(a), Self::Username(b))
+            | (Self::Realm(a), Self::Realm(b))
+            | (Self::Nonce(a), Self::Nonce(b))
+            | (Self::DResponse(a), Self::DResponse(b))
+            | (Self::CNonce(a), Self::CNonce(b))
+            | (Self::Opaque(a), Self::Opaque(b)) => a == b,
+            (Self::DigestUri(a), Self::DigestUri(b)) => a == b,
+            (Self::Algorithm(a), Self::Algorithm(b)) => a == b,
+            (Self::MessageQop(a), Self::MessageQop(b)) => a == b,
+            (Self::NonceCount(a), Self::NonceCount(b)) => a.eq_ignore_ascii_case(b),
+            (Self::Other(akey, avalue), Self::Other(bkey, bvalue)) => {
+                akey.eq_ignore_ascii_case(bkey) && avalue.eq_ignore_ascii_case(bvalue)
+            }
+            _ => false,
+        }
+    }
+}
+
 impl PartialEq<&AuthParameter> for AuthParameter {
     fn eq(&self, other: &&AuthParameter) -> bool {
         self == *other
@@ -329,6 +370,27 @@ impl PartialEq<&AuthParameter> for AuthParameter {
 impl PartialEq<AuthParameter> for &AuthParameter {
     fn eq(&self, other: &AuthParameter) -> bool {
         *self == other
+    }
+}
+
+impl Eq for AuthParameter {}
+
+impl Hash for AuthParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().to_ascii_lowercase().hash(state);
+        match self {
+            Self::Username(value)
+            | Self::Realm(value)
+            | Self::Nonce(value)
+            | Self::DResponse(value)
+            | Self::CNonce(value)
+            | Self::Opaque(value) => value.hash(state),
+            Self::DigestUri(value) => value.to_string().hash(state),
+            Self::Algorithm(value) => value.value().to_ascii_lowercase().hash(state),
+            Self::MessageQop(value) => value.value().to_ascii_lowercase().hash(state),
+            Self::NonceCount(value) => value.to_ascii_lowercase().hash(state),
+            Self::Other(_, value) => value.to_ascii_lowercase().hash(state),
+        }
     }
 }
 
@@ -350,7 +412,7 @@ mod tests {
     use crate::{
         common::{Algorithm, MessageQop},
         header::authorization_header::AuthParameter,
-        Header,
+        Header, Uri,
     };
     use std::str::FromStr;
 
@@ -405,7 +467,10 @@ mod tests {
                 Some("dcd98b7102dd2f0e8b11d0f600bfb0c093")
             );
             assert!(credentials.has_digest_uri());
-            assert_eq!(credentials.digest_uri(), Some("sip:bob@biloxi.com"));
+            assert_eq!(
+                credentials.digest_uri().unwrap(),
+                Uri::from_str("sip:bob@biloxi.com").unwrap()
+            );
             assert!(credentials.has_message_qop());
             assert_eq!(credentials.message_qop(), Some(&MessageQop::Auth));
             assert!(credentials.has_nonce_count());
@@ -486,8 +551,9 @@ mod tests {
 
     #[test]
     fn test_authorization_header_equality() {
+        // Same authorization header, with just some space characters differences.
         let first_header = Header::from_str("Authorization: Digest qop=auth");
-        let second_header = Header::from_str("Authorization: Digest qop=auth");
+        let second_header = Header::from_str("Authorization: Digest  qop=auth");
         if let (Header::Authorization(first_header), Header::Authorization(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -496,12 +562,35 @@ mod tests {
             panic!("Not an Authorization header");
         }
 
+        // Same Authorization header with a different parameter order.
         let first_header = Header::from_str(
             r#"Authorization: Digest username="Alice", nextnonce="47364c23432d2e131a5fb210812c""#,
         );
         let second_header = Header::from_str(
             r#"Authorization: Digest nextnonce="47364c23432d2e131a5fb210812c", username="Alice""#,
         );
+        if let (Header::Authorization(first_header), Header::Authorization(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
+        } else {
+            panic!("Not an Authorization header");
+        }
+
+        // Same Authorization header with different cases.
+        let first_header = Header::from_str("Authorization: Digest qop=auth");
+        let second_header = Header::from_str("authorization: digest  QOP=Auth");
+        if let (Header::Authorization(first_header), Header::Authorization(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
+        } else {
+            panic!("Not an Authorization header");
+        }
+
+        // Same Authorization header with different cases.
+        let first_header = Header::from_str("Authorization: CustomScheme algorithm=MD5-Sess");
+        let second_header = Header::from_str("authorization: customscheme  Algorithm=Md5-sess");
         if let (Header::Authorization(first_header), Header::Authorization(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {

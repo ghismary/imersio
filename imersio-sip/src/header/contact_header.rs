@@ -157,7 +157,7 @@ impl Hash for Contact {
 pub enum ContactParameter {
     Q(String),
     Expires(String),
-    Other(String, Option<String>),
+    Other(GenericParameter),
 }
 
 impl ContactParameter {
@@ -165,7 +165,7 @@ impl ContactParameter {
         match self {
             Self::Q(_) => "q",
             Self::Expires(_) => "expires",
-            Self::Other(key, _) => key,
+            Self::Other(value) => value.key(),
         }
     }
 
@@ -173,7 +173,7 @@ impl ContactParameter {
         match self {
             Self::Q(value) => Some(value),
             Self::Expires(value) => Some(value),
-            Self::Other(_, value) => value.as_deref(),
+            Self::Other(value) => value.value(),
         }
     }
 
@@ -234,7 +234,7 @@ impl Ord for ContactParameter {
 
 impl From<GenericParameter> for ContactParameter {
     fn from(value: GenericParameter) -> Self {
-        Self::Other(value.key().to_string(), value.value().map(Into::into))
+        Self::Other(value)
     }
 }
 
@@ -360,6 +360,17 @@ mod tests {
         let second_header = Header::from_str(
             r#"Contact: "Mrs. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
         );
+        if let (Header::Contact(first_header), Header::Contact(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
+        } else {
+            panic!("Not an Contact header");
+        }
+
+        // Same Contact headers with different cases.
+        let first_header = Header::from_str("Contact: <sip:alice@atlanta.com>;expires=3600");
+        let second_header = Header::from_str("CONTACT: <sip:alice@atlanta.com>;ExPiReS=3600");
         if let (Header::Contact(first_header), Header::Contact(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {

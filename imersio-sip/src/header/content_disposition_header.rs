@@ -65,7 +65,7 @@ impl PartialEq<ContentDispositionHeader> for &ContentDispositionHeader {
 
 impl Eq for ContentDispositionHeader {}
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum DispositionType {
     Render,
     Session,
@@ -75,8 +75,9 @@ pub enum DispositionType {
 }
 
 impl DispositionType {
-    pub(crate) fn new(r#type: String) -> DispositionType {
-        match r#type.as_ref() {
+    pub(crate) fn new<S: Into<String>>(r#type: S) -> DispositionType {
+        let r#type: String = r#type.into();
+        match r#type.to_ascii_lowercase().as_ref() {
             "render" => Self::Render,
             "session" => Self::Session,
             "icon" => Self::Icon,
@@ -102,6 +103,19 @@ impl std::fmt::Display for DispositionType {
     }
 }
 
+impl PartialEq<DispositionType> for DispositionType {
+    fn eq(&self, other: &DispositionType) -> bool {
+        match (self, other) {
+            (Self::Render, Self::Render)
+            | (Self::Session, Self::Session)
+            | (Self::Icon, Self::Icon)
+            | (Self::Alert, Self::Alert) => true,
+            (Self::Other(svalue), Self::Other(ovalue)) => svalue.eq_ignore_ascii_case(ovalue),
+            _ => false,
+        }
+    }
+}
+
 impl PartialEq<&DispositionType> for DispositionType {
     fn eq(&self, other: &&DispositionType) -> bool {
         self == *other
@@ -114,24 +128,26 @@ impl PartialEq<DispositionType> for &DispositionType {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+impl Eq for DispositionType {}
+
+#[derive(Clone, Debug)]
 pub enum DispositionParameter {
     Handling(Handling),
-    Other(String, Option<String>),
+    Other(GenericParameter),
 }
 
 impl DispositionParameter {
     pub fn key(&self) -> &str {
         match self {
             Self::Handling(_) => "handling",
-            Self::Other(key, _) => key,
+            Self::Other(param) => param.key(),
         }
     }
 
     pub fn value(&self) -> Option<&str> {
         match self {
             Self::Handling(value) => Some(value.value()),
-            Self::Other(_, value) => value.as_deref(),
+            Self::Other(param) => param.value(),
         }
     }
 
@@ -155,6 +171,16 @@ impl std::fmt::Display for DispositionParameter {
     }
 }
 
+impl PartialEq<DispositionParameter> for DispositionParameter {
+    fn eq(&self, other: &DispositionParameter) -> bool {
+        match (self, other) {
+            (Self::Handling(shandling), Self::Handling(ohandling)) => shandling == ohandling,
+            (Self::Other(sparam), Self::Other(oparam)) => sparam == oparam,
+            _ => false,
+        }
+    }
+}
+
 impl PartialEq<&DispositionParameter> for DispositionParameter {
     fn eq(&self, other: &&DispositionParameter) -> bool {
         self == *other
@@ -173,6 +199,15 @@ impl PartialOrd for DispositionParameter {
     }
 }
 
+impl Eq for DispositionParameter {}
+
+impl Hash for DispositionParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().hash(state);
+        self.value().hash(state);
+    }
+}
+
 impl Ord for DispositionParameter {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match self.key().cmp(other.key()) {
@@ -185,11 +220,11 @@ impl Ord for DispositionParameter {
 
 impl From<GenericParameter> for DispositionParameter {
     fn from(value: GenericParameter) -> Self {
-        Self::Other(value.key().to_string(), value.value().map(Into::into))
+        Self::Other(value)
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Handling {
     Optional,
     Required,
@@ -197,8 +232,9 @@ pub enum Handling {
 }
 
 impl Handling {
-    pub(crate) fn new(handling: String) -> Handling {
-        match handling.as_str() {
+    pub(crate) fn new<S: Into<String>>(handling: S) -> Handling {
+        let handling: String = handling.into();
+        match handling.to_ascii_lowercase().as_str() {
             "optional" => Self::Optional,
             "required" => Self::Required,
             _ => Self::Other(handling),
@@ -228,6 +264,16 @@ impl std::fmt::Display for Handling {
     }
 }
 
+impl PartialEq<Handling> for Handling {
+    fn eq(&self, other: &Handling) -> bool {
+        match (self, other) {
+            (Self::Optional, Self::Optional) | (Self::Required, Self::Required) => true,
+            (Self::Other(svalue), Self::Other(ovalue)) => svalue.eq_ignore_ascii_case(ovalue),
+            _ => false,
+        }
+    }
+}
+
 impl PartialEq<&Handling> for Handling {
     fn eq(&self, other: &&Handling) -> bool {
         self == *other
@@ -239,6 +285,8 @@ impl PartialEq<Handling> for &Handling {
         *self == other
     }
 }
+
+impl Eq for Handling {}
 
 impl Hash for Handling {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -341,6 +389,19 @@ mod tests {
             Header::from_str("Content-Disposition: session;handling=required;myparam=test");
         let second_header =
             Header::from_str("Content-Disposition: session;myparam=test;handling=required");
+        if let (
+            Header::ContentDisposition(first_header),
+            Header::ContentDisposition(second_header),
+        ) = (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
+        } else {
+            panic!("Not an Content-Disposition header");
+        }
+
+        // Same Content-Disposition headers, but with different cases.
+        let first_header = Header::from_str("Content-Disposition: session;handling=optional");
+        let second_header = Header::from_str("content-disposition: Session;HANDLING=OPTIONAL");
         if let (
             Header::ContentDisposition(first_header),
             Header::ContentDisposition(second_header),

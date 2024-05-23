@@ -137,23 +137,26 @@ impl Hash for CallInfo {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum CallInfoParameter {
     IconPurpose,
     InfoPurpose,
     CardPurpose,
     OtherPurpose(String),
-    Other(String, Option<String>),
+    Other(GenericParameter),
 }
 
 impl CallInfoParameter {
-    pub(crate) fn new(key: String, value: Option<String>) -> Self {
-        match (key.as_str(), value.as_deref()) {
+    pub(crate) fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
+        match (
+            key.into().to_ascii_lowercase().as_str(),
+            value.map(|v| v.into().to_ascii_lowercase()).as_deref(),
+        ) {
             ("purpose", Some("icon")) => Self::IconPurpose,
             ("purpose", Some("info")) => Self::InfoPurpose,
             ("purpose", Some("card")) => Self::CardPurpose,
             ("purpose", Some(value)) => Self::OtherPurpose(value.to_string()),
-            (key, value) => Self::Other(key.to_string(), value.map(Into::into)),
+            (key, value) => Self::Other(GenericParameter::new(key, value)),
         }
     }
 
@@ -162,7 +165,7 @@ impl CallInfoParameter {
             Self::IconPurpose | Self::InfoPurpose | Self::CardPurpose | Self::OtherPurpose(_) => {
                 "purpose"
             }
-            Self::Other(key, _) => key,
+            Self::Other(value) => value.key(),
         }
     }
 
@@ -172,25 +175,34 @@ impl CallInfoParameter {
             Self::InfoPurpose => Some("info"),
             Self::CardPurpose => Some("card"),
             Self::OtherPurpose(value) => Some(value),
-            Self::Other(_, value) => value.as_deref(),
+            Self::Other(value) => value.value(),
         }
     }
 }
 
 impl std::fmt::Display for CallInfoParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::IconPurpose => write!(f, "purpose=icon"),
-            Self::InfoPurpose => write!(f, "purpose=info"),
-            Self::CardPurpose => write!(f, "purpose=card"),
-            Self::OtherPurpose(value) => write!(f, "purpose={value}"),
-            Self::Other(key, value) => write!(
-                f,
-                "{}{}{}",
-                key,
-                if value.is_some() { "=" } else { "" },
-                value.as_deref().unwrap_or_default()
-            ),
+        write!(
+            f,
+            "{}{}{}",
+            self.key(),
+            if self.value().is_some() { "=" } else { "" },
+            self.value().unwrap_or_default()
+        )
+    }
+}
+
+impl PartialEq<CallInfoParameter> for CallInfoParameter {
+    fn eq(&self, other: &CallInfoParameter) -> bool {
+        match (self, other) {
+            (Self::IconPurpose, Self::IconPurpose)
+            | (Self::InfoPurpose, Self::InfoPurpose)
+            | (Self::CardPurpose, Self::CardPurpose) => true,
+            (Self::OtherPurpose(svalue), Self::OtherPurpose(ovalue)) => {
+                svalue.eq_ignore_ascii_case(ovalue)
+            }
+            (Self::Other(a), Self::Other(b)) => a == b,
+            _ => false,
         }
     }
 }
@@ -204,6 +216,15 @@ impl PartialEq<&CallInfoParameter> for CallInfoParameter {
 impl PartialEq<CallInfoParameter> for &CallInfoParameter {
     fn eq(&self, other: &CallInfoParameter) -> bool {
         *self == other
+    }
+}
+
+impl Eq for CallInfoParameter {}
+
+impl Hash for CallInfoParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().hash(state);
+        self.value().hash(state);
     }
 }
 
@@ -225,13 +246,13 @@ impl Ord for CallInfoParameter {
 
 impl From<GenericParameter> for CallInfoParameter {
     fn from(value: GenericParameter) -> Self {
-        CallInfoParameter::new(value.key().to_string(), value.value().map(Into::into))
+        CallInfoParameter::new(value.key(), value.value())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{header::call_info_header::CallInfoParameter, Header, Uri};
+    use crate::{header::call_info_header::CallInfoParameter, GenericParameter, Header, Uri};
     use std::str::FromStr;
 
     #[test]
@@ -306,7 +327,7 @@ mod tests {
             assert_eq!(first_call_info.parameters().len(), 1);
             assert_eq!(
                 first_call_info.parameters().first().unwrap(),
-                CallInfoParameter::Other("info".to_string(), Some("photo".to_string()))
+                CallInfoParameter::Other(GenericParameter::new("info", Some("photo")))
             );
         } else {
             panic!("Not an Call-Info header");
@@ -326,7 +347,7 @@ mod tests {
             assert_eq!(first_call_info.parameters().len(), 1);
             assert_eq!(
                 first_call_info.parameters().first().unwrap(),
-                CallInfoParameter::Other("info".to_string(), None)
+                CallInfoParameter::Other(GenericParameter::new("info", None))
             );
         } else {
             panic!("Not an Call-Info header");
@@ -370,7 +391,7 @@ mod tests {
 
     #[test]
     fn test_call_info_header_equality() {
-        // Same header.
+        // Same Call-Info header.
         let first_header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info");
         let second_header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info");
         if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
@@ -381,9 +402,22 @@ mod tests {
             panic!("Not an Call-Info header");
         }
 
-        // Same header with inverted infos.
+        // Same Call-Info header with inverted infos.
         let first_header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info");
         let second_header = Header::from_str("Call-Info: <http://www.example.com/alice/> ;purpose=info, <http://wwww.example.com/alice/photo.jpg> ;purpose=icon");
+        if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
+        } else {
+            panic!("Not an Call-Info header");
+        }
+
+        // Same Call-Info headers with different cases.
+        let first_header =
+            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon");
+        let second_header =
+            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;puRpoSe=Icon");
         if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {

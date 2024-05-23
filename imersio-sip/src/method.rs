@@ -18,6 +18,7 @@
 
 use std::{
     borrow::Cow,
+    hash::Hash,
     str::{self, FromStr},
 };
 

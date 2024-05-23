@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use nom::{
     branch::alt,
-    bytes::complete::tag,
+    bytes::complete::{tag, tag_no_case},
     combinator::{map, opt, recognize, verify},
     error::context,
     multi::{count, many0, many1, many_m_n},
@@ -16,7 +16,7 @@ use crate::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
         rdquot, semi, slash, star, token, word, ParserResult,
     },
-    uri::parser::{absolute_uri, host, sip_uri, sips_uri},
+    uri::parser::{absolute_uri, host, request_uri, sip_uri, sips_uri},
     GenericParameter, Uri,
 };
 
@@ -94,7 +94,7 @@ fn media_range(input: &[u8]) -> ParserResult<&[u8], MediaRange> {
             separated_pair(m_type, slash, map(tag("*"), String::from_utf8_lossy)),
             separated_pair(m_type, slash, m_subtype),
         )),
-        |(r#type, subtype)| MediaRange::new(r#type.into_owned(), subtype.into_owned()),
+        |(r#type, subtype)| MediaRange::new(r#type, subtype),
     )(input)
 }
 
@@ -110,10 +110,7 @@ fn qvalue(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
 
 fn q_param(input: &[u8]) -> ParserResult<&[u8], AcceptParameter> {
     map(separated_pair(tag("q"), equal, qvalue), |(key, value)| {
-        AcceptParameter::new(
-            String::from_utf8_lossy(key).into_owned(),
-            Some(value.into_owned()),
-        )
+        AcceptParameter::new(String::from_utf8_lossy(key), Some(value))
     })(input)
 }
 
@@ -147,7 +144,7 @@ fn accept(input: &[u8]) -> ParserResult<&[u8], Header> {
         "accept",
         map(
             separated_pair(
-                tag("Accept"),
+                tag_no_case("Accept"),
                 hcolon,
                 opt(pair(accept_range, many0(preceded(comma, accept_range)))),
             ),
@@ -178,7 +175,7 @@ fn encoding(input: &[u8]) -> ParserResult<&[u8], Encoding> {
         "encoding",
         map(
             pair(codings, many0(preceded(semi, accept_param))),
-            |(codings, params)| Encoding::new(codings.into_owned(), params),
+            |(codings, params)| Encoding::new(codings, params),
         ),
     )(input)
 }
@@ -188,7 +185,7 @@ fn accept_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
         "accept_encoding",
         map(
             separated_pair(
-                tag("Accept-Encoding"),
+                tag_no_case("Accept-Encoding"),
                 hcolon,
                 opt(pair(encoding, many0(preceded(comma, encoding)))),
             ),
@@ -236,7 +233,7 @@ fn accept_language(input: &[u8]) -> ParserResult<&[u8], Header> {
         "accept_language",
         map(
             separated_pair(
-                tag("Accept-Language"),
+                tag_no_case("Accept-Language"),
                 hcolon,
                 opt(pair(language, many0(preceded(comma, language)))),
             ),
@@ -271,7 +268,7 @@ fn alert_info(input: &[u8]) -> ParserResult<&[u8], Header> {
         "alert_info",
         map(
             separated_pair(
-                tag("Alert-Info"),
+                tag_no_case("Alert-Info"),
                 hcolon,
                 pair(alert_param, many0(preceded(comma, alert_param))),
             ),
@@ -288,7 +285,7 @@ fn allow(input: &[u8]) -> ParserResult<&[u8], Header> {
         "allow",
         map(
             separated_pair(
-                tag("Allow"),
+                tag_no_case("Allow"),
                 hcolon,
                 opt(pair(method, many0(preceded(comma, method)))),
             ),
@@ -314,7 +311,7 @@ fn nextnonce(input: &[u8]) -> ParserResult<&[u8], AInfo> {
     context(
         "nextnonce",
         map(
-            separated_pair(tag("nextnonce"), equal, nonce_value),
+            separated_pair(tag_no_case("nextnonce"), equal, nonce_value),
             |(_, value)| AInfo::NextNonce(value.into_owned()),
         ),
     )(input)
@@ -322,8 +319,8 @@ fn nextnonce(input: &[u8]) -> ParserResult<&[u8], AInfo> {
 
 fn qop_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     alt((
-        map(tag("auth-int"), String::from_utf8_lossy),
-        map(tag("auth"), String::from_utf8_lossy),
+        map(tag_no_case("auth-int"), String::from_utf8_lossy),
+        map(tag_no_case("auth"), String::from_utf8_lossy),
         token,
     ))(input)
 }
@@ -332,8 +329,8 @@ fn message_qop(input: &[u8]) -> ParserResult<&[u8], AInfo> {
     context(
         "message_qop",
         map(
-            separated_pair(tag("qop"), equal, qop_value),
-            |(_, value)| AInfo::MessageQop(MessageQop::new(value.into_owned())),
+            separated_pair(tag_no_case("qop"), equal, qop_value),
+            |(_, value)| AInfo::MessageQop(MessageQop::new(value)),
         ),
     )(input)
 }
@@ -352,7 +349,7 @@ fn response_auth(input: &[u8]) -> ParserResult<&[u8], AInfo> {
     context(
         "response_auth",
         map(
-            separated_pair(tag("rspauth"), equal, response_digest),
+            separated_pair(tag_no_case("rspauth"), equal, response_digest),
             |(_, value)| AInfo::ResponseAuth(value),
         ),
     )(input)
@@ -367,7 +364,7 @@ fn cnonce(input: &[u8]) -> ParserResult<&[u8], AInfo> {
     context(
         "cnonce",
         map(
-            separated_pair(tag("cnonce"), equal, cnonce_value),
+            separated_pair(tag_no_case("cnonce"), equal, cnonce_value),
             |(_, value)| AInfo::CNonce(value.into_owned()),
         ),
     )(input)
@@ -386,9 +383,10 @@ fn nc_value(input: &[u8]) -> ParserResult<&[u8], String> {
 fn nonce_count(input: &[u8]) -> ParserResult<&[u8], AInfo> {
     context(
         "nonce_count",
-        map(separated_pair(tag("nc"), equal, nc_value), |(_, value)| {
-            AInfo::NonceCount(value)
-        }),
+        map(
+            separated_pair(tag_no_case("nc"), equal, nc_value),
+            |(_, value)| AInfo::NonceCount(value),
+        ),
     )(input)
 }
 
@@ -401,7 +399,7 @@ fn authentication_info(input: &[u8]) -> ParserResult<&[u8], Header> {
         "authentication_info",
         map(
             separated_pair(
-                tag("Authentication-Info"),
+                tag_no_case("Authentication-Info"),
                 hcolon,
                 pair(ainfo, many0(preceded(comma, ainfo))),
             ),
@@ -420,7 +418,7 @@ fn username_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
 
 fn username(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
-        separated_pair(tag("username"), equal, username_value),
+        separated_pair(tag_no_case("username"), equal, username_value),
         |(_, value)| AuthParameter::Username(value.into_owned()),
     )(input)
 }
@@ -432,28 +430,26 @@ fn realm_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
 
 fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
-        separated_pair(tag("realm"), equal, realm_value),
+        separated_pair(tag_no_case("realm"), equal, realm_value),
         |(_, value)| AuthParameter::Realm(value.into_owned()),
     )(input)
 }
 
 fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
-        separated_pair(tag("nonce"), equal, nonce_value),
+        separated_pair(tag_no_case("nonce"), equal, nonce_value),
         |(_, value)| AuthParameter::Nonce(value.into_owned()),
     )(input)
 }
 
-fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    // TODO: Handle rquest-uri
-    // delimited(ldquot, rquest_uri, rdquot)(input)
-    quoted_string(input)
+fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Uri> {
+    delimited(ldquot, request_uri, rdquot)(input)
 }
 
 fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
-        separated_pair(tag("uri"), equal, digest_uri_value),
-        |(_, value)| AuthParameter::DigestUri(value.into_owned()),
+        separated_pair(tag_no_case("uri"), equal, digest_uri_value),
+        |(_, value)| AuthParameter::DigestUri(value),
     )(input)
 }
 
@@ -466,7 +462,7 @@ fn request_digest(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
 
 fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
-        separated_pair(tag("response"), equal, request_digest),
+        separated_pair(tag_no_case("response"), equal, request_digest),
         |(_, value)| AuthParameter::DResponse(value.into_owned()),
     )(input)
 }
@@ -474,21 +470,21 @@ fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
 fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
         separated_pair(
-            tag("algorithm"),
+            tag_no_case("algorithm"),
             equal,
             alt((
-                map(tag("MD5"), String::from_utf8_lossy),
-                map(tag("MD5-sess"), String::from_utf8_lossy),
+                map(tag_no_case("MD5"), String::from_utf8_lossy),
+                map(tag_no_case("MD5-sess"), String::from_utf8_lossy),
                 token,
             )),
         ),
-        |(_, value)| AuthParameter::Algorithm(Algorithm::new(value.into_owned())),
+        |(_, value)| AuthParameter::Algorithm(Algorithm::new(value)),
     )(input)
 }
 
 fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
-        separated_pair(tag("opaque"), equal, quoted_string),
+        separated_pair(tag_no_case("opaque"), equal, quoted_string),
         |(_, value)| AuthParameter::Opaque(value.into_owned()),
     )(input)
 }
@@ -530,7 +526,7 @@ fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
                 "qop",
                 "nc",
             ]
-            .contains(&param.key())
+            .contains(&param.key().to_ascii_lowercase().as_str())
         }),
     ))(input)
 }
@@ -563,7 +559,7 @@ fn auth_params(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParameter>> {
 fn digest_credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
     map(
         separated_pair(
-            map(tag("Digest"), String::from_utf8_lossy),
+            map(tag_no_case("Digest"), String::from_utf8_lossy),
             lws,
             digest_response,
         ),
@@ -574,7 +570,9 @@ fn digest_credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
 fn other_response(input: &[u8]) -> ParserResult<&[u8], Credentials> {
     map(
         separated_pair(
-            verify(auth_scheme, |s: &Cow<'_, str>| s != "Digest"),
+            verify(auth_scheme, |s: &Cow<'_, str>| {
+                !s.eq_ignore_ascii_case("Digest")
+            }),
             lws,
             auth_params,
         ),
@@ -590,7 +588,7 @@ fn authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "authorization",
         map(
-            separated_pair(tag("Authorization"), hcolon, credentials),
+            separated_pair(tag_no_case("Authorization"), hcolon, credentials),
             |(_, credentials)| Header::Authorization(AuthorizationHeader::new(credentials)),
         ),
     )(input)
@@ -607,8 +605,12 @@ fn call_id(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "call_id",
         map(
-            separated_pair(alt((tag("Call-ID"), tag("i"))), hcolon, callid),
-            |(_, call_id)| Header::CallId(CallIdHeader::new(call_id.to_string())),
+            separated_pair(
+                alt((tag_no_case("Call-ID"), tag_no_case("i"))),
+                hcolon,
+                callid,
+            ),
+            |(_, call_id)| Header::CallId(CallIdHeader::new(call_id)),
         ),
     )(input)
 }
@@ -618,13 +620,13 @@ fn info_param(input: &[u8]) -> ParserResult<&[u8], CallInfoParameter> {
         alt((
             map(
                 separated_pair(
-                    map(tag("purpose"), String::from_utf8_lossy),
+                    map(tag_no_case("purpose"), String::from_utf8_lossy),
                     equal,
                     map(
                         alt((
-                            map(tag("icon"), String::from_utf8_lossy),
-                            map(tag("info"), String::from_utf8_lossy),
-                            map(tag("card"), String::from_utf8_lossy),
+                            map(tag_no_case("icon"), String::from_utf8_lossy),
+                            map(tag_no_case("info"), String::from_utf8_lossy),
+                            map(tag_no_case("card"), String::from_utf8_lossy),
                             token,
                         )),
                         Some,
@@ -655,7 +657,7 @@ fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
         "call_info",
         map(
             separated_pair(
-                tag("Call-Info"),
+                tag_no_case("Call-Info"),
                 hcolon,
                 pair(info, many0(preceded(comma, info))),
             ),
@@ -687,7 +689,11 @@ fn name_addr(input: &[u8]) -> ParserResult<&[u8], NameAddress> {
 
 fn c_p_q(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
     map(
-        separated_pair(map(tag("q"), String::from_utf8_lossy), equal, qvalue),
+        separated_pair(
+            map(tag_no_case("q"), String::from_utf8_lossy),
+            equal,
+            qvalue,
+        ),
         |(_, value)| ContactParameter::Q(value.to_string()),
     )(input)
 }
@@ -706,7 +712,7 @@ fn delta_seconds(input: &[u8]) -> ParserResult<&[u8], u32> {
 fn c_p_expires(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
     map(
         separated_pair(
-            tag("expires"),
+            tag_no_case("expires"),
             equal,
             map(delta_seconds, |seconds| seconds.to_string()),
         ),
@@ -738,7 +744,7 @@ fn contact(input: &[u8]) -> ParserResult<&[u8], Header> {
         "contact",
         map(
             separated_pair(
-                alt((tag("Contact"), tag("m"))),
+                alt((tag_no_case("Contact"), tag_no_case("m"))),
                 hcolon,
                 alt((
                     map(star, |_| ContactHeader::Any),
@@ -765,12 +771,17 @@ fn disp_type(input: &[u8]) -> ParserResult<&[u8], DispositionType> {
     map(
         alt((
             map(
-                alt((tag("render"), tag("session"), tag("icon"), tag("alert"))),
+                alt((
+                    tag_no_case("render"),
+                    tag_no_case("session"),
+                    tag_no_case("icon"),
+                    tag_no_case("alert"),
+                )),
                 String::from_utf8_lossy,
             ),
             disp_extension_token,
         )),
-        |value| DispositionType::new(value.to_string()),
+        DispositionType::new,
     )(input)
 }
 
@@ -782,15 +793,15 @@ fn other_handling(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
 fn handling_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
     map(
         separated_pair(
-            tag("handling"),
+            tag_no_case("handling"),
             equal,
             map(
                 alt((
-                    map(tag("optional"), String::from_utf8_lossy),
-                    map(tag("required"), String::from_utf8_lossy),
+                    map(tag_no_case("optional"), String::from_utf8_lossy),
+                    map(tag_no_case("required"), String::from_utf8_lossy),
                     other_handling,
                 )),
-                |value| Handling::new(value.to_string()),
+                Handling::new,
             ),
         ),
         |(_, value)| DispositionParameter::Handling(value),
@@ -806,7 +817,7 @@ fn content_disposition(input: &[u8]) -> ParserResult<&[u8], Header> {
         "content_disposition",
         map(
             separated_pair(
-                tag("Content-Disposition"),
+                tag_no_case("Content-Disposition"),
                 hcolon,
                 pair(disp_type, many0(preceded(semi, disp_param))),
             ),

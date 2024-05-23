@@ -150,8 +150,11 @@ pub struct MediaRange {
 }
 
 impl MediaRange {
-    pub(crate) fn new(r#type: String, subtype: String) -> Self {
-        MediaRange { r#type, subtype }
+    pub(crate) fn new<S: Into<String>>(r#type: S, subtype: S) -> Self {
+        MediaRange {
+            r#type: r#type.into(),
+            subtype: subtype.into(),
+        }
     }
 }
 
@@ -188,15 +191,9 @@ mod tests {
         if let Header::Accept(header) = header.unwrap() {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 1);
-            assert!(header.contains(&MediaRange::new(
-                "application".to_string(),
-                "sdp".to_string()
-            )));
-            assert!(!header.contains(&MediaRange::new(
-                "application".to_string(),
-                "x-private".to_string()
-            )));
-            assert!(!header.contains(&MediaRange::new("text".to_string(), "html".to_string())));
+            assert!(header.contains(&MediaRange::new("application", "sdp")));
+            assert!(!header.contains(&MediaRange::new("application", "x-private")));
+            assert!(!header.contains(&MediaRange::new("text", "html")));
         } else {
             panic!("Not an Accept header");
         }
@@ -207,27 +204,18 @@ mod tests {
         if let Header::Accept(header) = header.unwrap() {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 3);
-            assert!(header.contains(&MediaRange::new(
-                "application".to_string(),
-                "sdp".to_string()
-            )));
-            assert!(header.contains(&MediaRange::new(
-                "application".to_string(),
-                "x-private".to_string()
-            )));
-            assert!(header.contains(&MediaRange::new("text".to_string(), "html".to_string())));
-            let accept_range = header.get(&MediaRange::new(
-                "application".to_string(),
-                "sdp".to_string(),
-            ));
+            assert!(header.contains(&MediaRange::new("application", "sdp")));
+            assert!(header.contains(&MediaRange::new("application", "x-private")));
+            assert!(header.contains(&MediaRange::new("text", "html")));
+            let accept_range = header.get(&MediaRange::new("application", "sdp"));
             assert!(accept_range.is_some());
             let accept_range = accept_range.unwrap();
             assert_eq!(accept_range.parameters().len(), 1);
             assert_eq!(
                 accept_range.parameters().first().unwrap(),
-                AcceptParameter::new("level".to_string(), Some("1".to_string()))
+                AcceptParameter::new("level", Some("1"))
             );
-            let accept_range = header.get(&MediaRange::new("text".to_string(), "html".to_string()));
+            let accept_range = header.get(&MediaRange::new("text", "html"));
             assert!(accept_range.is_some());
             let accept_range = accept_range.unwrap();
             assert!(accept_range.parameters().is_empty());
@@ -240,7 +228,7 @@ mod tests {
         if let Header::Accept(header) = header.unwrap() {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 1);
-            assert!(header.contains(&MediaRange::new("*".to_string(), "*".to_string())));
+            assert!(header.contains(&MediaRange::new("*", "*")));
         } else {
             panic!("Not an Accept header");
         }
@@ -250,7 +238,7 @@ mod tests {
         if let Header::Accept(header) = header.unwrap() {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 1);
-            assert!(header.contains(&MediaRange::new("text".to_string(), "*".to_string())));
+            assert!(header.contains(&MediaRange::new("text", "*")));
         } else {
             panic!("Not an Accept header");
         }
@@ -260,11 +248,8 @@ mod tests {
         if let Header::Accept(header) = header.unwrap() {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
-            assert!(!header.contains(&MediaRange::new(
-                "application".to_string(),
-                "sdp".to_string()
-            )));
-            assert!(!header.contains(&MediaRange::new("text".to_string(), "html".to_string())));
+            assert!(!header.contains(&MediaRange::new("application", "sdp")));
+            assert!(!header.contains(&MediaRange::new("text", "html")));
         } else {
             panic!("Not an Accept header");
         }
@@ -274,11 +259,8 @@ mod tests {
         if let Header::Accept(header) = header.unwrap() {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
-            assert!(!header.contains(&MediaRange::new(
-                "application".to_string(),
-                "sdp".to_string()
-            )));
-            assert!(!header.contains(&MediaRange::new("text".to_string(), "html".to_string())));
+            assert!(!header.contains(&MediaRange::new("application", "sdp")));
+            assert!(!header.contains(&MediaRange::new("text", "html")));
         } else {
             panic!("Not an Accept header");
         }

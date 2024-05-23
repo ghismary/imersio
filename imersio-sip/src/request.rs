@@ -240,7 +240,7 @@ mod parser {
         error::Error,
         method::parser::method,
         parser::{sp, ParserResult},
-        uri::parser::uri,
+        uri::parser::request_uri,
         version::parser::sip_version,
     };
     use nom::{
@@ -252,7 +252,7 @@ mod parser {
     fn request_line(input: &[u8]) -> ParserResult<&[u8], (Method, Uri, Version)> {
         context(
             "request_line",
-            tuple((method, sp, uri, sp, sip_version, crlf)),
+            tuple((method, sp, request_uri, sp, sip_version, crlf)),
         )(input)
         .map(|(rest, (method, _, uri, _, version, _))| (rest, (method, uri, version)))
     }
