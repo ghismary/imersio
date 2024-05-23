@@ -10,6 +10,7 @@ mod authorization_header;
 mod call_id_header;
 mod call_info_header;
 mod contact_header;
+mod content_disposition_header;
 mod parser;
 
 use std::str::FromStr;
@@ -24,6 +25,7 @@ use authorization_header::AuthorizationHeader;
 use call_id_header::CallIdHeader;
 use call_info_header::CallInfoHeader;
 use contact_header::ContactHeader;
+use content_disposition_header::ContentDispositionHeader;
 
 use crate::Error;
 
@@ -50,6 +52,8 @@ pub enum Header {
     CallInfo(CallInfoHeader),
     /// A Contact header.
     Contact(ContactHeader),
+    /// A Content-Disposition header.
+    ContentDisposition(ContentDispositionHeader),
 }
 
 impl Header {
@@ -76,6 +80,7 @@ impl std::fmt::Display for Header {
                 Header::CallId(header) => header.to_string(),
                 Header::CallInfo(header) => header.to_string(),
                 Header::Contact(header) => header.to_string(),
+                Header::ContentDisposition(header) => header.to_string(),
             }
         )
     }

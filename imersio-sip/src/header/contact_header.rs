@@ -259,7 +259,7 @@ mod tests {
                 first_contact.address().uri(),
                 Uri::from_str("sip:watson@worcester.bell-telephone.com").unwrap()
             );
-            assert_eq!(first_contact.address().uri().get_parameters().len(), 0);
+            assert!(first_contact.address().uri().get_parameters().is_empty());
             assert_eq!(first_contact.parameters().len(), 2);
             assert!((first_contact.q().unwrap() - 0.7).abs() < 0.01);
             assert_eq!(first_contact.expires().unwrap(), 3600);
@@ -269,7 +269,7 @@ mod tests {
                 second_contact.address().uri(),
                 Uri::from_str("mailto:watson@bell-telephone.com").unwrap()
             );
-            assert_eq!(second_contact.address().uri().get_parameters().len(), 0);
+            assert!(second_contact.address().uri().get_parameters().is_empty());
             assert_eq!(second_contact.parameters().len(), 1);
             assert!((second_contact.q().unwrap() - 0.1).abs() < 0.01);
         } else {

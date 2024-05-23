@@ -224,7 +224,7 @@ mod tests {
             assert!(header.contains("en-gb"));
             assert!(header.contains("en"));
             let da_language = header.get("da").unwrap();
-            assert_eq!(da_language.parameters().len(), 0);
+            assert!(da_language.parameters().is_empty());
             assert_eq!(da_language.q(), None);
             let en_gb_language = header.get("en-gb").unwrap();
             assert_eq!(en_gb_language.parameters().len(), 1);

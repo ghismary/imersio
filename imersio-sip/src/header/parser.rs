@@ -31,6 +31,9 @@ use super::{
     call_id_header::CallIdHeader,
     call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter},
     contact_header::{Contact, ContactHeader, ContactParameter},
+    content_disposition_header::{
+        ContentDispositionHeader, DispositionParameter, DispositionType, Handling,
+    },
     Header,
 };
 
@@ -753,6 +756,67 @@ fn contact(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+#[inline]
+fn disp_extension_token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    token(input)
+}
+
+fn disp_type(input: &[u8]) -> ParserResult<&[u8], DispositionType> {
+    map(
+        alt((
+            map(
+                alt((tag("render"), tag("session"), tag("icon"), tag("alert"))),
+                String::from_utf8_lossy,
+            ),
+            disp_extension_token,
+        )),
+        |value| DispositionType::new(value.to_string()),
+    )(input)
+}
+
+#[inline]
+fn other_handling(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    token(input)
+}
+
+fn handling_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
+    map(
+        separated_pair(
+            tag("handling"),
+            equal,
+            map(
+                alt((
+                    map(tag("optional"), String::from_utf8_lossy),
+                    map(tag("required"), String::from_utf8_lossy),
+                    other_handling,
+                )),
+                |value| Handling::new(value.to_string()),
+            ),
+        ),
+        |(_, value)| DispositionParameter::Handling(value),
+    )(input)
+}
+
+fn disp_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
+    alt((handling_param, map(generic_param, Into::into)))(input)
+}
+
+fn content_disposition(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "content_disposition",
+        map(
+            separated_pair(
+                tag("Content-Disposition"),
+                hcolon,
+                pair(disp_type, many0(preceded(semi, disp_param))),
+            ),
+            |(_, (r#type, params))| {
+                Header::ContentDisposition(ContentDispositionHeader::new(r#type, params))
+            },
+        ),
+    )(input)
+}
+
 pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
@@ -767,6 +831,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             call_id,
             call_info,
             contact,
+            content_disposition,
         )),
     )(input)
 }

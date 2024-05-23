@@ -343,7 +343,7 @@ mod tests {
             let first_call_info = header.get(first_uri);
             assert!(first_call_info.is_some());
             let first_call_info = first_call_info.unwrap();
-            assert_eq!(first_call_info.parameters().len(), 0);
+            assert!(first_call_info.parameters().is_empty());
         } else {
             panic!("Not an Call-Info header");
         }
