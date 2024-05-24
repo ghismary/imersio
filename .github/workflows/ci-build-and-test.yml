@@ -9,8 +9,11 @@ env:
 
 jobs:
   build_and_test:
-    name: imersio - ubuntu-latest
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    name: imersio - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - run: rustup update stable && rustup default stable
