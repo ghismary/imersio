@@ -34,6 +34,7 @@ use super::{
     content_disposition_header::{
         ContentDispositionHeader, DispositionParameter, DispositionType, Handling,
     },
+    content_encoding_header::ContentEncodingHeader,
     Header,
 };
 
@@ -828,6 +829,23 @@ fn content_disposition(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn content_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "content_encoding",
+        map(
+            separated_pair(
+                alt((tag_no_case("Content-Encoding"), tag("e"))),
+                hcolon,
+                pair(content_coding, many0(preceded(comma, content_coding))),
+            ),
+            |(_, (first_coding, mut other_codings))| {
+                other_codings.insert(0, first_coding);
+                Header::ContentEncoding(ContentEncodingHeader::new(other_codings))
+            },
+        ),
+    )(input)
+}
+
 pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
@@ -843,6 +861,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             call_info,
             contact,
             content_disposition,
+            content_encoding,
         )),
     )(input)
 }

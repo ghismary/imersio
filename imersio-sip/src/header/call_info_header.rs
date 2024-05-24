@@ -288,7 +288,7 @@ mod tests {
             let third_uri = third_uri.as_absolute_uri().unwrap();
             assert!(!header.contains(third_uri));
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
 
         // Valid Call-Info header with custom purpose.
@@ -309,7 +309,7 @@ mod tests {
                 CallInfoParameter::OtherPurpose("photo".to_string())
             );
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
 
         // Valid Call-Info header with custom param with value.
@@ -330,7 +330,7 @@ mod tests {
                 CallInfoParameter::Other(GenericParameter::new("info", Some("photo")))
             );
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
 
         // Valid Call-Info header with custom param without value.
@@ -350,7 +350,7 @@ mod tests {
                 CallInfoParameter::Other(GenericParameter::new("info", None))
             );
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
 
         // Valid Call-Info header without param.
@@ -366,7 +366,7 @@ mod tests {
             let first_call_info = first_call_info.unwrap();
             assert!(first_call_info.parameters().is_empty());
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
     }
 
@@ -399,7 +399,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
 
         // Same Call-Info header with inverted infos.
@@ -410,7 +410,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
 
         // Same Call-Info headers with different cases.
@@ -423,7 +423,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
     }
 
@@ -439,7 +439,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
 
         // Same uris with different purpose.
@@ -452,7 +452,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Call-Info header");
+            panic!("Not a Call-Info header");
         }
     }
 }

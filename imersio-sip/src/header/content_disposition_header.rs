@@ -323,7 +323,7 @@ mod tests {
             assert_eq!(header.r#type(), DispositionType::Session);
             assert!(header.parameters().is_empty());
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
 
         // Valid Content-Disposition header with parameter.
@@ -337,7 +337,7 @@ mod tests {
                 Some(&Handling::Optional)
             )
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
 
         // Valid Content-Disposition header with custom type.
@@ -350,7 +350,7 @@ mod tests {
             );
             assert!(header.parameters().is_empty());
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
     }
 
@@ -381,7 +381,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
 
         // Same Content-Disposition headers, with parameters in different orders.
@@ -396,7 +396,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
 
         // Same Content-Disposition headers, but with different cases.
@@ -409,7 +409,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
     }
 
@@ -425,7 +425,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
 
         // Same disposition type, but one has a parameter.
@@ -438,7 +438,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
 
         // Same parameter but different disposition type.
@@ -451,7 +451,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Content-Disposition header");
+            panic!("Not a Content-Disposition header");
         }
     }
 }

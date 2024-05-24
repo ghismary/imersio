@@ -46,7 +46,7 @@ mod tests {
                 "f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com"
             );
         } else {
-            panic!("Not an Call-ID header");
+            panic!("Not a Call-ID header");
         }
 
         // Valid Call-ID header without `@` character.
@@ -55,7 +55,7 @@ mod tests {
         if let Header::CallId(header) = header.unwrap() {
             assert_eq!(header.call_id(), "f81d4fae-7dec-11d0-a765-00a0c91e6bf6");
         } else {
-            panic!("Not an Call-ID header");
+            panic!("Not a Call-ID header");
         }
     }
 
@@ -84,7 +84,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Call-ID header");
+            panic!("Not a Call-ID header");
         }
     }
 
@@ -99,7 +99,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Call-ID header");
+            panic!("Not a Call-ID header");
         }
 
         // Same Call-ID headers, but one with the `@` part and the other without.
@@ -111,7 +111,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Call-ID header");
+            panic!("Not a Call-ID header");
         }
 
         // Apparently same Call-ID headers, but differing in case.
@@ -122,7 +122,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Call-ID header");
+            panic!("Not a Call-ID header");
         }
     }
 }

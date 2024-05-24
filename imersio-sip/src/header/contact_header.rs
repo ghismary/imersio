@@ -273,7 +273,7 @@ mod tests {
             assert_eq!(second_contact.parameters().len(), 1);
             assert!((second_contact.q().unwrap() - 0.1).abs() < 0.01);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Valid wildcard Contact header.
@@ -282,7 +282,7 @@ mod tests {
         if let Header::Contact(header) = header.unwrap() {
             assert_eq!(header, ContactHeader::Any);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Valid abbreviated wildcard Contact header.
@@ -291,7 +291,7 @@ mod tests {
         if let Header::Contact(header) = header.unwrap() {
             assert_eq!(header, ContactHeader::Any);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
     }
 
@@ -324,7 +324,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Contact headers with contacts in a different order.
@@ -339,7 +339,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Same wildcard contact headers.
@@ -350,7 +350,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Same contact headers with different display names.
@@ -365,7 +365,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Same Contact headers with different cases.
@@ -376,7 +376,7 @@ mod tests {
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
     }
 
@@ -394,7 +394,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Different q parameters.
@@ -409,7 +409,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
 
         // Different expires parameters.
@@ -424,7 +424,7 @@ mod tests {
         {
             assert_ne!(first_header, second_header);
         } else {
-            panic!("Not an Contact header");
+            panic!("Not a Contact header");
         }
     }
 }
