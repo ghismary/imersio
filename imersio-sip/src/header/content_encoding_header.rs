@@ -49,74 +49,58 @@ impl Eq for ContentEncodingHeader {}
 
 #[cfg(test)]
 mod tests {
+    use super::ContentEncodingHeader;
     use crate::Header;
     use std::str::FromStr;
 
+    fn valid_header<F: FnOnce(ContentEncodingHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
+        assert!(header.is_ok());
+        if let Header::ContentEncoding(header) = header.unwrap() {
+            f(header);
+        } else {
+            panic!("Not a Content-Encoding header");
+        }
+    }
+
     #[test]
     fn test_valid_content_encoding_header() {
-        // Valid Content-Encoding header.
-        let header = Header::from_str("Content-Encoding: gzip");
-        assert!(header.is_ok());
-        if let Header::ContentEncoding(header) = header.unwrap() {
+        valid_header("Content-Encoding: gzip", |header| {
             assert_eq!(header.encodings().len(), 1);
             assert_eq!(header.encodings().first().unwrap(), "gzip");
-        } else {
-            panic!("Not a Content-Encoding header");
-        }
+        });
+    }
 
-        // Valid Content-Encoding header in its compact form.
-        let header = Header::from_str("e: tar");
-        assert!(header.is_ok());
-        if let Header::ContentEncoding(header) = header.unwrap() {
+    #[test]
+    fn test_valid_content_encoding_header_in_compact_form() {
+        valid_header("e: tar", |header| {
             assert_eq!(header.encodings().len(), 1);
             assert_eq!(header.encodings().first().unwrap(), "tar");
-        } else {
-            panic!("Not a Content-Encoding header");
-        }
+        });
+    }
+
+    fn invalid_header(header: &str) {
+        assert!(Header::from_str(header).is_err());
     }
 
     #[test]
-    fn test_invalid_content_encoding_header() {
-        // Empty Content-Encoding header.
-        let header = Header::from_str("Content-Encoding:");
-        assert!(header.is_err());
-
-        // Empty Content-Encoding header with spaces.
-        let header = Header::from_str("Content-Encoding:    ");
-        assert!(header.is_err());
-
-        // Content-Encoding header with invalid character.
-        let header = Header::from_str("Content-Encoding: 😁");
-        assert!(header.is_err());
+    fn test_invalid_content_encoding_header_empty() {
+        invalid_header("Content-Encoding:");
     }
 
     #[test]
-    fn test_content_encoding_header_equality() {
-        // Same Content-Encoding header, with just some space characters differences.
-        let first_header = Header::from_str("Content-Encoding: gzip");
-        let second_header = Header::from_str("Content-Encoding:  gzip");
-        if let (Header::ContentEncoding(first_header), Header::ContentEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Encoding header");
-        }
+    fn test_invalid_content_encoding_header_empty_with_space_characters() {
+        invalid_header("Content-Encoding:    ");
+    }
 
-        // Content-Encoding header with the same encodings in a different order.
-        let first_header = Header::from_str("Content-Encoding: gzip, tar");
-        let second_header = Header::from_str("Content-Encoding: tar, gzip");
-        if let (Header::ContentEncoding(first_header), Header::ContentEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Encoding header");
-        }
+    #[test]
+    fn test_invalid_content_encoding_header_with_invalid_character() {
+        invalid_header("Content-Encoding: 😁");
+    }
 
-        // Content-Encoding header with the same encodings with different cases.
-        let first_header = Header::from_str("Content-Encoding: gzip");
-        let second_header = Header::from_str("content-encoding: GZIP");
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::ContentEncoding(first_header), Header::ContentEncoding(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -127,30 +111,23 @@ mod tests {
     }
 
     #[test]
-    fn test_content_encoding_header_inequality() {
-        // Obviously different Content-Encoding headers.
-        let first_header = Header::from_str("Content-Encoding: gzip");
-        let second_header = Header::from_str("Content-Encoding: tar");
-        if let (Header::ContentEncoding(first_header), Header::ContentEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Encoding header");
-        }
+    fn test_content_encoding_header_equality_same_header_with_space_characters_differences() {
+        header_equality("Content-Encoding: gzip", "Content-Encoding:  gzip");
+    }
 
-        let first_header = Header::from_str("Content-Encoding: gzip, tar");
-        let second_header = Header::from_str("Content-Encoding: tar");
-        if let (Header::ContentEncoding(first_header), Header::ContentEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Encoding header");
-        }
+    #[test]
+    fn test_content_encoding_header_equality_same_encodings_in_a_different_order() {
+        header_equality("Content-Encoding: gzip, tar", "Content-Encoding: tar, gzip");
+    }
 
-        let first_header = Header::from_str("Content-Encoding: gzip");
-        let second_header = Header::from_str("Content-Encoding: tar, gzip");
+    #[test]
+    fn test_content_encoding_header_equality_same_encodings_with_different_cases() {
+        header_equality("Content-Encoding: gzip", "content-encoding: GZIP");
+    }
+
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::ContentEncoding(first_header), Header::ContentEncoding(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -158,5 +135,20 @@ mod tests {
         } else {
             panic!("Not a Content-Encoding header");
         }
+    }
+
+    #[test]
+    fn test_content_encoding_header_inequality_with_different_encodings() {
+        header_inequality("Content-Encoding: gzip", "Content-Encoding: tar");
+    }
+
+    #[test]
+    fn test_content_encoding_header_inequality_with_first_having_more_encodings_than_the_second() {
+        header_inequality("Content-Encoding: gzip, tar", "Content-Encoding: tar");
+    }
+
+    #[test]
+    fn test_content_encoding_header_inequality_with_first_having_less_encodings_than_the_second() {
+        header_inequality("Content-Encoding: gzip", "Content-Encoding: tar, gzip");
     }
 }

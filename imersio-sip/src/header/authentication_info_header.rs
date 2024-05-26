@@ -196,29 +196,39 @@ impl Hash for AInfo {
 
 #[cfg(test)]
 mod tests {
+    use super::AuthenticationInfoHeader;
     use crate::{common::MessageQop, Header};
     use std::str::FromStr;
 
-    #[test]
-    fn test_valid_authentication_info_header() {
-        let header =
-            Header::from_str(r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#);
+    fn valid_header<F: FnOnce(AuthenticationInfoHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
         assert!(header.is_ok());
         if let Header::AuthenticationInfo(header) = header.unwrap() {
-            assert_eq!(header.count(), 1);
-            assert!(header.has_next_nonce());
-            assert_eq!(header.next_nonce(), Some("47364c23432d2e131a5fb210812c"));
-            assert!(!header.has_message_qop());
-            assert!(!header.has_cnonce());
-            assert!(!header.has_nonce_count());
-            assert!(!header.has_response_auth());
+            f(header);
         } else {
             panic!("Not an Authentication-Info header");
         }
+    }
 
-        let header = Header::from_str("Authentication-Info: qop=auth");
-        assert!(header.is_ok());
-        if let Header::AuthenticationInfo(header) = header.unwrap() {
+    #[test]
+    fn test_valid_authentication_info_header_with_nextnonce() {
+        valid_header(
+            r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#,
+            |header| {
+                assert_eq!(header.count(), 1);
+                assert!(header.has_next_nonce());
+                assert_eq!(header.next_nonce(), Some("47364c23432d2e131a5fb210812c"));
+                assert!(!header.has_message_qop());
+                assert!(!header.has_cnonce());
+                assert!(!header.has_nonce_count());
+                assert!(!header.has_response_auth());
+            },
+        );
+    }
+
+    #[test]
+    fn test_valid_authentication_info_header_with_qop() {
+        valid_header("Authentication-Info: qop=auth", |header| {
             assert_eq!(header.count(), 1);
             assert!(!header.has_next_nonce());
             assert!(header.has_message_qop());
@@ -226,40 +236,26 @@ mod tests {
             assert!(!header.has_cnonce());
             assert!(!header.has_nonce_count());
             assert!(!header.has_response_auth());
-        } else {
-            panic!("Not an Authentication-Info header");
-        }
+        });
+    }
+
+    fn invalid_header(header: &str) {
+        assert!(Header::from_str(header).is_err());
     }
 
     #[test]
-    fn test_invalid_authentication_info_header() {
-        // Test empty Authentication-Info header
-        let header = Header::from_str("Authentication-Info:");
-        assert!(header.is_err());
-
-        // Test empty Authentication-Info header with space characters
-        let header = Header::from_str("Authentication-Info:         ");
-        assert!(header.is_err());
+    fn test_invalid_authentication_info_header_empty() {
+        invalid_header("Authentication-Info:");
     }
 
     #[test]
-    fn test_authentication_info_header_equality() {
-        let first_header = Header::from_str("Authentication-Info: qop=auth");
-        let second_header = Header::from_str("Authentication-Info: qop=auth");
-        if let (
-            Header::AuthenticationInfo(first_header),
-            Header::AuthenticationInfo(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Authentication-Info header");
-        }
+    fn test_invalid_authentication_info_header_empty_with_space_characters() {
+        invalid_header("Authentication-Info:         ");
+    }
 
-        let first_header =
-            Header::from_str(r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#);
-        let second_header =
-            Header::from_str(r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#);
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (
             Header::AuthenticationInfo(first_header),
             Header::AuthenticationInfo(second_header),
@@ -272,22 +268,24 @@ mod tests {
     }
 
     #[test]
-    fn test_authentication_info_header_inequality() {
-        let first_header = Header::from_str("Authentication-Info: qop=auth");
-        let second_header = Header::from_str("Authentication-Info: qop=auth-int");
-        if let (
-            Header::AuthenticationInfo(first_header),
-            Header::AuthenticationInfo(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Authentication-Info header");
-        }
+    fn test_authentication_info_header_equality_same_headers() {
+        header_equality(
+            r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#,
+            r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#,
+        );
+    }
 
-        let first_header = Header::from_str("Authentication-Info: qop=auth");
-        let second_header =
-            Header::from_str(r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#);
+    #[test]
+    fn test_authentication_info_header_equality_with_space_characters_differences() {
+        header_equality(
+            "Authentication-Info: qop=auth",
+            "Authentication-Info:   qop=auth",
+        );
+    }
+
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (
             Header::AuthenticationInfo(first_header),
             Header::AuthenticationInfo(second_header),
@@ -297,5 +295,21 @@ mod tests {
         } else {
             panic!("Not an Authentication-Info header");
         }
+    }
+
+    #[test]
+    fn test_authentication_info_header_inequality_different_parameter_values() {
+        header_inequality(
+            "Authentication-Info: qop=auth",
+            "Authentication-Info: qop=auth-int",
+        );
+    }
+
+    #[test]
+    fn test_authentication_info_header_inequality_different_parameters() {
+        header_inequality(
+            "Authentication-Info: qop=auth",
+            r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#,
+        );
     }
 }

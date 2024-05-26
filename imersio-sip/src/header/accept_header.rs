@@ -178,120 +178,120 @@ impl PartialEq<MediaRange> for &MediaRange {
 
 #[cfg(test)]
 mod tests {
+    use super::AcceptHeader;
     use crate::{
         header::accept_header::{AcceptParameter, MediaRange},
         Header,
     };
     use std::str::FromStr;
 
-    #[test]
-    fn test_valid_accept_header() {
-        let header = Header::from_str("Accept: application/sdp");
+    fn valid_header<F: FnOnce(AcceptHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
         assert!(header.is_ok());
         if let Header::Accept(header) = header.unwrap() {
+            f(header);
+        } else {
+            panic!("Not an Accept header");
+        }
+    }
+
+    #[test]
+    fn test_valid_accept_header_with_single_range() {
+        valid_header("Accept: application/sdp", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 1);
             assert!(header.contains(&MediaRange::new("application", "sdp")));
             assert!(!header.contains(&MediaRange::new("application", "x-private")));
             assert!(!header.contains(&MediaRange::new("text", "html")));
-        } else {
-            panic!("Not an Accept header");
-        }
+        });
+    }
 
-        let header =
-            Header::from_str("Accept: application/sdp;level=1, application/x-private, text/html");
-        assert!(header.is_ok());
-        if let Header::Accept(header) = header.unwrap() {
-            assert!(!header.is_empty());
-            assert_eq!(header.count(), 3);
-            assert!(header.contains(&MediaRange::new("application", "sdp")));
-            assert!(header.contains(&MediaRange::new("application", "x-private")));
-            assert!(header.contains(&MediaRange::new("text", "html")));
-            let accept_range = header.get(&MediaRange::new("application", "sdp"));
-            assert!(accept_range.is_some());
-            let accept_range = accept_range.unwrap();
-            assert_eq!(accept_range.parameters().len(), 1);
-            assert_eq!(
-                accept_range.parameters().first().unwrap(),
-                AcceptParameter::new("level", Some("1"))
-            );
-            let accept_range = header.get(&MediaRange::new("text", "html"));
-            assert!(accept_range.is_some());
-            let accept_range = accept_range.unwrap();
-            assert!(accept_range.parameters().is_empty());
-        } else {
-            panic!("Not an Accept header");
-        }
+    #[test]
+    fn test_valid_accept_header_with_several_ranges() {
+        valid_header(
+            "Accept: application/sdp;level=1, application/x-private, text/html",
+            |header| {
+                assert!(!header.is_empty());
+                assert_eq!(header.count(), 3);
+                assert!(header.contains(&MediaRange::new("application", "sdp")));
+                assert!(header.contains(&MediaRange::new("application", "x-private")));
+                assert!(header.contains(&MediaRange::new("text", "html")));
+                let accept_range = header.get(&MediaRange::new("application", "sdp"));
+                assert!(accept_range.is_some());
+                let accept_range = accept_range.unwrap();
+                assert_eq!(accept_range.parameters().len(), 1);
+                assert_eq!(
+                    accept_range.parameters().first().unwrap(),
+                    AcceptParameter::new("level", Some("1"))
+                );
+                let accept_range = header.get(&MediaRange::new("text", "html"));
+                assert!(accept_range.is_some());
+                let accept_range = accept_range.unwrap();
+                assert!(accept_range.parameters().is_empty());
+            },
+        );
+    }
 
-        let header = Header::from_str("Accept: */*");
-        assert!(header.is_ok());
-        if let Header::Accept(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_header_with_wildcard_range() {
+        valid_header("Accept: */*", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 1);
             assert!(header.contains(&MediaRange::new("*", "*")));
-        } else {
-            panic!("Not an Accept header");
-        }
+        });
+    }
 
-        let header = Header::from_str("Accept: text/*");
-        assert!(header.is_ok());
-        if let Header::Accept(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_header_with_wildcard_subtype_range() {
+        valid_header("Accept: text/*", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 1);
             assert!(header.contains(&MediaRange::new("text", "*")));
-        } else {
-            panic!("Not an Accept header");
-        }
+        });
+    }
 
-        let header = Header::from_str("Accept:");
-        assert!(header.is_ok());
-        if let Header::Accept(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_header_empty() {
+        valid_header("Accept:", |header| {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
             assert!(!header.contains(&MediaRange::new("application", "sdp")));
             assert!(!header.contains(&MediaRange::new("text", "html")));
-        } else {
-            panic!("Not an Accept header");
-        }
+        });
+    }
 
-        let header = Header::from_str("Accept:  ");
-        assert!(header.is_ok());
-        if let Header::Accept(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_header_empty_with_space_characters() {
+        valid_header("Accept:  ", |header| {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
             assert!(!header.contains(&MediaRange::new("application", "sdp")));
             assert!(!header.contains(&MediaRange::new("text", "html")));
-        } else {
-            panic!("Not an Accept header");
-        }
+        });
+    }
+
+    fn invalid_header(header: &str) {
+        assert!(Header::from_str(header).is_err());
     }
 
     #[test]
-    fn test_invalid_accept_header() {
-        let header = Header::from_str("Accept: application");
-        assert!(header.is_err());
-
-        let header = Header::from_str("Accept: application/");
-        assert!(header.is_err());
-
-        let header = Header::from_str("Accept: 😁/😁");
-        assert!(header.is_err());
+    fn test_invalid_accept_header_only_range_type() {
+        invalid_header("Accept: application");
     }
 
     #[test]
-    fn test_accept_header_equality() {
-        let first_header = Header::from_str("Accept: text/html");
-        let second_header = Header::from_str("Accept: text/html");
-        if let (Header::Accept(first_header), Header::Accept(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Accept header");
-        }
+    fn test_invalid_accept_header_only_range_type_and_slash() {
+        invalid_header("Accept: application/");
+    }
 
-        let first_header = Header::from_str("Accept: text/html, application/sdp");
-        let second_header = Header::from_str("Accept: application/sdp, text/html");
+    #[test]
+    fn test_invalid_accept_header_invalid_characters() {
+        invalid_header("Accept: 😁/😁");
+    }
+
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::Accept(first_header), Header::Accept(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -302,29 +302,21 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_header_inequality() {
-        let first_header = Header::from_str("Accept: application/sdp");
-        let second_header = Header::from_str("Accept: text/html");
-        if let (Header::Accept(first_header), Header::Accept(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Accept header");
-        }
+    fn test_accept_header_equality_same_headers_with_just_space_characters_differences() {
+        header_equality("Accept: text/html", "Accept:  text/html");
+    }
 
-        let first_header = Header::from_str("Accept: application/sdp, text/html");
-        let second_header = Header::from_str("Accept: text/html");
-        if let (Header::Accept(first_header), Header::Accept(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Accept header");
-        }
+    #[test]
+    fn test_accept_header_equality_same_headers_with_different_ranges_order() {
+        header_equality(
+            "Accept: text/html, application/sdp",
+            "Accept: application/sdp, text/html",
+        );
+    }
 
-        let first_header = Header::from_str("Accept: text/html");
-        let second_header = Header::from_str("Accept: application/sdp, text/html");
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::Accept(first_header), Header::Accept(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -332,5 +324,20 @@ mod tests {
         } else {
             panic!("Not an Accept header");
         }
+    }
+
+    #[test]
+    fn test_accept_header_inequality_with_different_ranges() {
+        header_inequality("Accept: application/sdp", "Accept: text/html");
+    }
+
+    #[test]
+    fn test_accept_header_inequality_with_first_header_having_more_ranges_than_the_second() {
+        header_inequality("Accept: application/sdp, text/html", "Accept: text/html");
+    }
+
+    #[test]
+    fn test_accept_header_inequality_with_first_header_having_less_ranges_than_the_second() {
+        header_inequality("Accept: text/html", "Accept: application/sdp, text/html");
     }
 }

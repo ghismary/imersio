@@ -64,15 +64,23 @@ impl Eq for AllowHeader {}
 
 #[cfg(test)]
 mod tests {
+    use super::AllowHeader;
     use crate::{Header, Method};
     use std::str::FromStr;
 
-    #[test]
-    fn test_valid_allow_header() {
-        // Valid Allow header.
-        let header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
+    fn valid_header<F: FnOnce(AllowHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
         assert!(header.is_ok());
         if let Header::Allow(header) = header.unwrap() {
+            f(header);
+        } else {
+            panic!("Not an Allow header");
+        }
+    }
+
+    #[test]
+    fn test_valid_allow_header_with_methods() {
+        valid_header("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 5);
             assert!(header.contains(Method::INVITE));
@@ -81,40 +89,32 @@ mod tests {
             assert!(header.contains(Method::CANCEL));
             assert!(header.contains(Method::BYE));
             assert!(!header.contains(Method::REGISTER));
-        } else {
-            panic!("Not an Allow header");
-        }
+        });
+    }
 
-        // Empty Allow header.
-        let header = Header::from_str("Allow:");
-        assert!(header.is_ok());
-        if let Header::Allow(header) = header.unwrap() {
+    #[test]
+    fn test_valid_allow_header_empty() {
+        valid_header("Allow:", |header| {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
             assert!(!header.contains(Method::INVITE));
             assert!(!header.contains(Method::REGISTER));
-        } else {
-            panic!("Not an Allow header");
-        }
+        });
+    }
 
-        // Empty Allow header with space characters.
-        let header = Header::from_str("Allow:      ");
-        assert!(header.is_ok());
-        if let Header::Allow(header) = header.unwrap() {
+    #[test]
+    fn test_valid_allow_header_empty_with_space_characters() {
+        valid_header("Allow:      ", |header| {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
             assert!(!header.contains(Method::CANCEL));
             assert!(!header.contains(Method::BYE));
-        } else {
-            panic!("Not an Allow header");
-        }
+        });
     }
 
-    #[test]
-    fn test_allow_header_equality() {
-        // Same Allow header with different methods order.
-        let first_header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
-        let second_header = Header::from_str("Allow: INVITE, BYE, CANCEL, OPTIONS, ACK");
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::Allow(first_header), Header::Allow(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -125,32 +125,24 @@ mod tests {
     }
 
     #[test]
-    fn test_allow_header_inequality() {
-        // Allow headers with different methods.
-        let first_header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
-        let second_header = Header::from_str("Allow: BYE, CANCEL, REGISTER, ACK");
-        if let (Header::Allow(first_header), Header::Allow(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Allow header");
-        }
+    fn test_allow_header_equality_same_headers_with_space_characters_differences() {
+        header_equality(
+            "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE",
+            "Allow:   INVITE, ACK,  OPTIONS, CANCEL,     BYE",
+        );
+    }
 
-        // Allow headers with different methods.
-        let first_header = Header::from_str("Allow: INVITE, ACK");
-        let second_header = Header::from_str("Allow: INVITE, BYE, CANCEL, ACK");
-        if let (Header::Allow(first_header), Header::Allow(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Allow header");
-        }
+    #[test]
+    fn test_allow_header_equality_with_different_methods_order() {
+        header_equality(
+            "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE",
+            "Allow: INVITE, BYE, CANCEL, OPTIONS, ACK",
+        );
+    }
 
-        // Allow header with same methods with different cases.
-        let first_header = Header::from_str("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE");
-        let second_header = Header::from_str("allow: invite, Bye, CanCeL, OptionS, acK");
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::Allow(first_header), Header::Allow(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -158,5 +150,31 @@ mod tests {
         } else {
             panic!("Not an Allow header");
         }
+    }
+
+    #[test]
+    fn test_allow_header_inequality_with_different_methods() {
+        header_inequality("Allow: INVITE", "Allow: BYE");
+    }
+
+    #[test]
+    fn test_allow_header_inequality_with_first_header_having_more_methods_than_the_second() {
+        header_inequality(
+            "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE",
+            "Allow: BYE, CANCEL, REGISTER, ACK",
+        );
+    }
+
+    #[test]
+    fn test_allow_header_inequality_with_first_header_having_less_methods_than_the_second() {
+        header_inequality("Allow: INVITE, ACK", "Allow: INVITE, BYE, CANCEL, ACK");
+    }
+
+    #[test]
+    fn test_allow_header_inequality_with_non_uppercase_methods() {
+        header_inequality(
+            "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE",
+            "allow: invite, Bye, CanCeL, OptionS, acK",
+        );
     }
 }

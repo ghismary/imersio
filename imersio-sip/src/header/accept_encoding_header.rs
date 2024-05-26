@@ -150,77 +150,78 @@ impl Hash for Encoding {
 
 #[cfg(test)]
 mod tests {
+    use super::AcceptEncodingHeader;
     use crate::Header;
     use std::str::FromStr;
 
-    #[test]
-    fn test_valid_accept_encoding_header() {
-        let header = Header::from_str("Accept-Encoding: gzip");
+    fn valid_header<F: FnOnce(AcceptEncodingHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
         assert!(header.is_ok());
         if let Header::AcceptEncoding(header) = header.unwrap() {
+            f(header);
+        } else {
+            panic!("Not an Accept-Encoding header");
+        }
+    }
+
+    #[test]
+    fn test_valid_accept_encoding_header_with_single_encoding() {
+        valid_header("Accept-Encoding: gzip", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 1);
             assert!(header.contains("gzip"));
             assert!(!header.contains("compress"));
             assert!(!header.contains("deflate"));
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+        });
+    }
 
-        let header = Header::from_str("Accept-Encoding: gzip, deflate");
-        assert!(header.is_ok());
-        if let Header::AcceptEncoding(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_encoding_header_with_several_encodings() {
+        valid_header("Accept-Encoding: gzip, deflate", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 2);
             assert!(header.contains("gzip"));
             assert!(!header.contains("compress"));
             assert!(header.contains("deflate"));
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+        });
+    }
 
-        let header = Header::from_str("Accept-Encoding: gzip    ,compress,  deflate");
-        assert!(header.is_ok());
-        if let Header::AcceptEncoding(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_encoding_header_with_several_encodings_and_space_characters() {
+        valid_header("Accept-Encoding: gzip    ,compress,  deflate", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 3);
             assert!(header.contains("gzip"));
             assert!(header.contains("compress"));
             assert!(header.contains("deflate"));
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+        });
+    }
 
-        // Empty Accept-Encoding header.
-        let header = Header::from_str("Accept-Encoding:");
-        assert!(header.is_ok());
-        if let Header::AcceptEncoding(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_encoding_header_empty() {
+        valid_header("Accept-Encoding:", |header| {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
             assert!(!header.contains("gzip"));
             assert!(!header.contains("compress"));
             assert!(!header.contains("deflate"));
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+        });
+    }
 
-        // Empty Accept-Encoding header with space characters.
-        let header = Header::from_str("Accept-Encoding:     ");
-        assert!(header.is_ok());
-        if let Header::AcceptEncoding(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_encoding_header_empty_with_space_characters() {
+        valid_header("Accept-Encoding:     ", |header| {
             assert!(header.is_empty());
             assert_eq!(header.count(), 0);
             assert!(!header.contains("gzip"));
             assert!(!header.contains("compress"));
             assert!(!header.contains("deflate"));
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+        });
+    }
 
-        // Accept-Encoding header with parameter.
-        let header = Header::from_str("Accept-Encoding: deflate, gzip;q=1.0");
-        assert!(header.is_ok());
-        if let Header::AcceptEncoding(header) = header.unwrap() {
+    #[test]
+    fn test_valid_accept_encoding_header_with_parameter() {
+        valid_header("Accept-Encoding: deflate, gzip;q=1.0", |header| {
             assert!(!header.is_empty());
             assert_eq!(header.count(), 2);
             assert!(header.contains("gzip"));
@@ -236,34 +237,18 @@ mod tests {
             let gzip_q = gzip_encoding.q();
             assert!(gzip_q.is_some());
             assert!((gzip_q.unwrap() - 1.0).abs() < 0.01);
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+        });
     }
 
     #[test]
-    fn test_invalid_accept_encoding_header() {
-        // Accept-Encoding header with invalid character.
+    fn test_invalid_accept_encoding_header_with_invalid_character() {
         let header = Header::from_str("Accept-Encoding: 😁");
         assert!(header.is_err());
     }
 
-    #[test]
-    fn test_accept_encoding_header_equality() {
-        // Same Accept-Encoding headers, with just some space characters differences.
-        let first_header = Header::from_str("Accept-Encoding: gzip");
-        let second_header = Header::from_str("Accept-Encoding:  gzip");
-        if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
-
-        // Same Accept-Encoding headers, with encoding in a different order.
-        let first_header = Header::from_str("Accept-Encoding: gzip, deflate");
-        let second_header = Header::from_str("Accept-Encoding: deflate, gzip");
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -274,29 +259,21 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_encoding_header_inequality() {
-        let first_header = Header::from_str("Accept-Encoding: gzip");
-        let second_header = Header::from_str("Accept-Encoding: deflate");
-        if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+    fn test_accept_encoding_header_equality_with_space_characters_differences() {
+        header_equality("Accept-Encoding: gzip", "Accept-Encoding:  gzip");
+    }
 
-        let first_header = Header::from_str("Accept-Encoding: gzip, deflate");
-        let second_header = Header::from_str("Accept-Encoding: deflate");
-        if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
+    #[test]
+    fn test_accept_encoding_header_equality_with_different_encodings_order() {
+        header_equality(
+            "Accept-Encoding: gzip, deflate",
+            "Accept-Encoding: deflate, gzip",
+        );
+    }
 
-        let first_header = Header::from_str("Accept-Encoding: deflate");
-        let second_header = Header::from_str("Accept-Encoding: gzip, deflate");
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -304,5 +281,22 @@ mod tests {
         } else {
             panic!("Not an Accept-Encoding header");
         }
+    }
+
+    #[test]
+    fn test_accept_encoding_header_inequality_with_different_encodings() {
+        header_inequality("Accept-Encoding: gzip", "Accept-Encoding: deflate");
+    }
+
+    #[test]
+    fn test_accept_encoding_header_inequality_with_first_header_having_more_encodings_than_the_second(
+    ) {
+        header_inequality("Accept-Encoding: gzip, deflate", "Accept-Encoding: deflate");
+    }
+
+    #[test]
+    fn test_accept_encoding_header_inequality_with_first_header_having_less_encodings_than_the_second(
+    ) {
+        header_inequality("Accept-Encoding: deflate", "Accept-Encoding: gzip, deflate");
     }
 }

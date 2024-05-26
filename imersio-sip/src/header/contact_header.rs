@@ -240,191 +240,165 @@ impl From<GenericParameter> for ContactParameter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{header::contact_header::ContactHeader, Header, Uri};
+    use super::ContactHeader;
+    use crate::{Header, Uri};
     use std::str::FromStr;
+
+    fn valid_header<F: FnOnce(ContactHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
+        assert!(header.is_ok());
+        if let Header::Contact(header) = header.unwrap() {
+            f(header);
+        } else {
+            panic!("Not a Contact header");
+        }
+    }
 
     #[test]
     fn test_valid_contact_header() {
-        // Valid Contact header.
-        let header = Header::from_str(
+        valid_header(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600, "Mr. Watson" <mailto:watson@bell-telephone.com> ;q=0.1"#,
+            |header| {
+                assert_eq!(header.contacts().len(), 2);
+                let mut contacts = header.contacts().iter();
+                let first_contact = contacts.next().unwrap();
+                assert_eq!(first_contact.address().display_name(), Some("Mr. Watson"));
+                assert_eq!(
+                    first_contact.address().uri(),
+                    Uri::from_str("sip:watson@worcester.bell-telephone.com").unwrap()
+                );
+                assert!(first_contact.address().uri().get_parameters().is_empty());
+                assert_eq!(first_contact.parameters().len(), 2);
+                assert!((first_contact.q().unwrap() - 0.7).abs() < 0.01);
+                assert_eq!(first_contact.expires().unwrap(), 3600);
+                let second_contact = contacts.next().unwrap();
+                assert_eq!(second_contact.address().display_name(), Some("Mr. Watson"));
+                assert_eq!(
+                    second_contact.address().uri(),
+                    Uri::from_str("mailto:watson@bell-telephone.com").unwrap()
+                );
+                assert!(second_contact.address().uri().get_parameters().is_empty());
+                assert_eq!(second_contact.parameters().len(), 1);
+                assert!((second_contact.q().unwrap() - 0.1).abs() < 0.01);
+            },
         );
-        assert!(header.is_ok());
-        if let Header::Contact(header) = header.unwrap() {
-            assert_eq!(header.contacts().len(), 2);
-            let mut contacts = header.contacts().iter();
-            let first_contact = contacts.next().unwrap();
-            assert_eq!(first_contact.address().display_name(), Some("Mr. Watson"));
-            assert_eq!(
-                first_contact.address().uri(),
-                Uri::from_str("sip:watson@worcester.bell-telephone.com").unwrap()
-            );
-            assert!(first_contact.address().uri().get_parameters().is_empty());
-            assert_eq!(first_contact.parameters().len(), 2);
-            assert!((first_contact.q().unwrap() - 0.7).abs() < 0.01);
-            assert_eq!(first_contact.expires().unwrap(), 3600);
-            let second_contact = contacts.next().unwrap();
-            assert_eq!(second_contact.address().display_name(), Some("Mr. Watson"));
-            assert_eq!(
-                second_contact.address().uri(),
-                Uri::from_str("mailto:watson@bell-telephone.com").unwrap()
-            );
-            assert!(second_contact.address().uri().get_parameters().is_empty());
-            assert_eq!(second_contact.parameters().len(), 1);
-            assert!((second_contact.q().unwrap() - 0.1).abs() < 0.01);
-        } else {
-            panic!("Not a Contact header");
-        }
+    }
 
-        // Valid wildcard Contact header.
-        let header = Header::from_str("Contact: *");
-        assert!(header.is_ok());
-        if let Header::Contact(header) = header.unwrap() {
+    #[test]
+    fn test_valid_contact_header_wildcard() {
+        valid_header("Contact: *", |header| {
             assert_eq!(header, ContactHeader::Any);
-        } else {
-            panic!("Not a Contact header");
-        }
+        });
+    }
 
-        // Valid abbreviated wildcard Contact header.
-        let header = Header::from_str("m: *");
-        assert!(header.is_ok());
-        if let Header::Contact(header) = header.unwrap() {
+    #[test]
+    fn test_valid_contact_header_compact_wildcard() {
+        valid_header("m: *", |header| {
             assert_eq!(header, ContactHeader::Any);
+        });
+    }
+
+    fn invalid_header(header: &str) {
+        assert!(Header::from_str(header).is_err());
+    }
+
+    #[test]
+    fn test_invalid_contact_header_empty() {
+        invalid_header("Contact:");
+    }
+
+    #[test]
+    fn test_invalid_contact_header_empty_with_space_characters() {
+        invalid_header("Contact:    ");
+    }
+
+    #[test]
+    fn test_invalid_contact_header_with_invalid_character() {
+        invalid_header("Contact: 😁");
+    }
+
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
+        if let (Header::Contact(first_header), Header::Contact(second_header)) =
+            (first_header.unwrap(), second_header.unwrap())
+        {
+            assert_eq!(first_header, second_header);
         } else {
             panic!("Not a Contact header");
         }
     }
 
     #[test]
-    fn test_invalid_contact_header() {
-        // Empty Contact header.
-        let header = Header::from_str("Contact:");
-        assert!(header.is_err());
-
-        // Empty Contact header with spaces.
-        let header = Header::from_str("Contact:    ");
-        assert!(header.is_err());
-
-        // Contact header with invalid character.
-        let header = Header::from_str("Contact: 😁");
-        assert!(header.is_err());
-    }
-
-    #[test]
-    fn test_contact_header_equality() {
-        // Same contact headers, just some minor spaces differences.
-        let first_header = Header::from_str(
+    fn test_contact_header_equality_same_header_with_space_characters_differences() {
+        header_equality(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
-        );
-        let second_header = Header::from_str(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com> ;q=0.7;expires=3600"#,
         );
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
+    }
 
-        // Contact headers with contacts in a different order.
-        let first_header = Header::from_str(
+    #[test]
+    fn test_contact_header_equality_contacts_in_a_different_order() {
+        header_equality(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600, "Mr. Watson" <mailto:watson@bell-telephone.com> ;q=0.1"#,
-        );
-        let second_header = Header::from_str(
             r#"Contact: "Mr. Watson" <mailto:watson@bell-telephone.com> ;q=0.1, "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
         );
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
+    }
 
-        // Same wildcard contact headers.
-        let first_header = Header::from_str("Contact: *");
-        let second_header = Header::from_str("Contact: *");
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
+    #[test]
+    fn test_contact_header_equality_same_wilcard_with_space_characters_differences() {
+        header_equality("Contact: *", "Contact:   *");
+    }
 
-        // Same contact headers with different display names.
-        let first_header = Header::from_str(
+    #[test]
+    fn test_contact_header_equality_same_header_with_different_display_names() {
+        header_equality(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
-        );
-        let second_header = Header::from_str(
             r#"Contact: "Mrs. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
         );
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
+    }
 
-        // Same Contact headers with different cases.
-        let first_header = Header::from_str("Contact: <sip:alice@atlanta.com>;expires=3600");
-        let second_header = Header::from_str("CONTACT: <sip:alice@atlanta.com>;ExPiReS=3600");
+    #[test]
+    fn test_contact_header_equality_same_header_with_different_cases() {
+        header_equality(
+            "Contact: <sip:alice@atlanta.com>;expires=3600",
+            "CONTACT: <sip:alice@atlanta.com>;ExPiReS=3600",
+        );
+    }
+
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::Contact(first_header), Header::Contact(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
-            assert_eq!(first_header, second_header);
+            assert_ne!(first_header, second_header);
         } else {
             panic!("Not a Contact header");
         }
     }
 
     #[test]
-    fn test_contact_header_inequality() {
-        // Different contact uris.
-        let first_header = Header::from_str(
+    fn test_contact_header_inequality_different_uris() {
+        header_inequality(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
-        );
-        let second_header = Header::from_str(
             r#"Contact: "Mr. Watson" <sip:watson@manchester.bell-telephone.com>;q=0.7; expires=3600"#,
         );
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
+    }
 
-        // Different q parameters.
-        let first_header = Header::from_str(
+    #[test]
+    fn test_contact_header_inequality_different_q_parameters() {
+        header_inequality(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
-        );
-        let second_header = Header::from_str(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.5; expires=3600"#,
         );
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
+    }
 
-        // Different expires parameters.
-        let first_header = Header::from_str(
+    #[test]
+    fn test_contact_header_inequality_different_expires_parameters() {
+        header_inequality(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
-        );
-        let second_header = Header::from_str(
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3200"#,
         );
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
     }
 }

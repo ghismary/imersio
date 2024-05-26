@@ -252,15 +252,23 @@ impl From<GenericParameter> for CallInfoParameter {
 
 #[cfg(test)]
 mod tests {
+    use super::CallInfoHeader;
     use crate::{header::call_info_header::CallInfoParameter, GenericParameter, Header, Uri};
     use std::str::FromStr;
 
-    #[test]
-    fn test_valid_call_info_header() {
-        // Valid Call-Info header with icon and info.
-        let header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info");
+    fn valid_header<F: FnOnce(CallInfoHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
         assert!(header.is_ok());
         if let Header::CallInfo(header) = header.unwrap() {
+            f(header);
+        } else {
+            panic!("Not a Call-Info header");
+        }
+    }
+
+    #[test]
+    fn test_valid_call_info_header_with_icon_and_info() {
+        valid_header("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info", |header| {
             assert_eq!(header.count(), 2);
             let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
             let first_uri = first_uri.as_absolute_uri().unwrap();
@@ -287,153 +295,146 @@ mod tests {
             let third_uri = Uri::from_str("http://www.example.com/bob/").unwrap();
             let third_uri = third_uri.as_absolute_uri().unwrap();
             assert!(!header.contains(third_uri));
-        } else {
-            panic!("Not a Call-Info header");
-        }
-
-        // Valid Call-Info header with custom purpose.
-        let header =
-            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=photo");
-        assert!(header.is_ok());
-        if let Header::CallInfo(header) = header.unwrap() {
-            assert_eq!(header.count(), 1);
-            let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
-            let first_uri = first_uri.as_absolute_uri().unwrap();
-            assert!(header.contains(first_uri));
-            let first_call_info = header.get(first_uri);
-            assert!(first_call_info.is_some());
-            let first_call_info = first_call_info.unwrap();
-            assert_eq!(first_call_info.parameters().len(), 1);
-            assert_eq!(
-                first_call_info.parameters().first().unwrap(),
-                CallInfoParameter::OtherPurpose("photo".to_string())
-            );
-        } else {
-            panic!("Not a Call-Info header");
-        }
-
-        // Valid Call-Info header with custom param with value.
-        let header =
-            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;info=photo");
-        assert!(header.is_ok());
-        if let Header::CallInfo(header) = header.unwrap() {
-            assert_eq!(header.count(), 1);
-            let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
-            let first_uri = first_uri.as_absolute_uri().unwrap();
-            assert!(header.contains(first_uri));
-            let first_call_info = header.get(first_uri);
-            assert!(first_call_info.is_some());
-            let first_call_info = first_call_info.unwrap();
-            assert_eq!(first_call_info.parameters().len(), 1);
-            assert_eq!(
-                first_call_info.parameters().first().unwrap(),
-                CallInfoParameter::Other(GenericParameter::new("info", Some("photo")))
-            );
-        } else {
-            panic!("Not a Call-Info header");
-        }
-
-        // Valid Call-Info header with custom param without value.
-        let header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;info");
-        assert!(header.is_ok());
-        if let Header::CallInfo(header) = header.unwrap() {
-            assert_eq!(header.count(), 1);
-            let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
-            let first_uri = first_uri.as_absolute_uri().unwrap();
-            assert!(header.contains(first_uri));
-            let first_call_info = header.get(first_uri);
-            assert!(first_call_info.is_some());
-            let first_call_info = first_call_info.unwrap();
-            assert_eq!(first_call_info.parameters().len(), 1);
-            assert_eq!(
-                first_call_info.parameters().first().unwrap(),
-                CallInfoParameter::Other(GenericParameter::new("info", None))
-            );
-        } else {
-            panic!("Not a Call-Info header");
-        }
-
-        // Valid Call-Info header without param.
-        let header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg>");
-        assert!(header.is_ok());
-        if let Header::CallInfo(header) = header.unwrap() {
-            assert_eq!(header.count(), 1);
-            let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
-            let first_uri = first_uri.as_absolute_uri().unwrap();
-            assert!(header.contains(first_uri));
-            let first_call_info = header.get(first_uri);
-            assert!(first_call_info.is_some());
-            let first_call_info = first_call_info.unwrap();
-            assert!(first_call_info.parameters().is_empty());
-        } else {
-            panic!("Not a Call-Info header");
-        }
+        });
     }
 
     #[test]
-    fn test_invalid_call_info_header() {
-        // Empty Call-Info header.
-        let header = Header::from_str("Call-Info:");
-        assert!(header.is_err());
-
-        // Empty Call-Info header with spaces.
-        let header = Header::from_str("Call-Info:    ");
-        assert!(header.is_err());
-
-        // Call-Info header with invalid character.
-        let header = Header::from_str("Call-Info: 😁");
-        assert!(header.is_err());
-
-        // Call-Info header with invalid uri.
-        let header = Header::from_str("Call-Info: http://wwww.example.com/alice/photo.jpg");
-        assert!(header.is_err());
+    fn test_valid_call_info_header_with_custom_purpose() {
+        valid_header(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=photo",
+            |header| {
+                assert_eq!(header.count(), 1);
+                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = first_uri.as_absolute_uri().unwrap();
+                assert!(header.contains(first_uri));
+                let first_call_info = header.get(first_uri);
+                assert!(first_call_info.is_some());
+                let first_call_info = first_call_info.unwrap();
+                assert_eq!(first_call_info.parameters().len(), 1);
+                assert_eq!(
+                    first_call_info.parameters().first().unwrap(),
+                    CallInfoParameter::OtherPurpose("photo".to_string())
+                );
+            },
+        );
     }
 
     #[test]
-    fn test_call_info_header_equality() {
-        // Same Call-Info header.
-        let first_header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info");
-        let second_header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info");
+    fn test_valid_call_info_header_with_custom_param_with_value() {
+        valid_header(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;info=photo",
+            |header| {
+                assert_eq!(header.count(), 1);
+                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = first_uri.as_absolute_uri().unwrap();
+                assert!(header.contains(first_uri));
+                let first_call_info = header.get(first_uri);
+                assert!(first_call_info.is_some());
+                let first_call_info = first_call_info.unwrap();
+                assert_eq!(first_call_info.parameters().len(), 1);
+                assert_eq!(
+                    first_call_info.parameters().first().unwrap(),
+                    CallInfoParameter::Other(GenericParameter::new("info", Some("photo")))
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_valid_call_info_header_with_custom_param_without_value() {
+        valid_header(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;info",
+            |header| {
+                assert_eq!(header.count(), 1);
+                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = first_uri.as_absolute_uri().unwrap();
+                assert!(header.contains(first_uri));
+                let first_call_info = header.get(first_uri);
+                assert!(first_call_info.is_some());
+                let first_call_info = first_call_info.unwrap();
+                assert_eq!(first_call_info.parameters().len(), 1);
+                assert_eq!(
+                    first_call_info.parameters().first().unwrap(),
+                    CallInfoParameter::Other(GenericParameter::new("info", None))
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn test_valid_call_info_header_without_param() {
+        valid_header(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg>",
+            |header| {
+                assert_eq!(header.count(), 1);
+                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = first_uri.as_absolute_uri().unwrap();
+                assert!(header.contains(first_uri));
+                let first_call_info = header.get(first_uri);
+                assert!(first_call_info.is_some());
+                let first_call_info = first_call_info.unwrap();
+                assert!(first_call_info.parameters().is_empty());
+            },
+        );
+    }
+
+    fn invalid_header(header: &str) {
+        assert!(Header::from_str(header).is_err());
+    }
+
+    #[test]
+    fn test_invalid_call_info_header_empty() {
+        invalid_header("Call-Info:");
+    }
+
+    #[test]
+    fn test_invalid_call_info_header_empty_with_space_characters() {
+        invalid_header("Call-Info:    ");
+    }
+
+    #[test]
+    fn test_invalid_call_info_header_with_invalid_character() {
+        invalid_header("Call-Info: 😁");
+    }
+
+    #[test]
+    fn test_invalid_call_info_header_with_invalid_uri() {
+        invalid_header("Call-Info: http://wwww.example.com/alice/photo.jpg");
+    }
+
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
             assert_eq!(first_header, second_header);
         } else {
-            panic!("Not a Call-Info header");
-        }
-
-        // Same Call-Info header with inverted infos.
-        let first_header = Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info");
-        let second_header = Header::from_str("Call-Info: <http://www.example.com/alice/> ;purpose=info, <http://wwww.example.com/alice/photo.jpg> ;purpose=icon");
-        if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Call-Info header");
-        }
-
-        // Same Call-Info headers with different cases.
-        let first_header =
-            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon");
-        let second_header =
-            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;puRpoSe=Icon");
-        if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Call-Info header");
+            panic!("Not an Authorization header");
         }
     }
 
     #[test]
-    fn test_call_info_header_inequality() {
-        // Different uris with same purpose.
-        let first_header =
-            Header::from_str("Call-Info: <http://www.example.com/alice/> ;purpose=info");
-        let second_header =
-            Header::from_str("Call-Info: <http://www.example.com/bob/> ;purpose=info");
+    fn test_call_info_header_equality_same_header_with_space_characters_differences() {
+        header_equality("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/>;purpose=info", "Call-Info: <http://wwww.example.com/alice/photo.jpg>; purpose=icon, <http://www.example.com/alice/> ;purpose=info");
+    }
+
+    #[test]
+    fn test_call_info_header_equality_with_inverted_infos() {
+        header_equality("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info", "Call-Info: <http://www.example.com/alice/> ;purpose=info, <http://wwww.example.com/alice/photo.jpg> ;purpose=icon");
+    }
+
+    #[test]
+    fn test_call_info_header_equality_with_different_cases() {
+        header_equality(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon",
+            "call-info: <http://wwww.example.com/alice/photo.jpg> ;puRpoSe=Icon",
+        );
+    }
+
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
             (first_header.unwrap(), second_header.unwrap())
         {
@@ -441,18 +442,21 @@ mod tests {
         } else {
             panic!("Not a Call-Info header");
         }
+    }
 
-        // Same uris with different purpose.
-        let first_header =
-            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon");
-        let second_header =
-            Header::from_str("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=info");
-        if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Call-Info header");
-        }
+    #[test]
+    fn test_call_info_header_inequality_different_uris_with_same_purpose() {
+        header_inequality(
+            "Call-Info: <http://www.example.com/alice/> ;purpose=info",
+            "Call-Info: <http://www.example.com/bob/> ;purpose=info",
+        );
+    }
+
+    #[test]
+    fn test_call_info_header_inequality_same_uri_with_different_purposes() {
+        header_inequality(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon",
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=info",
+        );
     }
 }

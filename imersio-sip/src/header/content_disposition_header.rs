@@ -308,100 +308,73 @@ impl Ord for Handling {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        header::content_disposition_header::{DispositionType, Handling},
-        Header,
-    };
+    use super::{ContentDispositionHeader, DispositionType, Handling};
+    use crate::Header;
     use std::str::FromStr;
 
-    #[test]
-    fn test_valid_content_disposition_header() {
-        // Valid Content-Disposition header.
-        let header = Header::from_str("Content-Disposition: session");
+    fn valid_header<F: FnOnce(ContentDispositionHeader)>(header: &str, f: F) {
+        let header = Header::from_str(header);
         assert!(header.is_ok());
         if let Header::ContentDisposition(header) = header.unwrap() {
-            assert_eq!(header.r#type(), DispositionType::Session);
-            assert!(header.parameters().is_empty());
+            f(header);
         } else {
             panic!("Not a Content-Disposition header");
         }
+    }
 
-        // Valid Content-Disposition header with parameter.
-        let header = Header::from_str("Content-Disposition: session;handling=optional");
-        assert!(header.is_ok());
-        if let Header::ContentDisposition(header) = header.unwrap() {
+    #[test]
+    fn test_valid_content_disposition_header() {
+        valid_header("Content-Disposition: session", |header| {
+            assert_eq!(header.r#type(), DispositionType::Session);
+            assert!(header.parameters().is_empty());
+        });
+    }
+
+    #[test]
+    fn test_valid_content_disposition_header_with_parameter() {
+        valid_header("Content-Disposition: session;handling=optional", |header| {
             assert_eq!(header.r#type(), DispositionType::Session);
             assert_eq!(header.parameters().len(), 1);
             assert_eq!(
                 header.parameters().first().unwrap().handling(),
                 Some(&Handling::Optional)
             )
-        } else {
-            panic!("Not a Content-Disposition header");
-        }
+        });
+    }
 
-        // Valid Content-Disposition header with custom type.
-        let header = Header::from_str("Content-Disposition: custom");
-        assert!(header.is_ok());
-        if let Header::ContentDisposition(header) = header.unwrap() {
+    #[test]
+    fn test_valid_content_disposition_header_with_custom_type() {
+        valid_header("Content-Disposition: custom", |header| {
             assert_eq!(
                 header.r#type(),
                 DispositionType::Other("custom".to_string())
             );
             assert!(header.parameters().is_empty());
-        } else {
-            panic!("Not a Content-Disposition header");
-        }
+        });
+    }
+
+    fn invalid_header(header: &str) {
+        assert!(Header::from_str(header).is_err());
     }
 
     #[test]
-    fn test_invalid_content_disposition_header() {
-        // Empty Content-Disposition header.
-        let header = Header::from_str("Content-Disposition:");
-        assert!(header.is_err());
-
-        // Empty Content-Disposition header with spaces.
-        let header = Header::from_str("Content-Disposition:    ");
-        assert!(header.is_err());
-
-        // Content-Disposition header with invalid character.
-        let header = Header::from_str("Content-Disposition: 😁");
-        assert!(header.is_err());
+    fn test_invalid_content_disposition_header_empty() {
+        invalid_header("Content-Disposition:");
     }
 
     #[test]
-    fn test_content_disposition_header_equality() {
-        // Same Content-Disposition headers, just some minor spaces differences.
-        let first_header = Header::from_str("Content-Disposition: session");
-        let second_header = Header::from_str("Content-Disposition:   session");
-        if let (
-            Header::ContentDisposition(first_header),
-            Header::ContentDisposition(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Disposition header");
-        }
+    fn test_invalid_content_disposition_header_empty_with_space_characters() {
+        invalid_header("Content-Disposition:    ");
+    }
 
-        // Same Content-Disposition headers, with parameters in different orders.
-        let first_header =
-            Header::from_str("Content-Disposition: session;handling=required;myparam=test");
-        let second_header =
-            Header::from_str("Content-Disposition: session;myparam=test;handling=required");
-        if let (
-            Header::ContentDisposition(first_header),
-            Header::ContentDisposition(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Disposition header");
-        }
+    #[test]
+    fn test_invalid_content_disposition_header_with_invalid_character() {
+        invalid_header("Content-Disposition: 😁");
+    }
 
-        // Same Content-Disposition headers, but with different cases.
-        let first_header = Header::from_str("Content-Disposition: session;handling=optional");
-        let second_header = Header::from_str("content-disposition: Session;HANDLING=OPTIONAL");
+    fn header_equality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (
             Header::ContentDisposition(first_header),
             Header::ContentDisposition(second_header),
@@ -414,36 +387,32 @@ mod tests {
     }
 
     #[test]
-    fn test_content_disposition_header_inequality() {
-        // Different disposition types.
-        let first_header = Header::from_str("Content-Disposition: session");
-        let second_header = Header::from_str("Content-Disposition: render");
-        if let (
-            Header::ContentDisposition(first_header),
-            Header::ContentDisposition(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Disposition header");
-        }
+    fn test_content_disposition_header_equality_with_space_characters_differences() {
+        header_equality(
+            "Content-Disposition: session",
+            "Content-Disposition:   session",
+        );
+    }
 
-        // Same disposition type, but one has a parameter.
-        let first_header = Header::from_str("Content-Disposition: session");
-        let second_header = Header::from_str("Content-Disposition: session;handling=required");
-        if let (
-            Header::ContentDisposition(first_header),
-            Header::ContentDisposition(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Disposition header");
-        }
+    #[test]
+    fn test_content_disposition_header_equality_parameters_in_a_different_order() {
+        header_equality(
+            "Content-Disposition: session;handling=required;myparam=test",
+            "Content-Disposition: session;myparam=test;handling=required",
+        );
+    }
 
-        // Same parameter but different disposition type.
-        let first_header = Header::from_str("Content-Disposition: session;handling=optional");
-        let second_header = Header::from_str("Content-Disposition: render;handling=optional");
+    #[test]
+    fn test_content_disposition_header_equality_with_different_cases() {
+        header_equality(
+            "Content-Disposition: session;handling=optional",
+            "content-disposition: Session;HANDLING=OPTIONAL",
+        );
+    }
+
+    fn header_inequality(first_header: &str, second_header: &str) {
+        let first_header = Header::from_str(first_header);
+        let second_header = Header::from_str(second_header);
         if let (
             Header::ContentDisposition(first_header),
             Header::ContentDisposition(second_header),
@@ -453,5 +422,29 @@ mod tests {
         } else {
             panic!("Not a Content-Disposition header");
         }
+    }
+
+    #[test]
+    fn test_content_disposition_header_inequality_with_different_types() {
+        header_inequality(
+            "Content-Disposition: session",
+            "Content-Disposition: render",
+        );
+    }
+
+    #[test]
+    fn test_content_disposition_header_inequality_with_same_type_but_one_has_a_parameter() {
+        header_inequality(
+            "Content-Disposition: session",
+            "Content-Disposition: session;handling=required",
+        );
+    }
+
+    #[test]
+    fn test_content_disposition_header_inequality_with_same_parameter_but_different_types() {
+        header_inequality(
+            "Content-Disposition: session;handling=optional",
+            "Content-Disposition: render;handling=optional",
+        );
     }
 }
