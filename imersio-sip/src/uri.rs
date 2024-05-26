@@ -19,8 +19,8 @@ pub struct SipUri {
     scheme: Scheme,
     userinfo: Option<UserInfo>,
     hostport: HostPort,
-    parameters: Parameters,
-    headers: Headers,
+    parameters: UriParameters,
+    headers: UriHeaders,
 }
 
 impl SipUri {
@@ -40,12 +40,12 @@ impl SipUri {
     }
 
     /// Get the `Parameters` of the `SipUri`.
-    pub fn get_parameters(&self) -> &Parameters {
+    pub fn get_parameters(&self) -> &UriParameters {
         &self.parameters
     }
 
     /// Get the `Headers` of the `SipUri`.
-    pub fn get_headers(&self) -> &Headers {
+    pub fn get_headers(&self) -> &UriHeaders {
         &self.headers
     }
 }
@@ -90,8 +90,8 @@ impl PartialEq<SipUri> for &SipUri {
 pub struct AbsoluteUri {
     scheme: Scheme,
     opaque_part: String,
-    parameters: Parameters,
-    headers: Headers,
+    parameters: UriParameters,
+    headers: UriHeaders,
 }
 
 impl AbsoluteUri {
@@ -101,12 +101,12 @@ impl AbsoluteUri {
     }
 
     /// Get the `Parameters` of the `AbsoluteUri`.
-    pub fn get_parameters(&self) -> &Parameters {
+    pub fn get_parameters(&self) -> &UriParameters {
         &self.parameters
     }
 
     /// Get the `Headers` of the `AbsoluteUri`.
-    pub fn get_headers(&self) -> &Headers {
+    pub fn get_headers(&self) -> &UriHeaders {
         &self.headers
     }
 }
@@ -210,7 +210,7 @@ impl Uri {
     }
 
     /// Get the `Parameters` of the URI.
-    pub fn get_parameters(&self) -> &Parameters {
+    pub fn get_parameters(&self) -> &UriParameters {
         match self {
             Uri::Sip(uri) => uri.get_parameters(),
             Uri::Absolute(uri) => uri.get_parameters(),
@@ -226,7 +226,7 @@ impl Uri {
     }
 
     /// Get the `Headers` of the URI.
-    pub fn get_headers(&self) -> &Headers {
+    pub fn get_headers(&self) -> &UriHeaders {
         match self {
             Uri::Sip(uri) => uri.get_headers(),
             Uri::Absolute(uri) => uri.get_headers(),
@@ -507,9 +507,9 @@ impl Hash for HostPort {
 
 /// Representation of an URI parameter list.
 #[derive(Clone, Debug, Default, Eq)]
-pub struct Parameters(Vec<(String, Option<String>)>);
+pub struct UriParameters(Vec<(String, Option<String>)>);
 
-impl Parameters {
+impl UriParameters {
     /// Tells whether the parameters list is empty or not.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -534,7 +534,7 @@ impl Parameters {
     }
 }
 
-impl std::fmt::Display for Parameters {
+impl std::fmt::Display for UriParameters {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -559,7 +559,7 @@ impl std::fmt::Display for Parameters {
     }
 }
 
-impl Deref for Parameters {
+impl Deref for UriParameters {
     type Target = Vec<(String, Option<String>)>;
 
     fn deref(&self) -> &Self::Target {
@@ -567,7 +567,7 @@ impl Deref for Parameters {
     }
 }
 
-impl PartialEq for Parameters {
+impl PartialEq for UriParameters {
     fn eq(&self, other: &Self) -> bool {
         for (sk, sv) in &self.0 {
             for (ok, ov) in &other.0 {
@@ -591,19 +591,19 @@ impl PartialEq for Parameters {
     }
 }
 
-impl PartialEq<&Parameters> for Parameters {
-    fn eq(&self, other: &&Parameters) -> bool {
+impl PartialEq<&UriParameters> for UriParameters {
+    fn eq(&self, other: &&UriParameters) -> bool {
         self == *other
     }
 }
 
-impl PartialEq<Parameters> for &Parameters {
-    fn eq(&self, other: &Parameters) -> bool {
+impl PartialEq<UriParameters> for &UriParameters {
+    fn eq(&self, other: &UriParameters) -> bool {
         *self == other
     }
 }
 
-impl Hash for Parameters {
+impl Hash for UriParameters {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut sorted_params: Vec<(String, Option<String>)> = self
             .0
@@ -622,9 +622,9 @@ impl Hash for Parameters {
 
 /// Representation of an URI header list.
 #[derive(Clone, Debug, Default, Eq)]
-pub struct Headers(Vec<(String, String)>);
+pub struct UriHeaders(Vec<(String, String)>);
 
-impl Headers {
+impl UriHeaders {
     /// Tells whether the headers list is empty or not.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -649,7 +649,7 @@ impl Headers {
     }
 }
 
-impl std::fmt::Display for Headers {
+impl std::fmt::Display for UriHeaders {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -669,7 +669,7 @@ impl std::fmt::Display for Headers {
     }
 }
 
-impl PartialEq for Headers {
+impl PartialEq for UriHeaders {
     fn eq(&self, other: &Self) -> bool {
         for (sk, sv) in &self.0 {
             if let Some(ov) = other.get(sk) {
@@ -695,19 +695,19 @@ impl PartialEq for Headers {
     }
 }
 
-impl PartialEq<&Headers> for Headers {
-    fn eq(&self, other: &&Headers) -> bool {
+impl PartialEq<&UriHeaders> for UriHeaders {
+    fn eq(&self, other: &&UriHeaders) -> bool {
         self == *other
     }
 }
 
-impl PartialEq<Headers> for &Headers {
-    fn eq(&self, other: &Headers) -> bool {
+impl PartialEq<UriHeaders> for &UriHeaders {
+    fn eq(&self, other: &UriHeaders) -> bool {
         *self == other
     }
 }
 
-impl Hash for Headers {
+impl Hash for UriHeaders {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut sorted_headers: Vec<(String, String)> = self
             .0
@@ -1041,11 +1041,11 @@ pub(crate) mod parser {
         ))(input)
     }
 
-    fn uri_parameters(input: &[u8]) -> ParserResult<&[u8], Parameters> {
+    fn uri_parameters(input: &[u8]) -> ParserResult<&[u8], UriParameters> {
         context(
             "uri_parameters",
             map(many0(preceded(tag(";"), uri_parameter)), |parameters| {
-                Parameters(
+                UriParameters(
                     parameters
                         .into_iter()
                         .map(|(k, v)| {
@@ -1100,7 +1100,7 @@ pub(crate) mod parser {
         separated_pair(hname, tag("="), hvalue)(input)
     }
 
-    fn headers(input: &[u8]) -> ParserResult<&[u8], Headers> {
+    fn headers(input: &[u8]) -> ParserResult<&[u8], UriHeaders> {
         context(
             "headers",
             map(
@@ -1111,7 +1111,7 @@ pub(crate) mod parser {
                 |(first_header, mut other_headers)| {
                     let mut headers = vec![first_header];
                     headers.append(&mut other_headers);
-                    Headers(headers.into_iter().collect::<Vec<(String, String)>>())
+                    UriHeaders(headers.into_iter().collect::<Vec<(String, String)>>())
                 },
             ),
         )(input)
@@ -1212,8 +1212,8 @@ pub(crate) mod parser {
                 |(scheme, opaque_part)| AbsoluteUri {
                     scheme: Scheme::Other(scheme.into_owned()),
                     opaque_part: opaque_part.into_owned(),
-                    parameters: Parameters::default(),
-                    headers: Headers::default(),
+                    parameters: UriParameters::default(),
+                    headers: UriHeaders::default(),
                 },
             ),
         )(input)
