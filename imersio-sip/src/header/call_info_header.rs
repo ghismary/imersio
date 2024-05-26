@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
 use crate::{uri::AbsoluteUri, GenericParameter};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct CallInfoHeader(Vec<CallInfo>);
 
 impl CallInfoHeader {
@@ -62,9 +62,7 @@ impl PartialEq<CallInfoHeader> for &CallInfoHeader {
     }
 }
 
-impl Eq for CallInfoHeader {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct CallInfo {
     uri: AbsoluteUri,
     parameters: Vec<CallInfoParameter>,
@@ -126,8 +124,6 @@ impl PartialEq<CallInfo> for &CallInfo {
     }
 }
 
-impl Eq for CallInfo {}
-
 impl Hash for CallInfo {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.uri.hash(state);
@@ -137,7 +133,7 @@ impl Hash for CallInfo {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum CallInfoParameter {
     IconPurpose,
     InfoPurpose,
@@ -218,8 +214,6 @@ impl PartialEq<CallInfoParameter> for &CallInfoParameter {
         *self == other
     }
 }
-
-impl Eq for CallInfoParameter {}
 
 impl Hash for CallInfoParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

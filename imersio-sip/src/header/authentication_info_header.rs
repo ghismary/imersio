@@ -2,7 +2,7 @@ use std::{collections::HashSet, hash::Hash};
 
 use crate::common::MessageQop;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct AuthenticationInfoHeader(Vec<AInfo>);
 
 impl AuthenticationInfoHeader {
@@ -69,8 +69,6 @@ impl PartialEq<AuthenticationInfoHeader> for &AuthenticationInfoHeader {
     }
 }
 
-impl Eq for AuthenticationInfoHeader {}
-
 macro_rules! authentication_info_header {
     (
         $(
@@ -109,7 +107,7 @@ authentication_info_header! {
     (nonce_count, has_nonce_count, NonceCount);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 #[non_exhaustive]
 pub enum AInfo {
     NextNonce(String),
@@ -178,8 +176,6 @@ impl PartialEq<AInfo> for &AInfo {
         *self == other
     }
 }
-
-impl Eq for AInfo {}
 
 impl Hash for AInfo {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

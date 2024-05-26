@@ -5,7 +5,7 @@ use std::{cmp::Ordering, hash::Hash};
 use crate::Uri;
 
 /// Representation of a generic parameter.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct GenericParameter {
     key: String,
     value: Option<String>,
@@ -63,8 +63,6 @@ impl PartialEq<GenericParameter> for &GenericParameter {
     }
 }
 
-impl Eq for GenericParameter {}
-
 impl Hash for GenericParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.key().to_ascii_lowercase().hash(state);
@@ -72,7 +70,7 @@ impl Hash for GenericParameter {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum AcceptParameter {
     Q(String),
     Other(GenericParameter),
@@ -151,8 +149,6 @@ impl PartialEq<AcceptParameter> for &AcceptParameter {
     }
 }
 
-impl Eq for AcceptParameter {}
-
 impl Hash for AcceptParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.key().to_ascii_lowercase().hash(state);
@@ -182,7 +178,7 @@ impl From<GenericParameter> for AcceptParameter {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum Algorithm {
     Md5,
     Md5Sess,
@@ -236,15 +232,13 @@ impl PartialEq<Algorithm> for &Algorithm {
     }
 }
 
-impl Eq for Algorithm {}
-
 impl Hash for Algorithm {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.value().to_ascii_lowercase().hash(state);
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum MessageQop {
     Auth,
     AuthInt,
@@ -298,15 +292,13 @@ impl PartialEq<MessageQop> for &MessageQop {
     }
 }
 
-impl Eq for MessageQop {}
-
 impl Hash for MessageQop {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.value().hash(state);
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct NameAddress {
     display_name: Option<String>,
     uri: Uri,
@@ -357,8 +349,6 @@ impl PartialEq<NameAddress> for &NameAddress {
         *self == other
     }
 }
-
-impl Eq for NameAddress {}
 
 impl Hash for NameAddress {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

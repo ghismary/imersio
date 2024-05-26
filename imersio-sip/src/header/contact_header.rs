@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
 use crate::{common::NameAddress, GenericParameter};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum ContactHeader {
     Any,
     Contacts(Vec<Contact>),
@@ -61,9 +61,7 @@ impl PartialEq<ContactHeader> for &ContactHeader {
     }
 }
 
-impl Eq for ContactHeader {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct Contact {
     address: NameAddress,
     parameters: Vec<ContactParameter>,
@@ -141,8 +139,6 @@ impl PartialEq<Contact> for &Contact {
         *self == other
     }
 }
-
-impl Eq for Contact {}
 
 impl Hash for Contact {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

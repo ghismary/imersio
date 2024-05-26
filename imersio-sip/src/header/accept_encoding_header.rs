@@ -2,7 +2,7 @@ use std::{collections::HashSet, hash::Hash};
 
 use crate::common::AcceptParameter;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct AcceptEncodingHeader(Vec<Encoding>);
 
 impl AcceptEncodingHeader {
@@ -65,9 +65,7 @@ impl PartialEq<AcceptEncodingHeader> for &AcceptEncodingHeader {
     }
 }
 
-impl Eq for AcceptEncodingHeader {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct Encoding {
     encoding: String,
     parameters: Vec<AcceptParameter>,
@@ -136,8 +134,6 @@ impl PartialEq<Encoding> for &Encoding {
         *self == other
     }
 }
-
-impl Eq for Encoding {}
 
 impl Hash for Encoding {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

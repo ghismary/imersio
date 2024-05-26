@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::Method;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct AllowHeader(Vec<Method>);
 
 impl AllowHeader {
@@ -59,8 +59,6 @@ impl PartialEq<AllowHeader> for &AllowHeader {
         *self == other
     }
 }
-
-impl Eq for AllowHeader {}
 
 #[cfg(test)]
 mod tests {

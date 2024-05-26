@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct ContentEncodingHeader(Vec<String>);
 
 impl ContentEncodingHeader {
@@ -44,8 +44,6 @@ impl PartialEq<ContentEncodingHeader> for &ContentEncodingHeader {
         *self == other
     }
 }
-
-impl Eq for ContentEncodingHeader {}
 
 #[cfg(test)]
 mod tests {

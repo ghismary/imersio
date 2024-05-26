@@ -2,7 +2,7 @@ use std::{collections::HashSet, hash::Hash};
 
 use crate::{common::AcceptParameter, uri::AbsoluteUri};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct AlertInfoHeader(Vec<AlertParameter>);
 
 impl AlertInfoHeader {
@@ -60,9 +60,7 @@ impl PartialEq<AlertInfoHeader> for &AlertInfoHeader {
     }
 }
 
-impl Eq for AlertInfoHeader {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct AlertParameter {
     uri: AbsoluteUri,
     parameters: Vec<AcceptParameter>,
@@ -113,8 +111,6 @@ impl PartialEq<AlertParameter> for &AlertParameter {
         *self == other
     }
 }
-
-impl Eq for AlertParameter {}
 
 impl Hash for AlertParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

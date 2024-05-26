@@ -2,7 +2,7 @@ use std::{collections::HashSet, hash::Hash};
 
 use crate::common::AcceptParameter;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct AcceptLanguageHeader(Vec<Language>);
 
 impl AcceptLanguageHeader {
@@ -65,9 +65,7 @@ impl PartialEq<AcceptLanguageHeader> for &AcceptLanguageHeader {
     }
 }
 
-impl Eq for AcceptLanguageHeader {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct Language {
     language: String,
     parameters: Vec<AcceptParameter>,
@@ -136,8 +134,6 @@ impl PartialEq<Language> for &Language {
         *self == other
     }
 }
-
-impl Eq for Language {}
 
 impl Hash for Language {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

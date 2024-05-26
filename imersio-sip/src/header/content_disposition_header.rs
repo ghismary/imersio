@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
 use crate::GenericParameter;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct ContentDispositionHeader {
     r#type: DispositionType,
     parameters: Vec<DispositionParameter>,
@@ -63,9 +63,7 @@ impl PartialEq<ContentDispositionHeader> for &ContentDispositionHeader {
     }
 }
 
-impl Eq for ContentDispositionHeader {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum DispositionType {
     Render,
     Session,
@@ -128,9 +126,7 @@ impl PartialEq<DispositionType> for &DispositionType {
     }
 }
 
-impl Eq for DispositionType {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum DispositionParameter {
     Handling(Handling),
     Other(GenericParameter),
@@ -199,8 +195,6 @@ impl PartialOrd for DispositionParameter {
     }
 }
 
-impl Eq for DispositionParameter {}
-
 impl Hash for DispositionParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.key().hash(state);
@@ -224,7 +218,7 @@ impl From<GenericParameter> for DispositionParameter {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum Handling {
     Optional,
     Required,
@@ -285,8 +279,6 @@ impl PartialEq<Handling> for &Handling {
         *self == other
     }
 }
-
-impl Eq for Handling {}
 
 impl Hash for Handling {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

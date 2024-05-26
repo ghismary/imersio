@@ -282,7 +282,7 @@ impl PartialEq<Uri> for &Uri {
 }
 
 /// Representation of the scheme of an URI.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum Scheme {
     /// SIP protocol scheme.
     Sip,
@@ -363,8 +363,6 @@ impl PartialEq<Scheme> for &Scheme {
     }
 }
 
-impl Eq for Scheme {}
-
 impl Hash for Scheme {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
@@ -443,7 +441,7 @@ impl PartialEq<UserInfo> for &UserInfo {
 }
 
 /// Representation of a hostport of a SIP URI.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct HostPort {
     host: String,
     port: Option<NonZeroU16>,
@@ -500,8 +498,6 @@ impl PartialEq<HostPort> for &HostPort {
     }
 }
 
-impl Eq for HostPort {}
-
 impl Hash for HostPort {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.host.to_ascii_lowercase().hash(state);
@@ -510,7 +506,7 @@ impl Hash for HostPort {
 }
 
 /// Representation of an URI parameter list.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq)]
 pub struct Parameters(Vec<(String, Option<String>)>);
 
 impl Parameters {
@@ -607,8 +603,6 @@ impl PartialEq<Parameters> for &Parameters {
     }
 }
 
-impl Eq for Parameters {}
-
 impl Hash for Parameters {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut sorted_params: Vec<(String, Option<String>)> = self
@@ -627,7 +621,7 @@ impl Hash for Parameters {
 }
 
 /// Representation of an URI header list.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq)]
 pub struct Headers(Vec<(String, String)>);
 
 impl Headers {
@@ -712,8 +706,6 @@ impl PartialEq<Headers> for &Headers {
         *self == other
     }
 }
-
-impl Eq for Headers {}
 
 impl Hash for Headers {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

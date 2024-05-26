@@ -39,7 +39,7 @@ impl PartialEq<AuthorizationHeader> for &AuthorizationHeader {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum Credentials {
     Digest(Vec<AuthParameter>),
     Other(String, Vec<AuthParameter>),
@@ -223,8 +223,6 @@ impl PartialEq<Credentials> for &Credentials {
     }
 }
 
-impl Eq for Credentials {}
-
 macro_rules! credentials {
     (
         $(
@@ -272,7 +270,7 @@ credentials! {
     (nonce_count, has_nonce_count, NonceCount);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub enum AuthParameter {
     Username(String),
     Realm(String),
@@ -372,8 +370,6 @@ impl PartialEq<AuthParameter> for &AuthParameter {
         *self == other
     }
 }
-
-impl Eq for AuthParameter {}
 
 impl Hash for AuthParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

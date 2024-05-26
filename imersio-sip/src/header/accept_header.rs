@@ -2,7 +2,7 @@ use std::{collections::HashSet, hash::Hash};
 
 use crate::common::AcceptParameter;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq)]
 pub struct AcceptHeader(Vec<AcceptRange>);
 
 impl AcceptHeader {
@@ -65,9 +65,7 @@ impl PartialEq<AcceptHeader> for &AcceptHeader {
     }
 }
 
-impl Eq for AcceptHeader {}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct AcceptRange {
     media_range: MediaRange,
     parameters: Vec<AcceptParameter>,
@@ -131,8 +129,6 @@ impl PartialEq<AcceptRange> for &AcceptRange {
         *self == other
     }
 }
-
-impl Eq for AcceptRange {}
 
 impl Hash for AcceptRange {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
