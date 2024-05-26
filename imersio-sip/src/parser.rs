@@ -274,6 +274,13 @@ pub(crate) fn utf8_nonascii(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     ))(input)
 }
 
+pub(crate) fn text_utf8char(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+    alt((
+        recognize(verify(take1, |b| (0x21..=0x7e).contains(b))),
+        utf8_nonascii,
+    ))(input)
+}
+
 pub(crate) fn token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     input
         .split_at_position1_complete(

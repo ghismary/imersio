@@ -12,6 +12,7 @@ mod call_info_header;
 mod contact_header;
 mod content_disposition_header;
 mod content_encoding_header;
+mod generic_header;
 mod parser;
 
 use std::str::FromStr;
@@ -28,6 +29,7 @@ use call_info_header::CallInfoHeader;
 use contact_header::ContactHeader;
 use content_disposition_header::ContentDispositionHeader;
 use content_encoding_header::ContentEncodingHeader;
+use generic_header::GenericHeader;
 
 use crate::Error;
 
@@ -58,6 +60,8 @@ pub enum Header {
     ContentDisposition(ContentDispositionHeader),
     /// A Content-Encoding header.
     ContentEncoding(ContentEncodingHeader),
+    /// An extension header.
+    ExtensionHeader(GenericHeader),
 }
 
 impl Header {
@@ -86,6 +90,7 @@ impl std::fmt::Display for Header {
                 Header::Contact(header) => header.to_string(),
                 Header::ContentDisposition(header) => header.to_string(),
                 Header::ContentEncoding(header) => header.to_string(),
+                Header::ExtensionHeader(header) => header.to_string(),
             }
         )
     }

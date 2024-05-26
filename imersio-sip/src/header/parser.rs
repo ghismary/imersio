@@ -14,7 +14,7 @@ use crate::{
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
-        rdquot, semi, slash, star, token, word, ParserResult,
+        rdquot, semi, slash, star, text_utf8char, token, utf8_cont, word, ParserResult,
     },
     uri::parser::{absolute_uri, host, request_uri, sip_uri, sips_uri},
     GenericParameter, Uri,
@@ -35,6 +35,7 @@ use super::{
         ContentDispositionHeader, DispositionParameter, DispositionType, Handling,
     },
     content_encoding_header::ContentEncodingHeader,
+    generic_header::GenericHeader,
     Header,
 };
 
@@ -846,6 +847,47 @@ fn content_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+#[inline]
+fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    token(input)
+}
+
+fn header_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        recognize(many0(alt((text_utf8char, utf8_cont, lws)))),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
+    map(
+        tuple((
+            verify(header_name, |name: &Cow<'_, str>| {
+                ![
+                    "accept",
+                    "accept-encoding",
+                    "accept-language",
+                    "alert-info",
+                    "allow",
+                    "authentication-info",
+                    "authorization",
+                    "call-id",
+                    "call-info",
+                    "contact",
+                    "content-disposition",
+                    "content-encoding",
+                ]
+                .contains(&name.to_string().to_ascii_lowercase().as_str())
+            }),
+            map(hcolon, String::from_utf8_lossy),
+            header_value,
+        )),
+        |(name, separator, value)| {
+            Header::ExtensionHeader(GenericHeader::new(name, separator, value))
+        },
+    )(input)
+}
+
 pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
@@ -862,6 +904,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             contact,
             content_disposition,
             content_encoding,
+            extension_header,
         )),
     )(input)
 }
