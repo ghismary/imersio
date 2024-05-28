@@ -1230,11 +1230,12 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
+    use claim::{assert_err, assert_ok};
 
     #[test]
     fn test_valid_uri_parsing() {
         let uri = Uri::from_str("sip:alice@atlanta.com");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1248,7 +1249,7 @@ mod test {
         assert_eq!(uri.to_string(), "sip:alice@atlanta.com");
 
         let uri = Uri::from_str("sip:alice:secretword@atlanta.com;transport=tcp");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1266,7 +1267,7 @@ mod test {
         );
 
         let uri = Uri::from_str("sips:alice@atlanta.com?subject=project%20x&priority=urgent");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(uri.is_secure());
@@ -1285,7 +1286,7 @@ mod test {
         );
 
         let uri = Uri::from_str("sip:+1-212-555-1212:1234@gateway.com;user=phone");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1303,7 +1304,7 @@ mod test {
         );
 
         let uri = Uri::from_str("sips:1212@gateway.com");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(uri.is_secure());
@@ -1317,7 +1318,7 @@ mod test {
         assert_eq!(uri.to_string(), "sips:1212@gateway.com");
 
         let uri = Uri::from_str("sip:alice@192.0.2.4");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1331,7 +1332,7 @@ mod test {
         assert_eq!(uri.to_string(), "sip:alice@192.0.2.4");
 
         let uri = Uri::from_str("sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1350,7 +1351,7 @@ mod test {
         );
 
         let uri = Uri::from_str("sip:alice;day=tuesday@atlanta.com");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1365,7 +1366,7 @@ mod test {
 
         // Check escaped char in password.
         let uri = Uri::from_str("sip:alice:secret%77ord@atlanta.com");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1380,7 +1381,7 @@ mod test {
 
         // Check escaped chars in parameters.
         let uri = Uri::from_str("sip:alice:secretword@atlanta.com;%74ransport=t%63p");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1399,7 +1400,7 @@ mod test {
 
         // Check escaped chars in headers.
         let uri = Uri::from_str("sip:atlanta.com;method=REGISTER?t%6f=al%69ce%40atlant%61.com");
-        assert!(uri.is_ok());
+        assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
@@ -1422,17 +1423,17 @@ mod test {
     fn test_invalid_uri_parsing() {
         // Multiple parameters with the same name are not allowed.
         let uri = Uri::from_str("sip:alice@atlanta.com;transport=tcp;transport=udp");
-        assert!(uri.is_err());
+        assert_err!(uri);
 
         // Invalid IPv4 address.
         let uri = Uri::from_str("sip:alice@1923.0.2.4");
-        assert!(uri.is_err());
+        assert_err!(uri);
         let uri = Uri::from_str("sip:alice@192.0.329.18");
-        assert!(uri.is_err());
+        assert_err!(uri);
 
         // Invalid multiple `@` characters.
         let uri = Uri::from_str("sip:alice@atlanta.com@gateway.com");
-        assert!(uri.is_err());
+        assert_err!(uri);
     }
 
     #[test]

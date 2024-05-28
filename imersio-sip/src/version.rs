@@ -148,6 +148,7 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
+    use claim::assert_err;
 
     #[test]
     fn test_version_eq() {
@@ -165,10 +166,10 @@ mod test {
 
     #[test]
     fn test_invalid_version() {
-        assert!(Version::from_str("").is_err());
-        assert!(Version::from_bytes(b"").is_err());
-        assert!(Version::from_str("SIP/1.0").is_err());
-        assert!(Version::from_bytes(b"crappy-version").is_err());
+        assert_err!(Version::from_str(""));
+        assert_err!(Version::from_bytes(b""));
+        assert_err!(Version::from_str("SIP/1.0"));
+        assert_err!(Version::from_bytes(b"crappy-version"));
     }
 
     #[test]

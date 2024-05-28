@@ -227,6 +227,7 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
+    use claim::assert_err;
 
     #[test]
     fn test_method_eq() {
@@ -242,10 +243,10 @@ mod test {
 
     #[test]
     fn test_invalid_method() {
-        assert!(Method::from_str("").is_err());
-        assert!(Method::from_bytes(b"").is_err());
-        assert!(Method::from_bytes(&[0xC0]).is_err()); // Invalid UTF-8
-        assert!(Method::from_bytes(&[0x10]).is_err()); // Invalid method characters
+        assert_err!(Method::from_str(""));
+        assert_err!(Method::from_bytes(b""));
+        assert_err!(Method::from_bytes(&[0xC0])); // Invalid UTF-8
+        assert_err!(Method::from_bytes(&[0x10])); // Invalid method characters
     }
 
     #[test]
@@ -259,7 +260,7 @@ mod test {
     fn test_extension_method() {
         assert_eq!(Method::from_bytes(b"EXTENSION").unwrap(), "EXTENSION");
         assert_eq!(Method::from_bytes(b"ex-Tension.").unwrap(), "ex-Tension.");
-        assert!(Method::from_bytes(b"BAD^EXT").is_err());
+        assert_err!(Method::from_bytes(b"BAD^EXT"));
 
         let long_method = "This_is_a_very_long_method.It_is_valid_but_unlikely.";
         assert_eq!(Method::from_str(long_method).unwrap(), long_method);

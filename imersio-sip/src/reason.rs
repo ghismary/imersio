@@ -887,14 +887,15 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
+    use claim::{assert_err, assert_ok};
 
     #[test]
     fn test_invalid_status_code() {
-        assert!(StatusCode::from_u16(10).is_err());
-        assert!(StatusCode::from_u16(3478).is_err());
-        assert!(StatusCode::from_str("bob").is_err());
-        assert!(StatusCode::from_str("9273").is_err());
-        assert!(StatusCode::from_bytes(b"4629").is_err());
+        assert_err!(StatusCode::from_u16(10));
+        assert_err!(StatusCode::from_u16(3478));
+        assert_err!(StatusCode::from_str("bob"));
+        assert_err!(StatusCode::from_str("9273"));
+        assert_err!(StatusCode::from_bytes(b"4629"));
     }
 
     #[test]
@@ -908,15 +909,15 @@ mod test {
 
     #[test]
     fn test_invalid_reason() {
-        assert!(Reason::from_str("Hello world!").is_err());
-        assert!(Reason::from_str("4040 Not Found").is_err());
+        assert_err!(Reason::from_str("Hello world!"));
+        assert_err!(Reason::from_str("4040 Not Found"));
     }
 
     #[test]
     fn test_valid_reason() {
-        assert!(Reason::from_bytes(b"200 OK").is_ok());
-        assert!(Reason::from_bytes(b"200 Bon").is_ok());
-        assert!(Reason::from_str("404 Pas Trouvé").is_ok());
+        assert_ok!(Reason::from_bytes(b"200 OK"));
+        assert_ok!(Reason::from_bytes(b"200 Bon"));
+        assert_ok!(Reason::from_str("404 Pas Trouvé"));
     }
 
     #[test]

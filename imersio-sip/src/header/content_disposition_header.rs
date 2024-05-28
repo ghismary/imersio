@@ -322,11 +322,12 @@ impl Ord for HandlingValue {
 mod tests {
     use super::{ContentDispositionHeader, DispositionType, HandlingValue};
     use crate::{Header, HeaderAccessor};
+    use claim::{assert_err, assert_ok};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(ContentDispositionHeader)>(header: &str, f: F) {
         let header = Header::from_str(header);
-        assert!(header.is_ok());
+        assert_ok!(&header);
         if let Header::ContentDisposition(header) = header.unwrap() {
             f(header);
         } else {
@@ -366,7 +367,7 @@ mod tests {
     }
 
     fn invalid_header(header: &str) {
-        assert!(Header::from_str(header).is_err());
+        assert_err!(Header::from_str(header));
     }
 
     #[test]

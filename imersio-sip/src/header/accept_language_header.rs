@@ -159,11 +159,12 @@ impl Hash for Language {
 mod tests {
     use super::AcceptLanguageHeader;
     use crate::{Header, HeaderAccessor};
+    use claim::{assert_err, assert_ok};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(AcceptLanguageHeader)>(header: &str, f: F) {
         let header = Header::from_str(header);
-        assert!(header.is_ok());
+        assert_ok!(&header);
         if let Header::AcceptLanguage(header) = header.unwrap() {
             f(header);
         } else {
@@ -263,7 +264,7 @@ mod tests {
     #[test]
     fn test_invalid_accept_language_header_with_invalid_characters() {
         let header = Header::from_str("Accept-Language: 😁");
-        assert!(header.is_err());
+        assert_err!(header);
     }
 
     fn header_equality(first_header: &str, second_header: &str) {

@@ -148,12 +148,13 @@ impl Hash for Alert {
 #[cfg(test)]
 mod tests {
     use crate::{Header, HeaderAccessor, Uri};
+    use claim::{assert_err, assert_ok};
     use std::str::FromStr;
 
     #[test]
     fn test_valid_alert_info_header() {
         let header = Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>");
-        assert!(header.is_ok());
+        assert_ok!(&header);
         if let Header::AlertInfo(header) = header.unwrap() {
             assert_eq!(header.alerts().len(), 1);
             assert!(header.alerts().contains(
@@ -168,7 +169,7 @@ mod tests {
     }
 
     fn invalid_header(header: &str) {
-        assert!(Header::from_str(header).is_err());
+        assert_err!(Header::from_str(header));
     }
 
     #[test]

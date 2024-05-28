@@ -276,11 +276,12 @@ mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
+    use claim::{assert_err, assert_ok};
 
     #[test]
     fn test_valid_request() {
         let req = Request::from_bytes(b"INVITE sip:alice@atlanta.com SIP/2.0\r\n\r\n");
-        assert!(req.is_ok());
+        assert_ok!(&req);
         let req = req.unwrap();
         assert_eq!(req.method(), Method::INVITE);
         assert_eq!(req.uri().to_string(), "sip:alice@atlanta.com");
@@ -288,7 +289,7 @@ mod test {
 
         let with_body =
             Request::from_bytes(b"REGISTER sip:alice@gateway.com SIP/2.0\r\n\r\nHello world!");
-        assert!(with_body.is_ok());
+        assert_ok!(&with_body);
         let with_body = with_body.unwrap();
         assert_eq!(with_body.method(), Method::REGISTER);
         assert_eq!(with_body.uri().to_string(), "sip:alice@gateway.com");
@@ -298,11 +299,12 @@ mod test {
 
     #[test]
     fn test_invalid_request() {
-        assert!(Request::from_bytes(b"Hello world!").is_err());
-        assert!(Request::from_bytes(b"INVITE sip:alice@atlanta.com SIP/1.0\r\n\r\n").is_err());
-        assert!(
-            Request::from_bytes(b"INVITE sip:alice@atlanta.com@gateway.com SIP/2.0\r\n\r\n")
-                .is_err()
-        );
+        assert_err!(Request::from_bytes(b"Hello world!"));
+        assert_err!(Request::from_bytes(
+            b"INVITE sip:alice@atlanta.com SIP/1.0\r\n\r\n"
+        ));
+        assert_err!(Request::from_bytes(
+            b"INVITE sip:alice@atlanta.com@gateway.com SIP/2.0\r\n\r\n"
+        ));
     }
 }

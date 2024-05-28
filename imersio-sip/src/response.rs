@@ -322,24 +322,25 @@ mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
+    use claim::{assert_err, assert_ok};
 
     #[test]
     fn test_valid_response() {
         let ok = Response::from_bytes(b"SIP/2.0 200 OK\r\n\r\n");
-        assert!(ok.is_ok());
+        assert_ok!(&ok);
         let ok = ok.unwrap();
         assert_eq!(ok.version(), Version::SIP_2);
         assert_eq!(ok.reason(), Reason::OK);
 
         let not_found = Response::from_bytes(b"SIP/2.0 404 Not Found\r\n\r\n");
-        assert!(not_found.is_ok());
+        assert_ok!(&not_found);
         let not_found = not_found.unwrap();
         assert_eq!(not_found.version(), Version::SIP_2);
         assert_eq!(not_found.reason(), Reason::NOT_FOUND);
         assert_eq!(not_found.reason().to_string(), "404 Not Found");
 
         let with_body = Response::from_bytes(b"SIP/2.0 200 OK\r\n\r\nHello world!");
-        assert!(with_body.is_ok());
+        assert_ok!(&with_body);
         let with_body = with_body.unwrap();
         assert_eq!(with_body.version(), Version::SIP_2);
         assert_eq!(with_body.reason(), Reason::OK);
@@ -347,7 +348,7 @@ mod test {
 
         let unknown_status =
             Response::from_bytes(b"SIP/2.0 999 Mon Status \xF0\x9F\x98\x81\r\n\r\n");
-        assert!(unknown_status.is_ok());
+        assert_ok!(&unknown_status);
         let unknown_status = unknown_status.unwrap();
         assert_eq!(unknown_status.version(), Version::SIP_2);
         assert_eq!(unknown_status.reason(), 999);
@@ -356,7 +357,7 @@ mod test {
 
     #[test]
     fn test_invalid_response() {
-        assert!(Response::from_bytes(b"Hello world!").is_err());
-        assert!(Response::from_bytes(b"SIP/1.0 200 OK\r\n\r\n").is_err());
+        assert_err!(Response::from_bytes(b"Hello world!"));
+        assert_err!(Response::from_bytes(b"SIP/1.0 200 OK\r\n\r\n"));
     }
 }

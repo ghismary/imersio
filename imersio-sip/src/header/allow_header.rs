@@ -70,11 +70,12 @@ pub type Methods = HeaderValueCollection<Method>;
 mod tests {
     use super::AllowHeader;
     use crate::{Header, HeaderAccessor, Method};
+    use claim::assert_ok;
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(AllowHeader)>(header: &str, f: F) {
         let header = Header::from_str(header);
-        assert!(header.is_ok());
+        assert_ok!(&header);
         if let Header::Allow(header) = header.unwrap() {
             f(header);
         } else {

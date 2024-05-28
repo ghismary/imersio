@@ -156,11 +156,12 @@ impl Hash for AcceptEncoding {
 mod tests {
     use super::AcceptEncodingHeader;
     use crate::{Header, HeaderAccessor};
+    use claim::{assert_err, assert_ok};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(AcceptEncodingHeader)>(header: &str, f: F) {
         let header = Header::from_str(header);
-        assert!(header.is_ok());
+        assert_ok!(&header);
         if let Header::AcceptEncoding(header) = header.unwrap() {
             f(header);
         } else {
@@ -247,7 +248,7 @@ mod tests {
     #[test]
     fn test_invalid_accept_encoding_header_with_invalid_character() {
         let header = Header::from_str("Accept-Encoding: 😁");
-        assert!(header.is_err());
+        assert_err!(header);
     }
 
     fn header_equality(first_header: &str, second_header: &str) {

@@ -337,11 +337,12 @@ const ESCAPED_CHARS: [u8; 256] = [
 #[cfg(test)]
 mod tests {
     use super::*;
+    use claim::assert_ok;
 
     #[test]
     fn test_quoted_string() {
         let input = b"\"47364c23432d2e131a5fb210812c\"";
         let result = quoted_string(input);
-        assert!(result.is_ok());
+        assert_ok!(result);
     }
 }
