@@ -1,7 +1,8 @@
 use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
 use crate::{
-    common::HeaderValueCollection, uri::AbsoluteUri, utils::partial_eq_refs, GenericParameter,
+    common::header_value_collection::HeaderValueCollection, uri::AbsoluteUri,
+    utils::partial_eq_refs, GenericParameter,
 };
 
 use super::{generic_header::GenericHeader, HeaderAccessor};

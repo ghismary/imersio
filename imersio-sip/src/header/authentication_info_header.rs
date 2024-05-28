@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use crate::{
-    common::{HeaderValueCollection, MessageQop},
+    common::{header_value_collection::HeaderValueCollection, message_qop::MessageQop},
     utils::partial_eq_refs,
     HeaderAccessor,
 };
@@ -211,7 +211,7 @@ impl Hash for AInfo {
 #[cfg(test)]
 mod tests {
     use super::AuthenticationInfoHeader;
-    use crate::{common::MessageQop, Header, HeaderAccessor};
+    use crate::{common::message_qop::MessageQop, Header, HeaderAccessor};
     use claim::{assert_err, assert_ok};
     use std::str::FromStr;
 

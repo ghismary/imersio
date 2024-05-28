@@ -10,7 +10,10 @@ use nom::{
 };
 
 use crate::{
-    common::{AcceptParameter, Algorithm, MessageQop, NameAddress},
+    common::{
+        accept_parameter::AcceptParameter, algorithm::Algorithm, message_qop::MessageQop,
+        name_address::NameAddress,
+    },
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,

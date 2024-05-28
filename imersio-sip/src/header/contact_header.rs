@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::HashSet, hash::Hash, ops::Deref};
 
-use crate::{common::NameAddress, utils::partial_eq_refs, GenericParameter};
+use crate::{common::name_address::NameAddress, utils::partial_eq_refs, GenericParameter};
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
 

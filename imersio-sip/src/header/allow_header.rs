@@ -1,4 +1,7 @@
-use crate::{common::HeaderValueCollection, utils::partial_eq_refs, HeaderAccessor, Method};
+use crate::{
+    common::header_value_collection::HeaderValueCollection, utils::partial_eq_refs, HeaderAccessor,
+    Method,
+};
 
 use super::generic_header::GenericHeader;
 

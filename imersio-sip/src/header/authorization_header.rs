@@ -1,7 +1,10 @@
 use std::{collections::HashSet, hash::Hash};
 
 use crate::{
-    common::{Algorithm, HeaderValueCollection, MessageQop},
+    common::{
+        algorithm::Algorithm, header_value_collection::HeaderValueCollection,
+        message_qop::MessageQop,
+    },
     utils::partial_eq_refs,
     Error, HeaderAccessor, Uri,
 };
@@ -413,7 +416,7 @@ impl TryFrom<AInfo> for AuthParameter {
 mod tests {
     use super::AuthorizationHeader;
     use crate::{
-        common::{Algorithm, MessageQop},
+        common::{algorithm::Algorithm, message_qop::MessageQop},
         header::authorization_header::AuthParameter,
         Header, HeaderAccessor, Uri,
     };

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, hash::Hash};
 
 use crate::{
-    common::{AcceptParameter, HeaderValueCollection},
+    common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
     utils::partial_eq_refs,
     HeaderAccessor,
 };

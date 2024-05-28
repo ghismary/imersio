@@ -19,7 +19,7 @@ mod utils;
 
 pub use bytes::Bytes;
 
-pub use crate::common::GenericParameter;
+pub use crate::common::generic_parameter::GenericParameter;
 pub use crate::error::Error;
 pub use crate::header::HeaderAccessor;
 
