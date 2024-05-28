@@ -1,70 +1,88 @@
 use std::{collections::HashSet, hash::Hash};
 
-use crate::common::AcceptParameter;
+use crate::{
+    common::{AcceptParameter, HeaderValueCollection},
+    utils::partial_eq_refs,
+    HeaderAccessor,
+};
 
+use super::generic_header::GenericHeader;
+
+/// Representation of an Accept-Language header.
+///
+/// The Accept-Language header field is used in requests to indicate the
+/// preferred languages for reason phrases, session descriptions, or status
+/// responses carried as message bodies in the response. If no
+/// Accept-Language header field is present, the server SHOULD assume all
+/// languages are acceptable to the client.
+///
+/// [[RFC3261, Section 20.3](https://datatracker.ietf.org/doc/html/rfc3261#section-20.3)]
 #[derive(Clone, Debug, Eq)]
-pub struct AcceptLanguageHeader(Vec<Language>);
+pub struct AcceptLanguageHeader {
+    header: GenericHeader,
+    languages: Languages,
+}
 
 impl AcceptLanguageHeader {
-    pub(crate) fn new(languages: Vec<Language>) -> Self {
-        AcceptLanguageHeader(languages)
+    pub(crate) fn new(header: GenericHeader, languages: Vec<Language>) -> Self {
+        AcceptLanguageHeader {
+            header,
+            languages: languages.into(),
+        }
     }
 
-    /// Tells whether the Accept-Language header is empty or not.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+    /// Get the `Languages` from the `Accept-Language` header.
+    pub fn languages(&self) -> &Languages {
+        &self.languages
     }
+}
 
-    /// Get the number of languages in the Accept-Language header.
-    pub fn count(&self) -> usize {
-        self.0.len()
+impl HeaderAccessor for AcceptLanguageHeader {
+    crate::header::generic_header_accessors!(header);
+
+    fn compact_name(&self) -> Option<&str> {
+        None
     }
-
-    /// Tells whether Accept-Language header contains the given languages.
-    pub fn contains(&self, language: &str) -> bool {
-        self.0.iter().any(|l| l.language == language)
+    fn normalized_name(&self) -> Option<&str> {
+        Some("Accept-Language")
     }
-
-    /// Gets the `Language` corresponding to the given language name.
-    pub fn get(&self, language: &str) -> Option<&Language> {
-        self.0.iter().find(|l| l.language == language)
+    fn normalized_value(&self) -> String {
+        self.languages.to_string()
     }
 }
 
 impl std::fmt::Display for AcceptLanguageHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Accept-Language: {}",
-            self.0
-                .iter()
-                .map(|language| language.to_string())
-                .collect::<Vec<String>>()
-                .join(" ,")
-        )
+        self.header.fmt(f)
     }
 }
 
 impl PartialEq for AcceptLanguageHeader {
     fn eq(&self, other: &Self) -> bool {
-        let self_languages: HashSet<_> = self.0.iter().collect();
-        let other_languages: HashSet<_> = other.0.iter().collect();
-        self_languages == other_languages
+        self.languages == other.languages
     }
 }
 
-impl PartialEq<&AcceptLanguageHeader> for AcceptLanguageHeader {
-    fn eq(&self, other: &&AcceptLanguageHeader) -> bool {
-        self == *other
+partial_eq_refs!(AcceptLanguageHeader);
+
+/// Representation of the list of languages from an `AcceptLanguageHeader`.
+///
+/// This is usable as an iterator.
+pub type Languages = HeaderValueCollection<Language>;
+
+impl Languages {
+    /// Tell whether `Languages` contains the given language.
+    pub fn contains(&self, language: &str) -> bool {
+        self.iter().any(|l| l.language == language)
+    }
+
+    /// Get the `Language` corresponding to the given language name.
+    pub fn get(&self, language: &str) -> Option<&Language> {
+        self.iter().find(|l| l.language == language)
     }
 }
 
-impl PartialEq<AcceptLanguageHeader> for &AcceptLanguageHeader {
-    fn eq(&self, other: &AcceptLanguageHeader) -> bool {
-        *self == other
-    }
-}
-
+/// Representation of a language contained in an `Accept-Language` header.
 #[derive(Clone, Debug, Eq)]
 pub struct Language {
     language: String,
@@ -79,14 +97,17 @@ impl Language {
         }
     }
 
+    /// Get the language.
     pub fn language(&self) -> &str {
         &self.language
     }
 
+    /// Get a reference to the parameters of the `Language`.
     pub fn parameters(&self) -> &Vec<AcceptParameter> {
         &self.parameters
     }
 
+    /// Get the value of the `q` parameter for the language, if it has one.
     pub fn q(&self) -> Option<f32> {
         self.parameters
             .iter()
@@ -100,7 +121,7 @@ impl std::fmt::Display for Language {
         write!(
             f,
             "{}{}{}",
-            self.language,
+            self.language.to_ascii_lowercase(),
             if self.parameters.is_empty() { "" } else { ";" },
             self.parameters
                 .iter()
@@ -123,17 +144,7 @@ impl PartialEq for Language {
     }
 }
 
-impl PartialEq<&Language> for Language {
-    fn eq(&self, other: &&Language) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<Language> for &Language {
-    fn eq(&self, other: &Language) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(Language);
 
 impl Hash for Language {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -147,7 +158,7 @@ impl Hash for Language {
 #[cfg(test)]
 mod tests {
     use super::AcceptLanguageHeader;
-    use crate::Header;
+    use crate::{Header, HeaderAccessor};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(AcceptLanguageHeader)>(header: &str, f: F) {
@@ -163,70 +174,70 @@ mod tests {
     #[test]
     fn test_valid_accept_language_header_with_single_language() {
         valid_header("Accept-Language: da", |header| {
-            assert!(!header.is_empty());
-            assert_eq!(header.count(), 1);
-            assert!(header.contains("da"));
-            assert!(!header.contains("en-gb"));
-            assert!(!header.contains("en"));
+            assert!(!header.languages().is_empty());
+            assert_eq!(header.languages().len(), 1);
+            assert!(header.languages().contains("da"));
+            assert!(!header.languages().contains("en-gb"));
+            assert!(!header.languages().contains("en"));
         });
     }
 
     #[test]
     fn test_valid_accept_language_header_with_several_languages() {
         valid_header("Accept-Language: da, en", |header| {
-            assert!(!header.is_empty());
-            assert_eq!(header.count(), 2);
-            assert!(header.contains("da"));
-            assert!(!header.contains("en-gb"));
-            assert!(header.contains("en"));
+            assert!(!header.languages().is_empty());
+            assert_eq!(header.languages().len(), 2);
+            assert!(header.languages().contains("da"));
+            assert!(!header.languages().contains("en-gb"));
+            assert!(header.languages().contains("en"));
         });
     }
 
     #[test]
     fn test_valid_accept_language_header_with_several_languages_and_space_characters() {
         valid_header("Accept-Language: da     ,  en  ,     en-gb", |header| {
-            assert!(!header.is_empty());
-            assert_eq!(header.count(), 3);
-            assert!(header.contains("da"));
-            assert!(header.contains("en-gb"));
-            assert!(header.contains("en"));
+            assert!(!header.languages().is_empty());
+            assert_eq!(header.languages().len(), 3);
+            assert!(header.languages().contains("da"));
+            assert!(header.languages().contains("en-gb"));
+            assert!(header.languages().contains("en"));
         });
     }
 
     #[test]
     fn test_valid_accept_language_header_empty() {
         valid_header("Accept-Language:", |header| {
-            assert!(header.is_empty());
-            assert_eq!(header.count(), 0);
-            assert!(!header.contains("da"));
-            assert!(!header.contains("en-gb"));
-            assert!(!header.contains("en"));
+            assert!(header.languages().is_empty());
+            assert_eq!(header.languages().len(), 0);
+            assert!(!header.languages().contains("da"));
+            assert!(!header.languages().contains("en-gb"));
+            assert!(!header.languages().contains("en"));
         });
     }
 
     #[test]
     fn test_valid_accept_language_header_empty_with_space_characters() {
         valid_header("Accept-Language:   ", |header| {
-            assert!(header.is_empty());
-            assert_eq!(header.count(), 0);
-            assert!(!header.contains("da"));
-            assert!(!header.contains("en-gb"));
-            assert!(!header.contains("en"));
+            assert!(header.languages().is_empty());
+            assert_eq!(header.languages().len(), 0);
+            assert!(!header.languages().contains("da"));
+            assert!(!header.languages().contains("en-gb"));
+            assert!(!header.languages().contains("en"));
         });
     }
 
     #[test]
     fn test_valid_accept_language_header_with_q_parameters() {
         valid_header("Accept-Language: da, en-gb;q=0.8, en;q=0.7", |header| {
-            assert!(!header.is_empty());
-            assert_eq!(header.count(), 3);
-            assert!(header.contains("da"));
-            assert!(header.contains("en-gb"));
-            assert!(header.contains("en"));
-            let da_language = header.get("da").unwrap();
+            assert!(!header.languages().is_empty());
+            assert_eq!(header.languages().len(), 3);
+            assert!(header.languages().contains("da"));
+            assert!(header.languages().contains("en-gb"));
+            assert!(header.languages().contains("en"));
+            let da_language = header.languages().get("da").unwrap();
             assert!(da_language.parameters().is_empty());
             assert_eq!(da_language.q(), None);
-            let en_gb_language = header.get("en-gb").unwrap();
+            let en_gb_language = header.languages().get("en-gb").unwrap();
             assert_eq!(en_gb_language.parameters().len(), 1);
             assert_eq!(en_gb_language.parameters().first().unwrap().key(), "q");
             assert_eq!(
@@ -236,7 +247,7 @@ mod tests {
             let en_gb_language_q = en_gb_language.q();
             assert!(en_gb_language_q.is_some());
             assert!((en_gb_language_q.unwrap() - 0.8).abs() < 0.01);
-            let en_language = header.get("en").unwrap();
+            let en_language = header.languages().get("en").unwrap();
             assert_eq!(en_language.parameters().len(), 1);
             assert_eq!(en_language.parameters().first().unwrap().key(), "q");
             assert_eq!(
@@ -309,5 +320,15 @@ mod tests {
     fn test_accept_language_header_inequality_with_first_header_having_less_languages_than_the_second(
     ) {
         header_inequality("Accept-Language: en", "Accept-Language: fr, en");
+    }
+
+    #[test]
+    fn test_accept_language_header_to_string() {
+        let header = Header::from_str("accept-language:  EN   , FR");
+        if let Header::AcceptLanguage(header) = header.unwrap() {
+            assert_eq!(header.to_string(), "accept-language:  EN   , FR");
+            assert_eq!(header.to_normalized_string(), "Accept-Language: en, fr");
+            assert_eq!(header.to_compact_string(), "Accept-Language: en, fr");
+        }
     }
 }

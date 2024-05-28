@@ -1,69 +1,75 @@
-use std::collections::HashSet;
+use crate::{common::HeaderValueCollection, utils::partial_eq_refs, HeaderAccessor, Method};
 
-use crate::Method;
+use super::generic_header::GenericHeader;
 
+/// Representation of an Allow header.
+///
+/// The Allow header field lists the set of methods supported by the UA
+/// generating the message.
+///
+/// [[RFC3261, Section 20.5](https://datatracker.ietf.org/doc/html/rfc3261#section-20.5)]
 #[derive(Clone, Debug, Eq)]
-pub struct AllowHeader(Vec<Method>);
+pub struct AllowHeader {
+    header: GenericHeader,
+    methods: Methods,
+}
 
 impl AllowHeader {
-    pub(crate) fn new(methods: Vec<Method>) -> Self {
-        AllowHeader(methods)
+    pub(crate) fn new(header: GenericHeader, methods: Vec<Method>) -> Self {
+        AllowHeader {
+            header,
+            methods: methods.into(),
+        }
     }
 
-    /// Tells whether the Allow header is empty or not.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+    /// Get a reference to the list of methods from the Allow header.
+    pub fn methods(&self) -> &Methods {
+        &self.methods
     }
 
-    /// Get the number of methods in the Allow header.
-    pub fn count(&self) -> usize {
-        self.0.len()
-    }
-
-    /// Tells whether Allow header contains the given method.
+    /// Tell whether Allow header contains the given method.
     pub fn contains(&self, method: Method) -> bool {
-        self.0.iter().any(|m| m == method)
+        self.methods.iter().any(|m| m == method)
+    }
+}
+
+impl HeaderAccessor for AllowHeader {
+    crate::header::generic_header_accessors!(header);
+
+    fn compact_name(&self) -> Option<&str> {
+        None
+    }
+    fn normalized_name(&self) -> Option<&str> {
+        Some("Allow")
+    }
+    fn normalized_value(&self) -> String {
+        self.methods.to_string()
     }
 }
 
 impl std::fmt::Display for AllowHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Allow: {}",
-            self.0
-                .iter()
-                .map(|method| method.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        )
+        self.header.fmt(f)
     }
 }
 
 impl PartialEq for AllowHeader {
     fn eq(&self, other: &Self) -> bool {
-        let self_methods: HashSet<_> = self.0.iter().collect();
-        let other_methods: HashSet<_> = other.0.iter().collect();
-        self_methods == other_methods
+        self.methods == other.methods
     }
 }
 
-impl PartialEq<&AllowHeader> for AllowHeader {
-    fn eq(&self, other: &&AllowHeader) -> bool {
-        self == *other
-    }
-}
+partial_eq_refs!(AllowHeader);
 
-impl PartialEq<AllowHeader> for &AllowHeader {
-    fn eq(&self, other: &AllowHeader) -> bool {
-        *self == other
-    }
-}
+/// Representation of the list of methods from an `AllowHeader`.
+///
+/// This is usable as an iterator.
+pub type Methods = HeaderValueCollection<Method>;
 
 #[cfg(test)]
 mod tests {
     use super::AllowHeader;
-    use crate::{Header, Method};
+    use crate::{Header, HeaderAccessor, Method};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(AllowHeader)>(header: &str, f: F) {
@@ -79,8 +85,8 @@ mod tests {
     #[test]
     fn test_valid_allow_header_with_methods() {
         valid_header("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE", |header| {
-            assert!(!header.is_empty());
-            assert_eq!(header.count(), 5);
+            assert!(!header.methods().is_empty());
+            assert_eq!(header.methods().len(), 5);
             assert!(header.contains(Method::INVITE));
             assert!(header.contains(Method::ACK));
             assert!(header.contains(Method::OPTIONS));
@@ -93,8 +99,8 @@ mod tests {
     #[test]
     fn test_valid_allow_header_empty() {
         valid_header("Allow:", |header| {
-            assert!(header.is_empty());
-            assert_eq!(header.count(), 0);
+            assert!(header.methods().is_empty());
+            assert_eq!(header.methods().len(), 0);
             assert!(!header.contains(Method::INVITE));
             assert!(!header.contains(Method::REGISTER));
         });
@@ -103,8 +109,8 @@ mod tests {
     #[test]
     fn test_valid_allow_header_empty_with_space_characters() {
         valid_header("Allow:      ", |header| {
-            assert!(header.is_empty());
-            assert_eq!(header.count(), 0);
+            assert!(header.methods().is_empty());
+            assert_eq!(header.methods().len(), 0);
             assert!(!header.contains(Method::CANCEL));
             assert!(!header.contains(Method::BYE));
         });
@@ -174,5 +180,24 @@ mod tests {
             "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE",
             "allow: invite, Bye, CanCeL, OptionS, acK",
         );
+    }
+
+    #[test]
+    fn test_allow_header_to_string() {
+        let header = Header::from_str("allow:   INVITE , ACK,  OPTIONS   , CANCEL,     BYE");
+        if let Header::Allow(header) = header.unwrap() {
+            assert_eq!(
+                header.to_string(),
+                "allow:   INVITE , ACK,  OPTIONS   , CANCEL,     BYE"
+            );
+            assert_eq!(
+                header.to_normalized_string(),
+                "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE"
+            );
+            assert_eq!(
+                header.to_compact_string(),
+                "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE"
+            );
+        }
     }
 }

@@ -1,39 +1,65 @@
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CallIdHeader(String);
+use crate::utils::partial_eq_refs;
+
+use super::{generic_header::GenericHeader, HeaderAccessor};
+
+/// Representation of a Call-ID header.
+///
+/// The Call-ID header field uniquely identifies a particular invitation or
+/// all registrations of a particular client.
+///
+/// [[RFC3261, Section 20.8](https://datatracker.ietf.org/doc/html/rfc3261#section-20.8)]
+#[derive(Clone, Debug, Eq)]
+pub struct CallIdHeader {
+    header: GenericHeader,
+    call_id: String,
+}
 
 impl CallIdHeader {
-    pub(crate) fn new<S: Into<String>>(call_id: S) -> Self {
-        CallIdHeader(call_id.into())
+    pub(crate) fn new<S: Into<String>>(header: GenericHeader, call_id: S) -> Self {
+        CallIdHeader {
+            header,
+            call_id: call_id.into(),
+        }
     }
 
     /// Get the call ID from the Call-ID header.
     pub fn call_id(&self) -> &str {
-        &self.0
+        &self.call_id
+    }
+}
+
+impl HeaderAccessor for CallIdHeader {
+    crate::header::generic_header_accessors!(header);
+
+    fn compact_name(&self) -> Option<&str> {
+        Some("i")
+    }
+    fn normalized_name(&self) -> Option<&str> {
+        Some("Call-ID")
+    }
+    fn normalized_value(&self) -> String {
+        self.call_id.to_string()
     }
 }
 
 impl std::fmt::Display for CallIdHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Call-ID: {}", self.0)
+        self.header.fmt(f)
     }
 }
 
-impl PartialEq<&CallIdHeader> for CallIdHeader {
-    fn eq(&self, other: &&CallIdHeader) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<CallIdHeader> for &CallIdHeader {
+impl PartialEq<CallIdHeader> for CallIdHeader {
     fn eq(&self, other: &CallIdHeader) -> bool {
-        *self == other
+        self.call_id == other.call_id
     }
 }
+
+partial_eq_refs!(CallIdHeader);
 
 #[cfg(test)]
 mod tests {
     use super::CallIdHeader;
-    use crate::Header;
+    use crate::{header::HeaderAccessor, Header};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(CallIdHeader)>(header: &str, f: F) {
@@ -129,5 +155,25 @@ mod tests {
     #[test]
     fn test_call_id_header_inequality_same_value_with_different_cases() {
         header_inequality("Call-ID: a84b4c76e66710", "Call-ID: A84B4C76E66710");
+    }
+
+    #[test]
+    fn test_call_id_header_to_string() {
+        let header =
+            Header::from_str("CalL-iD  :     f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com");
+        if let Header::CallId(header) = header.unwrap() {
+            assert_eq!(
+                header.to_string(),
+                "CalL-iD  :     f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com"
+            );
+            assert_eq!(
+                header.to_normalized_string(),
+                "Call-ID: f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com"
+            );
+            assert_eq!(
+                header.to_compact_string(),
+                "i: f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com"
+            );
+        }
     }
 }

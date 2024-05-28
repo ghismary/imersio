@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case},
-    combinator::{map, opt, recognize, verify},
+    combinator::{consumed, map, opt, recognize, verify},
     error::context,
     multi::{count, many0, many1, many_m_n},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
@@ -17,22 +17,23 @@ use crate::{
         rdquot, semi, slash, star, text_utf8char, token, utf8_cont, word, ParserResult,
     },
     uri::parser::{absolute_uri, host, request_uri, sip_uri, sips_uri},
+    utils::extend_vec,
     GenericParameter, Uri,
 };
 
 use super::{
-    accept_encoding_header::{AcceptEncodingHeader, Encoding},
+    accept_encoding_header::{AcceptEncoding, AcceptEncodingHeader},
     accept_header::{AcceptHeader, AcceptRange, MediaRange},
     accept_language_header::{AcceptLanguageHeader, Language},
-    alert_info_header::{AlertInfoHeader, AlertParameter},
+    alert_info_header::{Alert, AlertInfoHeader},
     allow_header::AllowHeader,
     authentication_info_header::{AInfo, AuthenticationInfoHeader},
-    authorization_header::{AuthParameter, AuthorizationHeader, Credentials},
+    authorization_header::{AuthParameter, AuthParameters, AuthorizationHeader, Credentials},
     call_id_header::CallIdHeader,
     call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter},
-    contact_header::{Contact, ContactHeader, ContactParameter},
+    contact_header::{Contact, ContactHeader, ContactParameter, Contacts},
     content_disposition_header::{
-        ContentDispositionHeader, DispositionParameter, DispositionType, Handling,
+        ContentDispositionHeader, DispositionParameter, DispositionType, HandlingValue,
     },
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
@@ -145,19 +146,23 @@ fn accept(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "accept",
         map(
-            separated_pair(
-                tag_no_case("Accept"),
-                hcolon,
-                opt(pair(accept_range, many0(preceded(comma, accept_range)))),
-            ),
-            |(_, ranges)| {
-                Header::Accept(AcceptHeader::new(match ranges {
-                    Some((first_range, mut other_ranges)) => {
-                        other_ranges.insert(0, first_range);
-                        other_ranges
-                    }
+            tuple((
+                map(tag_no_case("Accept"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(opt(pair(
+                    accept_range,
+                    many0(preceded(comma, accept_range)),
+                ))),
+            )),
+            |(name, separator, (value, ranges))| {
+                let ranges = match ranges {
+                    Some((first_range, other_ranges)) => extend_vec(first_range, other_ranges),
                     None => vec![],
-                }))
+                };
+                Header::Accept(AcceptHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    ranges,
+                ))
             },
         ),
     )(input)
@@ -172,12 +177,12 @@ fn codings(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     alt((content_coding, map(tag("*"), String::from_utf8_lossy)))(input)
 }
 
-fn encoding(input: &[u8]) -> ParserResult<&[u8], Encoding> {
+fn encoding(input: &[u8]) -> ParserResult<&[u8], AcceptEncoding> {
     context(
         "encoding",
         map(
             pair(codings, many0(preceded(semi, accept_param))),
-            |(codings, params)| Encoding::new(codings, params),
+            |(codings, params)| AcceptEncoding::new(codings, params),
         ),
     )(input)
 }
@@ -186,19 +191,22 @@ fn accept_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "accept_encoding",
         map(
-            separated_pair(
-                tag_no_case("Accept-Encoding"),
-                hcolon,
-                opt(pair(encoding, many0(preceded(comma, encoding)))),
-            ),
-            |(_, encodings)| {
-                Header::AcceptEncoding(AcceptEncodingHeader::new(match encodings {
-                    Some((first_encoding, mut other_encodings)) => {
-                        other_encodings.insert(0, first_encoding);
-                        other_encodings
+            tuple((
+                map(tag_no_case("Accept-Encoding"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(opt(pair(encoding, many0(preceded(comma, encoding))))),
+            )),
+            |(name, separator, (value, encodings))| {
+                let encodings = match encodings {
+                    Some((first_encoding, other_encodings)) => {
+                        extend_vec(first_encoding, other_encodings)
                     }
                     None => vec![],
-                }))
+                };
+                Header::AcceptEncoding(AcceptEncodingHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    encodings,
+                ))
             },
         ),
     )(input)
@@ -234,25 +242,28 @@ fn accept_language(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "accept_language",
         map(
-            separated_pair(
-                tag_no_case("Accept-Language"),
-                hcolon,
-                opt(pair(language, many0(preceded(comma, language)))),
-            ),
-            |(_, languages)| {
-                Header::AcceptLanguage(AcceptLanguageHeader::new(match languages {
-                    Some((first_language, mut other_languages)) => {
-                        other_languages.insert(0, first_language);
-                        other_languages
+            tuple((
+                map(tag_no_case("Accept-Language"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(opt(pair(language, many0(preceded(comma, language))))),
+            )),
+            |(name, separator, (value, languages))| {
+                let languages = match languages {
+                    Some((first_language, other_languages)) => {
+                        extend_vec(first_language, other_languages)
                     }
                     None => vec![],
-                }))
+                };
+                Header::AcceptLanguage(AcceptLanguageHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    languages,
+                ))
             },
         ),
     )(input)
 }
 
-fn alert_param(input: &[u8]) -> ParserResult<&[u8], AlertParameter> {
+fn alert_param(input: &[u8]) -> ParserResult<&[u8], Alert> {
     context(
         "alert_param",
         map(
@@ -260,7 +271,7 @@ fn alert_param(input: &[u8]) -> ParserResult<&[u8], AlertParameter> {
                 delimited(laquot, absolute_uri, raquot),
                 many0(preceded(semi, map(generic_param, Into::into))),
             ),
-            |(uri, params)| AlertParameter::new(uri, params),
+            |(uri, params)| Alert::new(uri, params),
         ),
     )(input)
 }
@@ -269,14 +280,16 @@ fn alert_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "alert_info",
         map(
-            separated_pair(
-                tag_no_case("Alert-Info"),
-                hcolon,
-                pair(alert_param, many0(preceded(comma, alert_param))),
-            ),
-            |(_, (first_alert, mut other_alerts))| {
-                other_alerts.insert(0, first_alert);
-                Header::AlertInfo(AlertInfoHeader::new(other_alerts))
+            tuple((
+                map(tag_no_case("Alert-Info"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(alert_param, many0(preceded(comma, alert_param)))),
+            )),
+            |(name, separator, (value, (first_alert, other_alerts)))| {
+                Header::AlertInfo(AlertInfoHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    extend_vec(first_alert, other_alerts),
+                ))
             },
         ),
     )(input)
@@ -286,19 +299,20 @@ fn allow(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "allow",
         map(
-            separated_pair(
-                tag_no_case("Allow"),
-                hcolon,
-                opt(pair(method, many0(preceded(comma, method)))),
-            ),
-            |(_, methods)| {
-                Header::Allow(AllowHeader::new(match methods {
-                    Some((first_method, mut other_methods)) => {
-                        other_methods.insert(0, first_method);
-                        other_methods
-                    }
+            tuple((
+                map(tag_no_case("Allow"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(opt(pair(method, many0(preceded(comma, method))))),
+            )),
+            |(name, separator, (value, methods))| {
+                let methods = match methods {
+                    Some((first_method, other_methods)) => extend_vec(first_method, other_methods),
                     None => vec![],
-                }))
+                };
+                Header::Allow(AllowHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    methods,
+                ))
             },
         ),
     )(input)
@@ -400,14 +414,16 @@ fn authentication_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "authentication_info",
         map(
-            separated_pair(
-                tag_no_case("Authentication-Info"),
-                hcolon,
-                pair(ainfo, many0(preceded(comma, ainfo))),
-            ),
-            |(_, (first_ainfo, mut other_ainfos))| {
-                other_ainfos.insert(0, first_ainfo);
-                Header::AuthenticationInfo(AuthenticationInfoHeader::new(other_ainfos))
+            tuple((
+                map(tag_no_case("Authentication-Info"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(ainfo, many0(preceded(comma, ainfo)))),
+            )),
+            |(name, separator, (value, (first_ainfo, other_ainfos)))| {
+                Header::AuthenticationInfo(AuthenticationInfoHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    extend_vec(first_ainfo, other_ainfos),
+                ))
             },
         ),
     )(input)
@@ -533,13 +549,10 @@ fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     ))(input)
 }
 
-fn digest_response(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParameter>> {
+fn digest_response(input: &[u8]) -> ParserResult<&[u8], AuthParameters> {
     map(
         pair(dig_resp, many0(preceded(comma, dig_resp))),
-        |(first_param, mut other_params)| {
-            other_params.insert(0, first_param);
-            other_params
-        },
+        |(first_param, other_params)| extend_vec(first_param, other_params).into(),
     )(input)
 }
 
@@ -548,13 +561,10 @@ fn auth_scheme(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
 }
 
-fn auth_params(input: &[u8]) -> ParserResult<&[u8], Vec<AuthParameter>> {
+fn auth_params(input: &[u8]) -> ParserResult<&[u8], AuthParameters> {
     map(
         pair(auth_param, many0(preceded(comma, auth_param))),
-        |(first_param, mut other_params)| {
-            other_params.insert(0, first_param);
-            other_params
-        },
+        |(first_param, other_params)| extend_vec(first_param, other_params).into(),
     )(input)
 }
 
@@ -590,8 +600,17 @@ fn authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "authorization",
         map(
-            separated_pair(tag_no_case("Authorization"), hcolon, credentials),
-            |(_, credentials)| Header::Authorization(AuthorizationHeader::new(credentials)),
+            tuple((
+                map(tag_no_case("Authorization"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(credentials),
+            )),
+            |(name, separator, (value, credentials))| {
+                Header::Authorization(AuthorizationHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    credentials,
+                ))
+            },
         ),
     )(input)
 }
@@ -607,12 +626,20 @@ fn call_id(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "call_id",
         map(
-            separated_pair(
-                alt((tag_no_case("Call-ID"), tag_no_case("i"))),
-                hcolon,
-                callid,
-            ),
-            |(_, call_id)| Header::CallId(CallIdHeader::new(call_id)),
+            tuple((
+                map(
+                    alt((tag_no_case("Call-ID"), tag_no_case("i"))),
+                    String::from_utf8_lossy,
+                ),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(callid),
+            )),
+            |(name, separator, (value, call_id))| {
+                Header::CallId(CallIdHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    call_id,
+                ))
+            },
         ),
     )(input)
 }
@@ -658,14 +685,16 @@ fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "call_info",
         map(
-            separated_pair(
-                tag_no_case("Call-Info"),
-                hcolon,
-                pair(info, many0(preceded(comma, info))),
-            ),
-            |(_, (first_info, mut other_infos))| {
-                other_infos.insert(0, first_info);
-                Header::CallInfo(CallInfoHeader::new(other_infos))
+            tuple((
+                map(tag_no_case("Call-Info"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(info, many0(preceded(comma, info)))),
+            )),
+            |(name, separator, (value, (first_info, other_infos)))| {
+                Header::CallInfo(CallInfoHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    extend_vec(first_info, other_infos),
+                ))
             },
         ),
     )(input)
@@ -745,21 +774,28 @@ fn contact(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "contact",
         map(
-            separated_pair(
-                alt((tag_no_case("Contact"), tag_no_case("m"))),
-                hcolon,
-                alt((
-                    map(star, |_| ContactHeader::Any),
+            tuple((
+                map(
+                    alt((tag_no_case("Contact"), tag_no_case("m"))),
+                    String::from_utf8_lossy,
+                ),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(alt((
+                    map(star, |_| Contacts::Any),
                     map(
                         pair(contact_param, many0(preceded(comma, contact_param))),
-                        |(first_contact, mut other_contacts)| {
-                            other_contacts.insert(0, first_contact);
-                            ContactHeader::Contacts(other_contacts)
+                        |(first_contact, other_contacts)| {
+                            Contacts::Contacts(extend_vec(first_contact, other_contacts))
                         },
                     ),
-                )),
-            ),
-            |(_, contact_header)| Header::Contact(contact_header),
+                ))),
+            )),
+            |(name, separator, (value, contacts))| {
+                Header::Contact(ContactHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    contacts,
+                ))
+            },
         ),
     )(input)
 }
@@ -803,7 +839,7 @@ fn handling_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
                     map(tag_no_case("required"), String::from_utf8_lossy),
                     other_handling,
                 )),
-                Handling::new,
+                HandlingValue::new,
             ),
         ),
         |(_, value)| DispositionParameter::Handling(value),
@@ -818,13 +854,17 @@ fn content_disposition(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "content_disposition",
         map(
-            separated_pair(
-                tag_no_case("Content-Disposition"),
-                hcolon,
-                pair(disp_type, many0(preceded(semi, disp_param))),
-            ),
-            |(_, (r#type, params))| {
-                Header::ContentDisposition(ContentDispositionHeader::new(r#type, params))
+            tuple((
+                map(tag_no_case("Content-Disposition"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(disp_type, many0(preceded(semi, disp_param)))),
+            )),
+            |(name, separator, (value, (r#type, params)))| {
+                Header::ContentDisposition(ContentDispositionHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    r#type,
+                    params,
+                ))
             },
         ),
     )(input)
@@ -834,14 +874,19 @@ fn content_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "content_encoding",
         map(
-            separated_pair(
-                alt((tag_no_case("Content-Encoding"), tag("e"))),
-                hcolon,
-                pair(content_coding, many0(preceded(comma, content_coding))),
-            ),
-            |(_, (first_coding, mut other_codings))| {
-                other_codings.insert(0, first_coding);
-                Header::ContentEncoding(ContentEncodingHeader::new(other_codings))
+            tuple((
+                map(
+                    alt((tag_no_case("Content-Encoding"), tag("e"))),
+                    String::from_utf8_lossy,
+                ),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(content_coding, many0(preceded(comma, content_coding)))),
+            )),
+            |(name, separator, (value, (first_encoding, other_encodings)))| {
+                Header::ContentEncoding(ContentEncodingHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    extend_vec(first_encoding, other_encodings),
+                ))
             },
         ),
     )(input)

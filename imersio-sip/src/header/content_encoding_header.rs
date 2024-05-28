@@ -1,54 +1,130 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Deref};
 
+use crate::{utils::partial_eq_refs, HeaderAccessor};
+
+use super::generic_header::GenericHeader;
+
+/// Representation of a Content-Encoding header.
+///
+/// The Content-Encoding header field is used as a modifier to the
+/// "media-type". When present, its value indicates what additional content
+/// codings have been applied to the entity-body, and thus what decoding
+/// mechanisms MUST be applied in order to obtain the media-type referenced
+/// by the Content-Type header field. Content-Encoding is primarily used to
+/// allow a body to be compressed without losing the identity of its
+/// underlying media type.
+///
+/// If multiple encodings have been applied to an entity-body, the content
+/// codings MUST be listed in the order in which they were applied.
+///
+/// [[RFC3261, Section 20.12](https://datatracker.ietf.org/doc/html/rfc3261#section-20.12)]
 #[derive(Clone, Debug, Eq)]
-pub struct ContentEncodingHeader(Vec<String>);
+pub struct ContentEncodingHeader {
+    header: GenericHeader,
+    encodings: ContentEncodings,
+}
 
 impl ContentEncodingHeader {
-    pub(crate) fn new<S: Into<String>>(encodings: Vec<S>) -> Self {
-        ContentEncodingHeader(
-            encodings
-                .into_iter()
-                .map(Into::into)
-                .collect::<Vec<String>>(),
-        )
+    pub(crate) fn new<S: Into<String>>(header: GenericHeader, encodings: Vec<S>) -> Self {
+        ContentEncodingHeader {
+            header,
+            encodings: encodings.into(),
+        }
     }
 
     /// Get a reference to the encodings from the Content-Encoding header.
-    pub fn encodings(&self) -> &Vec<String> {
-        &self.0
+    pub fn encodings(&self) -> &ContentEncodings {
+        &self.encodings
+    }
+}
+
+impl HeaderAccessor for ContentEncodingHeader {
+    crate::header::generic_header_accessors!(header);
+
+    fn compact_name(&self) -> Option<&str> {
+        Some("e")
+    }
+    fn normalized_name(&self) -> Option<&str> {
+        Some("Content-Encoding")
+    }
+    fn normalized_value(&self) -> String {
+        self.encodings.to_string()
     }
 }
 
 impl std::fmt::Display for ContentEncodingHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Content-Encoding: {}", self.0.join(", "))
+        self.header.fmt(f)
     }
 }
 
 impl PartialEq<ContentEncodingHeader> for ContentEncodingHeader {
     fn eq(&self, other: &ContentEncodingHeader) -> bool {
-        let self_encodings: HashSet<_> = self.0.iter().map(|v| v.to_ascii_lowercase()).collect();
-        let other_encodings: HashSet<_> = other.0.iter().map(|v| v.to_ascii_lowercase()).collect();
+        self.encodings == other.encodings
+    }
+}
+
+partial_eq_refs!(ContentEncodingHeader);
+
+/// Representation of the list of encodings in a `Content-Encoding` header.
+///
+/// This is usable as an iterator.
+#[derive(Clone, Debug, Eq)]
+pub struct ContentEncodings(Vec<String>);
+
+impl<S> From<Vec<S>> for ContentEncodings
+where
+    S: Into<String>,
+{
+    fn from(value: Vec<S>) -> Self {
+        Self(value.into_iter().map(Into::into).collect::<Vec<String>>())
+    }
+}
+
+impl std::fmt::Display for ContentEncodings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.iter()
+                .map(|encoding| encoding.to_ascii_lowercase())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
+}
+
+impl PartialEq<ContentEncodings> for ContentEncodings {
+    fn eq(&self, other: &ContentEncodings) -> bool {
+        let self_encodings: HashSet<_> = self.iter().map(|v| v.to_ascii_lowercase()).collect();
+        let other_encodings: HashSet<_> = other.iter().map(|v| v.to_ascii_lowercase()).collect();
         self_encodings == other_encodings
     }
 }
 
-impl PartialEq<&ContentEncodingHeader> for ContentEncodingHeader {
-    fn eq(&self, other: &&ContentEncodingHeader) -> bool {
-        self == *other
+partial_eq_refs!(ContentEncodings);
+
+impl IntoIterator for ContentEncodings {
+    type Item = String;
+    type IntoIter = <Vec<String> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
-impl PartialEq<ContentEncodingHeader> for &ContentEncodingHeader {
-    fn eq(&self, other: &ContentEncodingHeader) -> bool {
-        *self == other
+impl Deref for ContentEncodings {
+    type Target = [String];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0[..]
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::ContentEncodingHeader;
-    use crate::Header;
+    use crate::{Header, HeaderAccessor};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(ContentEncodingHeader)>(header: &str, f: F) {
@@ -148,5 +224,15 @@ mod tests {
     #[test]
     fn test_content_encoding_header_inequality_with_first_having_less_encodings_than_the_second() {
         header_inequality("Content-Encoding: gzip", "Content-Encoding: tar, gzip");
+    }
+
+    #[test]
+    fn test_content_encoding_header_to_string() {
+        let header = Header::from_str("content-enCoding:  tar , GZIP");
+        if let Header::ContentEncoding(header) = header.unwrap() {
+            assert_eq!(header.to_string(), "content-enCoding:  tar , GZIP");
+            assert_eq!(header.to_normalized_string(), "Content-Encoding: tar, gzip");
+            assert_eq!(header.to_compact_string(), "e: tar, gzip");
+        }
     }
 }

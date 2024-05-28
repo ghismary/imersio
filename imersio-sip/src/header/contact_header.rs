@@ -1,28 +1,93 @@
-use std::{cmp::Ordering, collections::HashSet, hash::Hash};
+use std::{cmp::Ordering, collections::HashSet, hash::Hash, ops::Deref};
 
-use crate::{common::NameAddress, GenericParameter};
+use crate::{common::NameAddress, utils::partial_eq_refs, GenericParameter};
 
+use super::{generic_header::GenericHeader, HeaderAccessor};
+
+static EMPTY_CONTACTS: Vec<Contact> = vec![];
+
+/// Representation of a Contact header.
+///
+/// A Contact header field value provides a URI whose meaning depends on the
+/// type of request or response it is in.
+/// The Contact header field has a role similar to the Location header field
+/// in HTTP.
+///
+/// [[RFC3261, Section 20.10](https://datatracker.ietf.org/doc/html/rfc3261#section-20.10)]
 #[derive(Clone, Debug, Eq)]
-pub enum ContactHeader {
-    Any,
-    Contacts(Vec<Contact>),
+pub struct ContactHeader {
+    header: GenericHeader,
+    contacts: Contacts,
 }
 
 impl ContactHeader {
-    pub fn contacts(&self) -> &Vec<Contact> {
-        static EMPTY_CONTACTS: Vec<Contact> = vec![];
-        match self {
-            Self::Any => &EMPTY_CONTACTS,
-            Self::Contacts(contacts) => contacts,
-        }
+    pub(crate) fn new(header: GenericHeader, contacts: Contacts) -> Self {
+        ContactHeader { header, contacts }
+    }
+
+    /// Get a reference to the contacts from the Contact header.
+    pub fn contacts(&self) -> &Contacts {
+        &self.contacts
+    }
+}
+
+impl HeaderAccessor for ContactHeader {
+    crate::header::generic_header_accessors!(header);
+
+    fn compact_name(&self) -> Option<&str> {
+        Some("m")
+    }
+    fn normalized_name(&self) -> Option<&str> {
+        Some("Contact")
+    }
+    fn normalized_value(&self) -> String {
+        self.contacts.to_string()
     }
 }
 
 impl std::fmt::Display for ContactHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.header.fmt(f)
+    }
+}
+
+impl PartialEq<ContactHeader> for ContactHeader {
+    fn eq(&self, other: &ContactHeader) -> bool {
+        self.contacts == other.contacts
+    }
+}
+
+partial_eq_refs!(ContactHeader);
+
+/// Representation of the list of contacts of a `Contact` header.
+///
+/// This is usable as an iterator.
+#[derive(Clone, Debug, Eq)]
+pub enum Contacts {
+    /// Any contacts.
+    Any,
+    /// A list of contacts.
+    Contacts(Vec<Contact>),
+}
+
+impl Contacts {
+    /// Tell whether the contacts is the wildcard contact.
+    pub fn is_any(&self) -> bool {
+        matches!(self, Contacts::Any)
+    }
+}
+
+impl From<Vec<Contact>> for Contacts {
+    fn from(value: Vec<Contact>) -> Self {
+        Self::Contacts(value)
+    }
+}
+
+impl std::fmt::Display for Contacts {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Contact: {}",
+            "{}",
             match self {
                 Self::Any => "*".to_string(),
                 Self::Contacts(contacts) => contacts
@@ -35,7 +100,7 @@ impl std::fmt::Display for ContactHeader {
     }
 }
 
-impl PartialEq for ContactHeader {
+impl PartialEq for Contacts {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Any, Self::Any) => true,
@@ -49,18 +114,32 @@ impl PartialEq for ContactHeader {
     }
 }
 
-impl PartialEq<&ContactHeader> for ContactHeader {
-    fn eq(&self, other: &&ContactHeader) -> bool {
-        self == *other
+partial_eq_refs!(Contacts);
+
+impl IntoIterator for Contacts {
+    type Item = Contact;
+    type IntoIter = <Vec<Contact> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Any => vec![].into_iter(),
+            Self::Contacts(contacts) => contacts.into_iter(),
+        }
     }
 }
 
-impl PartialEq<ContactHeader> for &ContactHeader {
-    fn eq(&self, other: &ContactHeader) -> bool {
-        *self == other
+impl Deref for Contacts {
+    type Target = [Contact];
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Any => &EMPTY_CONTACTS[..],
+            Self::Contacts(contacts) => &contacts[..],
+        }
     }
 }
 
+/// Representation of a contact in a `Contact` header.
 #[derive(Clone, Debug, Eq)]
 pub struct Contact {
     address: NameAddress,
@@ -85,6 +164,7 @@ impl Contact {
         &self.parameters
     }
 
+    /// Get the value of the `q` parameter for the contact.
     pub fn q(&self) -> Option<f32> {
         self.parameters
             .iter()
@@ -92,6 +172,7 @@ impl Contact {
             .and_then(|param| param.q())
     }
 
+    /// Get the value of the `expires` parameter for the contact.
     pub fn expires(&self) -> Option<u32> {
         self.parameters
             .iter()
@@ -128,17 +209,7 @@ impl PartialEq for Contact {
     }
 }
 
-impl PartialEq<&Contact> for Contact {
-    fn eq(&self, other: &&Contact) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<Contact> for &Contact {
-    fn eq(&self, other: &Contact) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(Contact);
 
 impl Hash for Contact {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -149,14 +220,19 @@ impl Hash for Contact {
     }
 }
 
+/// Representation of a contact parameter.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum ContactParameter {
+    /// A `q` parameter.
     Q(String),
+    /// An `expires` parameter.
     Expires(String),
+    /// Any other parameter.
     Other(GenericParameter),
 }
 
 impl ContactParameter {
+    /// Get the key of the parameter.
     pub fn key(&self) -> &str {
         match self {
             Self::Q(_) => "q",
@@ -165,6 +241,7 @@ impl ContactParameter {
         }
     }
 
+    /// Get the value of the parameter.
     pub fn value(&self) -> Option<&str> {
         match self {
             Self::Q(value) => Some(value),
@@ -173,6 +250,7 @@ impl ContactParameter {
         }
     }
 
+    /// Get the q value of the parameter if this is a `q` parameter.
     pub fn q(&self) -> Option<f32> {
         match self {
             Self::Q(value) => value.parse().ok(),
@@ -180,6 +258,8 @@ impl ContactParameter {
         }
     }
 
+    /// Get the expires value of the parameter if this is an `expires`
+    /// parameter.
     pub fn expires(&self) -> Option<u32> {
         match self {
             Self::Expires(value) => value.parse().ok(),
@@ -200,17 +280,7 @@ impl std::fmt::Display for ContactParameter {
     }
 }
 
-impl PartialEq<&ContactParameter> for ContactParameter {
-    fn eq(&self, other: &&ContactParameter) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<ContactParameter> for &ContactParameter {
-    fn eq(&self, other: &ContactParameter) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(ContactParameter);
 
 impl PartialOrd for ContactParameter {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -237,7 +307,10 @@ impl From<GenericParameter> for ContactParameter {
 #[cfg(test)]
 mod tests {
     use super::ContactHeader;
-    use crate::{Header, Uri};
+    use crate::{
+        header::{contact_header::Contacts, HeaderAccessor},
+        Header, Uri,
+    };
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(ContactHeader)>(header: &str, f: F) {
@@ -283,14 +356,14 @@ mod tests {
     #[test]
     fn test_valid_contact_header_wildcard() {
         valid_header("Contact: *", |header| {
-            assert_eq!(header, ContactHeader::Any);
+            assert_eq!(header.contacts(), Contacts::Any);
         });
     }
 
     #[test]
     fn test_valid_contact_header_compact_wildcard() {
         valid_header("m: *", |header| {
-            assert_eq!(header, ContactHeader::Any);
+            assert_eq!(header.contacts(), Contacts::Any);
         });
     }
 
@@ -396,5 +469,26 @@ mod tests {
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3600"#,
             r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7; expires=3200"#,
         );
+    }
+
+    #[test]
+    fn test_contact_header_to_string() {
+        let header = Header::from_str(
+            r#"contact: "Mr. Watson"  <sip:watson@worcester.bell-telephone.com>;Q=0.7; expIres=3600, "Mr. Watson" <mailto:watson@bell-telephone.com> ;  q=0.1"#,
+        );
+        if let Header::Contact(header) = header.unwrap() {
+            assert_eq!(
+                header.to_string(),
+                r#"contact: "Mr. Watson"  <sip:watson@worcester.bell-telephone.com>;Q=0.7; expIres=3600, "Mr. Watson" <mailto:watson@bell-telephone.com> ;  q=0.1"#
+            );
+            assert_eq!(
+                header.to_normalized_string(),
+                r#"Contact: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7;expires=3600, "Mr. Watson" <mailto:watson@bell-telephone.com>;q=0.1"#
+            );
+            assert_eq!(
+                header.to_compact_string(),
+                r#"m: "Mr. Watson" <sip:watson@worcester.bell-telephone.com>;q=0.7;expires=3600, "Mr. Watson" <mailto:watson@bell-telephone.com>;q=0.1"#
+            );
+        }
     }
 }

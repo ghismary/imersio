@@ -21,6 +21,7 @@ pub use bytes::Bytes;
 
 pub use crate::common::GenericParameter;
 pub use crate::error::Error;
+pub use crate::header::HeaderAccessor;
 
 pub use crate::header::Header;
 pub use crate::method::Method;

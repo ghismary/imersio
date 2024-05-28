@@ -1,72 +1,91 @@
 use std::{collections::HashSet, hash::Hash};
 
 use crate::{
-    common::{Algorithm, MessageQop},
-    Error, Uri,
+    common::{Algorithm, HeaderValueCollection, MessageQop},
+    utils::partial_eq_refs,
+    Error, HeaderAccessor, Uri,
 };
 
-use super::authentication_info_header::AInfo;
+use super::{authentication_info_header::AInfo, generic_header::GenericHeader};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AuthorizationHeader(Credentials);
+/// Representation of an Authorization header.
+///
+/// The Authorization header field contains authentication credentials of a UA.
+///
+/// [[RFC3261, Section 20.7](https://datatracker.ietf.org/doc/html/rfc3261#section-20.7)]
+#[derive(Clone, Debug, Eq)]
+pub struct AuthorizationHeader {
+    header: GenericHeader,
+    credentials: Credentials,
+}
 
 impl AuthorizationHeader {
-    pub(crate) fn new(credentials: Credentials) -> Self {
-        AuthorizationHeader(credentials)
+    pub(crate) fn new(header: GenericHeader, credentials: Credentials) -> Self {
+        AuthorizationHeader {
+            header,
+            credentials,
+        }
     }
 
     /// Get a reference to the `Credentials` of the Authorization header.
     pub fn credentials(&self) -> &Credentials {
-        &self.0
+        &self.credentials
+    }
+}
+
+impl HeaderAccessor for AuthorizationHeader {
+    crate::header::generic_header_accessors!(header);
+
+    fn compact_name(&self) -> Option<&str> {
+        None
+    }
+    fn normalized_name(&self) -> Option<&str> {
+        Some("Authorization")
+    }
+    fn normalized_value(&self) -> String {
+        self.credentials.to_string()
     }
 }
 
 impl std::fmt::Display for AuthorizationHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Authorization: {}", self.0)
+        self.header.fmt(f)
     }
 }
 
-impl PartialEq<&AuthorizationHeader> for AuthorizationHeader {
-    fn eq(&self, other: &&AuthorizationHeader) -> bool {
-        self == *other
+impl PartialEq for AuthorizationHeader {
+    fn eq(&self, other: &Self) -> bool {
+        self.credentials == other.credentials
     }
 }
 
-impl PartialEq<AuthorizationHeader> for &AuthorizationHeader {
-    fn eq(&self, other: &AuthorizationHeader) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(AuthorizationHeader);
 
+/// Representation of the credentials from an `AuthorizationHeader`.
 #[derive(Clone, Debug, Eq)]
 pub enum Credentials {
-    Digest(Vec<AuthParameter>),
-    Other(String, Vec<AuthParameter>),
+    /// The Digest authentication scheme.
+    ///
+    /// [[RFC3261, Section 22.4](https://datatracker.ietf.org/doc/html/rfc3261#section-22.4)]
+    Digest(AuthParameters),
+    /// Any other extension authentication scheme.
+    Other(String, AuthParameters),
 }
 
 impl Credentials {
-    /// Get the number of `AuthParam` in the Credentials.
-    pub fn count(&self) -> usize {
-        match self {
-            Self::Digest(params) => params.len(),
-            Self::Other(_, params) => params.len(),
-        }
-    }
-
-    /// Tells whether Authorization header contains the given authorization
+    /// Tell whether Authorization header contains the given authorization
     /// parameter key.
     pub fn contains(&self, key: &str) -> bool {
-        self.auth_params().iter().any(|p| p.key() == key)
+        self.parameters().iter().any(|p| p.key() == key)
     }
 
-    /// Gets the `AuthParam` corresponding to the given authorization
+    /// Get the `AuthParam` corresponding to the given authorization
     /// parameter key.
     pub fn get(&self, key: &str) -> Option<&AuthParameter> {
-        self.auth_params().iter().find(|p| p.key() == key)
+        self.parameters().iter().find(|p| p.key() == key)
     }
 
-    /// Tells whether the `Credentials` is a Digest.
+    /// Tell whether the `Credentials` is a Digest.
     pub fn is_digest(&self) -> bool {
         matches!(self, Self::Digest(_))
     }
@@ -80,14 +99,14 @@ impl Credentials {
     }
 
     /// Get a reference to the `AuthParam`s in the Credentials.
-    pub fn auth_params(&self) -> &Vec<AuthParameter> {
+    pub fn parameters(&self) -> &AuthParameters {
         match self {
             Self::Digest(params) => params,
             Self::Other(_, params) => params,
         }
     }
 
-    /// Tells whether the Authorization header contains a `algorithm` value.
+    /// Tell whether the Authorization header contains a `algorithm` value.
     pub fn has_algorithm(&self) -> bool {
         match self {
             Self::Digest(params) => params
@@ -114,7 +133,7 @@ impl Credentials {
         }
     }
 
-    /// Tells whether the Authorization header contains a `uri` value.
+    /// Tell whether the Authorization header contains a `uri` value.
     pub fn has_digest_uri(&self) -> bool {
         match self {
             Self::Digest(params) => params
@@ -141,7 +160,7 @@ impl Credentials {
         }
     }
 
-    /// Tells whether the Authorization header contains a `qop` value.
+    /// Tell whether the Authorization header contains a `qop` value.
     pub fn has_message_qop(&self) -> bool {
         match self {
             Self::Digest(params) => params
@@ -171,21 +190,7 @@ impl Credentials {
 
 impl std::fmt::Display for Credentials {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (scheme, params) = match self {
-            Self::Digest(params) => ("Digest".to_string(), params),
-            Self::Other(scheme, params) => (scheme.clone(), params),
-        };
-
-        write!(
-            f,
-            "{} {}",
-            scheme,
-            params
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        )
+        write!(f, "{} {}", self.scheme(), self.parameters())
     }
 }
 
@@ -211,17 +216,7 @@ impl PartialEq for Credentials {
     }
 }
 
-impl PartialEq<&Credentials> for Credentials {
-    fn eq(&self, other: &&Credentials) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<Credentials> for &Credentials {
-    fn eq(&self, other: &Credentials) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(Credentials);
 
 macro_rules! credentials {
     (
@@ -231,7 +226,7 @@ macro_rules! credentials {
     ) => {
         impl Credentials {
             $(
-                /// Tells whether the Authorization header contains a `$token` value.
+                /// Tell whether the Authorization header contains a `$token` value.
                 pub fn $has_token(&self) -> bool {
                     match self {
                         Self::Digest(params) => params.iter().any(|param| matches!(param, AuthParameter::$enum_name(_))),
@@ -270,22 +265,42 @@ credentials! {
     (nonce_count, has_nonce_count, NonceCount);
 }
 
+/// Representation of a list of authentication parameters from an
+/// `AuthorizationHeader`.
+///
+/// This is usable as an iterator.
+pub type AuthParameters = HeaderValueCollection<AuthParameter>;
+
+/// Representation of the authentication parameters used in the
+/// `AuthorizationHeader`.
 #[derive(Clone, Debug, Eq)]
 pub enum AuthParameter {
+    /// A `username` parameter.
     Username(String),
+    /// A `realm` parameter.
     Realm(String),
+    /// A `nonce` parameter.
     Nonce(String),
+    /// An `uri` parameter.
     DigestUri(Uri),
+    /// A `response` parameter.
     DResponse(String),
+    /// An `algoritm` parameter.
     Algorithm(Algorithm),
+    /// A `cnonce` parameter.
     CNonce(String),
+    /// An `opaque` parameter.
     Opaque(String),
+    /// A `qop` parameter.
     MessageQop(MessageQop),
+    /// A `nc` parameter.
     NonceCount(String),
+    /// Any other parameter.
     Other(String, String),
 }
 
 impl AuthParameter {
+    /// Get the key of the parameter.
     pub fn key(&self) -> &str {
         match self {
             Self::Username(_) => "username",
@@ -302,6 +317,7 @@ impl AuthParameter {
         }
     }
 
+    /// Get the value of the parameter.
     pub fn value(&self) -> String {
         match self {
             Self::Username(value) => value.clone(),
@@ -359,17 +375,7 @@ impl PartialEq<AuthParameter> for AuthParameter {
     }
 }
 
-impl PartialEq<&AuthParameter> for AuthParameter {
-    fn eq(&self, other: &&AuthParameter) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<AuthParameter> for &AuthParameter {
-    fn eq(&self, other: &AuthParameter) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(AuthParameter);
 
 impl Hash for AuthParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -409,7 +415,7 @@ mod tests {
     use crate::{
         common::{Algorithm, MessageQop},
         header::authorization_header::AuthParameter,
-        Header, Uri,
+        Header, HeaderAccessor, Uri,
     };
     use std::str::FromStr;
 
@@ -430,7 +436,7 @@ mod tests {
             |header| {
                 let credentials = header.credentials();
                 assert_eq!(credentials.scheme(), "Digest");
-                assert_eq!(credentials.count(), 4);
+                assert_eq!(credentials.parameters().len(), 4);
                 assert!(credentials.is_digest());
                 assert!(credentials.has_username());
                 assert_eq!(credentials.username(), Some("Alice"));
@@ -461,7 +467,7 @@ mod tests {
             |header| {
                 let credentials = header.credentials();
                 assert_eq!(credentials.scheme(), "Digest");
-                assert_eq!(credentials.count(), 9);
+                assert_eq!(credentials.parameters().len(), 9);
                 assert!(credentials.has_username());
                 assert_eq!(credentials.username(), Some("bob"));
                 assert!(credentials.has_realm());
@@ -505,7 +511,7 @@ mod tests {
             assert_eq!(credentials.scheme(), "Digest");
             assert!(credentials.has_algorithm());
             assert_eq!(
-                credentials.auth_params().first().unwrap(),
+                credentials.parameters().first().unwrap(),
                 AuthParameter::Algorithm(Algorithm::Md5)
             );
             assert!(credentials.contains("algorithm"));
@@ -638,4 +644,45 @@ mod tests {
             "Authorization: CustomScheme algorithm=MD5",
         );
     }
+
+    #[test]
+    fn test_authorization_header_to_string_with_username_and_qop_parameter() {
+        let header = Header::from_str(r#"authorization:  diGest username ="Alice" ,   qop= AUTH"#);
+        if let Header::Authorization(header) = header.unwrap() {
+            assert_eq!(
+                header.to_string(),
+                r#"authorization:  diGest username ="Alice" ,   qop= AUTH"#
+            );
+            assert_eq!(
+                header.to_normalized_string(),
+                r#"Authorization: Digest username="Alice", qop=auth"#
+            );
+            assert_eq!(
+                header.to_compact_string(),
+                r#"Authorization: Digest username="Alice", qop=auth"#
+            );
+        }
+    }
+
+    // TODO: Handle quoted string in a proper way.
+    // #[test]
+    // fn test_authorization_header_to_string_with_extension_parameter() {
+    //     let header = Header::from_str(
+    //         r#"authorization:  diGest username ="Alice" ,   nextnonce= "47364c23432d2e131a5fb210812c""#,
+    //     );
+    //     if let Header::Authorization(header) = header.unwrap() {
+    //         assert_eq!(
+    //             header.to_string(),
+    //             r#"authorization:  diGest username ="Alice" ,   nextnonce= "47364c23432d2e131a5fb210812c""#
+    //         );
+    //         assert_eq!(
+    //             header.to_normalized_string(),
+    //             r#"Authorization: Digest username="Alice", nextnonce="47364c23432d2e131a5fb210812c""#
+    //         );
+    //         assert_eq!(
+    //             header.to_compact_string(),
+    //             r#"Authorization: Digest username="Alice", nextnonce="47364c23432d2e131a5fb210812c""#
+    //         );
+    //     }
+    // }
 }

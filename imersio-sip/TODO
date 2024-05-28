@@ -19,3 +19,8 @@
 ## Questions
 
  - Should accept parameters be case sensitive?
+
+
+
+
+ - Add Encoding struct + Use HeaderValueCollection for Encodings

@@ -1,28 +1,48 @@
-use std::{collections::HashSet, hash::Hash};
+use std::hash::Hash;
 
-use crate::common::MessageQop;
+use crate::{
+    common::{HeaderValueCollection, MessageQop},
+    utils::partial_eq_refs,
+    HeaderAccessor,
+};
 
+use super::generic_header::GenericHeader;
+
+/// Representation of an Authentication-Info header.
+///
+/// The Authentication-Info header field provides for mutual authentication
+/// with HTTP Digest.
+///
+/// [[RFC3261, Section 20.6](https://datatracker.ietf.org/doc/html/rfc3261#section-20.6)]
 #[derive(Clone, Debug, Eq)]
-pub struct AuthenticationInfoHeader(Vec<AInfo>);
+pub struct AuthenticationInfoHeader {
+    header: GenericHeader,
+    infos: AInfos,
+}
 
 impl AuthenticationInfoHeader {
-    pub(crate) fn new(infos: Vec<AInfo>) -> Self {
-        AuthenticationInfoHeader(infos)
+    pub(crate) fn new(header: GenericHeader, infos: Vec<AInfo>) -> Self {
+        AuthenticationInfoHeader {
+            header,
+            infos: infos.into(),
+        }
     }
 
-    /// Get the number of `AInfo` in the Authentication-Info header.
-    pub fn count(&self) -> usize {
-        self.0.len()
+    /// Get a reference to the `AInfos` from the Authentication-Info header.
+    pub fn infos(&self) -> &AInfos {
+        &self.infos
     }
 
-    /// Tells whether the Authentication-Info header contains a `qop` value.
+    /// Tell whether the Authentication-Info header contains a `qop` value.
     pub fn has_message_qop(&self) -> bool {
-        self.0.iter().any(|ai| matches!(ai, AInfo::MessageQop(_)))
+        self.infos
+            .iter()
+            .any(|ai| matches!(ai, AInfo::MessageQop(_)))
     }
 
     /// Get the `qop` value from the Authentication-Info header.
     pub fn message_qop(&self) -> Option<&MessageQop> {
-        self.0
+        self.infos
             .iter()
             .find(|ai| matches!(ai, AInfo::MessageQop(_)))
             .and_then(|ai| {
@@ -35,39 +55,33 @@ impl AuthenticationInfoHeader {
     }
 }
 
+impl HeaderAccessor for AuthenticationInfoHeader {
+    crate::header::generic_header_accessors!(header);
+
+    fn compact_name(&self) -> Option<&str> {
+        None
+    }
+    fn normalized_name(&self) -> Option<&str> {
+        Some("Authentication-Info")
+    }
+    fn normalized_value(&self) -> String {
+        self.infos.to_string()
+    }
+}
+
 impl std::fmt::Display for AuthenticationInfoHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Authentication-Info: {}",
-            self.0
-                .iter()
-                .map(|info| info.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        )
+        self.header.fmt(f)
     }
 }
 
 impl PartialEq for AuthenticationInfoHeader {
     fn eq(&self, other: &Self) -> bool {
-        let self_ainfos: HashSet<_> = self.0.iter().collect();
-        let other_ainfos: HashSet<_> = other.0.iter().collect();
-        self_ainfos == other_ainfos
+        self.infos == other.infos
     }
 }
 
-impl PartialEq<&AuthenticationInfoHeader> for AuthenticationInfoHeader {
-    fn eq(&self, other: &&AuthenticationInfoHeader) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<AuthenticationInfoHeader> for &AuthenticationInfoHeader {
-    fn eq(&self, other: &AuthenticationInfoHeader) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(AuthenticationInfoHeader);
 
 macro_rules! authentication_info_header {
     (
@@ -77,14 +91,14 @@ macro_rules! authentication_info_header {
     ) => {
         impl AuthenticationInfoHeader {
             $(
-                /// Tells whether the Authentication-Info header contains a `$token` value.
+                /// Tell whether the Authentication-Info header contains a `$token` value.
                 pub fn $has_token(&self) -> bool {
-                    self.0.iter().any(|ai| matches!(ai, AInfo::$enum_name(_)))
+                    self.infos.iter().any(|ai| matches!(ai, AInfo::$enum_name(_)))
                 }
 
                 /// Get the `$token` value from the Authentication-Info header.
                 pub fn $token(&self) -> Option<&str> {
-                    self.0
+                    self.infos
                         .iter()
                         .find(|ai| matches!(ai, AInfo::$enum_name(_)))
                         .map(|ai| {
@@ -107,17 +121,30 @@ authentication_info_header! {
     (nonce_count, has_nonce_count, NonceCount);
 }
 
+/// Representation of the list of authentication infos from an
+/// `AuthenticationInfoHeader`.
+///
+/// This is usable as an iterator.
+pub type AInfos = HeaderValueCollection<AInfo>;
+
+/// Representation of an info from an `AuthenticationInfoHeader`.
 #[derive(Clone, Debug, Eq)]
 #[non_exhaustive]
 pub enum AInfo {
+    /// A `nextnonce` authentication info.
     NextNonce(String),
+    /// A `qop` authentication info.
     MessageQop(MessageQop),
+    /// A `rspauth` authentication info.
     ResponseAuth(String),
+    /// A `cnonce` authentication info.
     CNonce(String),
+    /// A `nonce` authentication info.
     NonceCount(String),
 }
 
 impl AInfo {
+    /// Get the key of the authentication info.
     pub fn key(&self) -> &str {
         match self {
             Self::NextNonce(_) => "nextnonce",
@@ -128,6 +155,7 @@ impl AInfo {
         }
     }
 
+    /// Get the value of the authentication info.
     pub fn value(&self) -> &str {
         match self {
             Self::NextNonce(value)
@@ -165,17 +193,7 @@ impl PartialEq<AInfo> for AInfo {
     }
 }
 
-impl PartialEq<&AInfo> for AInfo {
-    fn eq(&self, other: &&AInfo) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<AInfo> for &AInfo {
-    fn eq(&self, other: &AInfo) -> bool {
-        *self == other
-    }
-}
+partial_eq_refs!(AInfo);
 
 impl Hash for AInfo {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -193,7 +211,7 @@ impl Hash for AInfo {
 #[cfg(test)]
 mod tests {
     use super::AuthenticationInfoHeader;
-    use crate::{common::MessageQop, Header};
+    use crate::{common::MessageQop, Header, HeaderAccessor};
     use std::str::FromStr;
 
     fn valid_header<F: FnOnce(AuthenticationInfoHeader)>(header: &str, f: F) {
@@ -211,7 +229,7 @@ mod tests {
         valid_header(
             r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#,
             |header| {
-                assert_eq!(header.count(), 1);
+                assert_eq!(header.infos().len(), 1);
                 assert!(header.has_next_nonce());
                 assert_eq!(header.next_nonce(), Some("47364c23432d2e131a5fb210812c"));
                 assert!(!header.has_message_qop());
@@ -225,7 +243,7 @@ mod tests {
     #[test]
     fn test_valid_authentication_info_header_with_qop() {
         valid_header("Authentication-Info: qop=auth", |header| {
-            assert_eq!(header.count(), 1);
+            assert_eq!(header.infos().len(), 1);
             assert!(!header.has_next_nonce());
             assert!(header.has_message_qop());
             assert_eq!(header.message_qop(), Some(&MessageQop::Auth));
@@ -307,5 +325,26 @@ mod tests {
             "Authentication-Info: qop=auth",
             r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#,
         );
+    }
+
+    #[test]
+    fn test_authentication_info_header_to_string() {
+        let header = Header::from_str(
+            r#"authentication-info:   nextNonce =   "47364c23432d2e131a5fb210812c""#,
+        );
+        if let Header::AuthenticationInfo(header) = header.unwrap() {
+            assert_eq!(
+                header.to_string(),
+                r#"authentication-info:   nextNonce =   "47364c23432d2e131a5fb210812c""#
+            );
+            assert_eq!(
+                header.to_normalized_string(),
+                r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#
+            );
+            assert_eq!(
+                header.to_compact_string(),
+                r#"Authentication-Info: nextnonce="47364c23432d2e131a5fb210812c""#
+            );
+        }
     }
 }

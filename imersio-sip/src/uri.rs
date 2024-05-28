@@ -136,7 +136,7 @@ impl Uri {
         parse_uri(input)
     }
 
-    /// Gets the `Uri` as an `AbsoluteUri`.
+    /// Get the `Uri` as an `AbsoluteUri`.
     ///
     /// It returns None if the uri is not an `AbsoluteUri`.
     pub fn as_absolute_uri(&self) -> Option<&AbsoluteUri> {
@@ -146,7 +146,7 @@ impl Uri {
         }
     }
 
-    /// Gets the `Uri` as a `SipUri`.
+    /// Get the `Uri` as a `SipUri`.
     ///
     /// It returns None if the uri is not a `SipUri`.
     pub fn as_sip_uri(&self) -> Option<&SipUri> {
@@ -156,7 +156,7 @@ impl Uri {
         }
     }
 
-    /// Tells whether this `Uri` is a SIP URI.
+    /// Tell whether this `Uri` is a SIP URI.
     pub fn is_sip(&self) -> bool {
         matches!(self, Uri::Sip(_))
     }
@@ -510,7 +510,7 @@ impl Hash for HostPort {
 pub struct UriParameters(Vec<(String, Option<String>)>);
 
 impl UriParameters {
-    /// Tells whether the parameters list is empty or not.
+    /// Tell whether the parameters list is empty or not.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -520,13 +520,13 @@ impl UriParameters {
         self.0.len()
     }
 
-    /// Tells whether the parameters list contains a parameter with the given
+    /// Tell whether the parameters list contains a parameter with the given
     /// name.
     pub fn contains(&self, name: &str) -> bool {
         self.iter().any(|(n, _)| n == name)
     }
 
-    /// Gets the parameter corresponding to the given name.
+    /// Get the parameter corresponding to the given name.
     pub fn get(&self, name: &str) -> Option<&str> {
         self.iter()
             .find(|(n, _)| n.eq_ignore_ascii_case(name))
@@ -625,7 +625,7 @@ impl Hash for UriParameters {
 pub struct UriHeaders(Vec<(String, String)>);
 
 impl UriHeaders {
-    /// Tells whether the headers list is empty or not.
+    /// Tell whether the headers list is empty or not.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -635,12 +635,12 @@ impl UriHeaders {
         self.0.len()
     }
 
-    /// Tells whether the headers list contains a header with the given name.
+    /// Tell whether the headers list contains a header with the given name.
     pub fn contains(&self, name: &str) -> bool {
         self.0.iter().any(|(n, _)| n == name)
     }
 
-    /// Gets the header corresponding to the given name.
+    /// Get the header corresponding to the given name.
     pub fn get(&self, name: &str) -> Option<&str> {
         self.0
             .iter()
