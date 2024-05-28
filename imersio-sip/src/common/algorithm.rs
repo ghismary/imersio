@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
-use crate::utils::partial_eq_refs;
+use partial_eq_refs::PartialEqRefs;
 
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum Algorithm {
     Md5,
     Md5Sess,
@@ -43,8 +43,6 @@ impl PartialEq<Algorithm> for Algorithm {
         }
     }
 }
-
-partial_eq_refs!(Algorithm);
 
 impl Hash for Algorithm {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

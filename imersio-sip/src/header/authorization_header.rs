@@ -1,11 +1,12 @@
 use std::{collections::HashSet, hash::Hash};
 
+use partial_eq_refs::PartialEqRefs;
+
 use crate::{
     common::{
         algorithm::Algorithm, header_value_collection::HeaderValueCollection,
         message_qop::MessageQop,
     },
-    utils::partial_eq_refs,
     Error, HeaderAccessor, Uri,
 };
 
@@ -16,7 +17,7 @@ use super::{authentication_info_header::AInfo, generic_header::GenericHeader};
 /// The Authorization header field contains authentication credentials of a UA.
 ///
 /// [[RFC3261, Section 20.7](https://datatracker.ietf.org/doc/html/rfc3261#section-20.7)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AuthorizationHeader {
     header: GenericHeader,
     credentials: Credentials,
@@ -62,10 +63,8 @@ impl PartialEq for AuthorizationHeader {
     }
 }
 
-partial_eq_refs!(AuthorizationHeader);
-
 /// Representation of the credentials from an `AuthorizationHeader`.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum Credentials {
     /// The Digest authentication scheme.
     ///
@@ -219,8 +218,6 @@ impl PartialEq for Credentials {
     }
 }
 
-partial_eq_refs!(Credentials);
-
 macro_rules! credentials {
     (
         $(
@@ -276,7 +273,7 @@ pub type AuthParameters = HeaderValueCollection<AuthParameter>;
 
 /// Representation of the authentication parameters used in the
 /// `AuthorizationHeader`.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum AuthParameter {
     /// A `username` parameter.
     Username(String),
@@ -377,8 +374,6 @@ impl PartialEq<AuthParameter> for AuthParameter {
         }
     }
 }
-
-partial_eq_refs!(AuthParameter);
 
 impl Hash for AuthParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

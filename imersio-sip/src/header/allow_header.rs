@@ -1,7 +1,6 @@
-use crate::{
-    common::header_value_collection::HeaderValueCollection, utils::partial_eq_refs, HeaderAccessor,
-    Method,
-};
+use partial_eq_refs::PartialEqRefs;
+
+use crate::{common::header_value_collection::HeaderValueCollection, HeaderAccessor, Method};
 
 use super::generic_header::GenericHeader;
 
@@ -11,7 +10,7 @@ use super::generic_header::GenericHeader;
 /// generating the message.
 ///
 /// [[RFC3261, Section 20.5](https://datatracker.ietf.org/doc/html/rfc3261#section-20.5)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AllowHeader {
     header: GenericHeader,
     methods: Methods,
@@ -61,8 +60,6 @@ impl PartialEq for AllowHeader {
         self.methods == other.methods
     }
 }
-
-partial_eq_refs!(AllowHeader);
 
 /// Representation of the list of methods from an `AllowHeader`.
 ///

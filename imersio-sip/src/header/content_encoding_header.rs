@@ -1,6 +1,8 @@
 use std::{collections::HashSet, ops::Deref};
 
-use crate::{utils::partial_eq_refs, HeaderAccessor};
+use partial_eq_refs::PartialEqRefs;
+
+use crate::HeaderAccessor;
 
 use super::generic_header::GenericHeader;
 
@@ -18,7 +20,7 @@ use super::generic_header::GenericHeader;
 /// codings MUST be listed in the order in which they were applied.
 ///
 /// [[RFC3261, Section 20.12](https://datatracker.ietf.org/doc/html/rfc3261#section-20.12)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct ContentEncodingHeader {
     header: GenericHeader,
     encodings: ContentEncodings,
@@ -64,12 +66,10 @@ impl PartialEq<ContentEncodingHeader> for ContentEncodingHeader {
     }
 }
 
-partial_eq_refs!(ContentEncodingHeader);
-
 /// Representation of the list of encodings in a `Content-Encoding` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct ContentEncodings(Vec<String>);
 
 impl<S> From<Vec<S>> for ContentEncodings
@@ -101,8 +101,6 @@ impl PartialEq<ContentEncodings> for ContentEncodings {
         self_encodings == other_encodings
     }
 }
-
-partial_eq_refs!(ContentEncodings);
 
 impl IntoIterator for ContentEncodings {
     type Item = String;

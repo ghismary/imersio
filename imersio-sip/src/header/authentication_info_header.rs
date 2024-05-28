@@ -1,8 +1,9 @@
 use std::hash::Hash;
 
+use partial_eq_refs::PartialEqRefs;
+
 use crate::{
     common::{header_value_collection::HeaderValueCollection, message_qop::MessageQop},
-    utils::partial_eq_refs,
     HeaderAccessor,
 };
 
@@ -14,7 +15,7 @@ use super::generic_header::GenericHeader;
 /// with HTTP Digest.
 ///
 /// [[RFC3261, Section 20.6](https://datatracker.ietf.org/doc/html/rfc3261#section-20.6)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AuthenticationInfoHeader {
     header: GenericHeader,
     infos: AInfos,
@@ -81,8 +82,6 @@ impl PartialEq for AuthenticationInfoHeader {
     }
 }
 
-partial_eq_refs!(AuthenticationInfoHeader);
-
 macro_rules! authentication_info_header {
     (
         $(
@@ -128,7 +127,7 @@ authentication_info_header! {
 pub type AInfos = HeaderValueCollection<AInfo>;
 
 /// Representation of an info from an `AuthenticationInfoHeader`.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 #[non_exhaustive]
 pub enum AInfo {
     /// A `nextnonce` authentication info.
@@ -192,8 +191,6 @@ impl PartialEq<AInfo> for AInfo {
         }
     }
 }
-
-partial_eq_refs!(AInfo);
 
 impl Hash for AInfo {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

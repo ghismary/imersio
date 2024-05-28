@@ -1,8 +1,9 @@
 use std::{collections::HashSet, hash::Hash};
 
+use partial_eq_refs::PartialEqRefs;
+
 use crate::{
     common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
-    utils::partial_eq_refs,
     HeaderAccessor,
 };
 
@@ -14,7 +15,7 @@ use super::generic_header::GenericHeader;
 /// content-codings that are acceptable in the response.
 ///
 /// [[RFC3261, Section 20.2](https://datatracker.ietf.org/doc/html/rfc3261#section-20.2)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AcceptEncodingHeader {
     header: GenericHeader,
     encodings: AcceptEncodings,
@@ -60,8 +61,6 @@ impl PartialEq for AcceptEncodingHeader {
     }
 }
 
-partial_eq_refs!(AcceptEncodingHeader);
-
 /// Representation of the list of encodings from an `AcceptEncodingHeader`.
 ///
 /// This is usable as an iterator.
@@ -80,7 +79,7 @@ impl AcceptEncodings {
 }
 
 /// Representation of an encoding from an `Accept-Encoding` header.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AcceptEncoding {
     encoding: String,
     parameters: Vec<AcceptParameter>,
@@ -140,8 +139,6 @@ impl PartialEq for AcceptEncoding {
         self_params == other_params
     }
 }
-
-partial_eq_refs!(AcceptEncoding);
 
 impl Hash for AcceptEncoding {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

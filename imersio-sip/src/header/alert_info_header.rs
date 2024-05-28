@@ -1,9 +1,10 @@
 use std::{collections::HashSet, hash::Hash};
 
+use partial_eq_refs::PartialEqRefs;
+
 use crate::{
     common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
     uri::AbsoluteUri,
-    utils::partial_eq_refs,
     HeaderAccessor,
 };
 
@@ -18,7 +19,7 @@ use super::generic_header::GenericHeader;
 /// field to provide a distinctive ring feature.
 ///
 /// [[RFC3261, Section 20.4](https://datatracker.ietf.org/doc/html/rfc3261#section-20.4)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AlertInfoHeader {
     header: GenericHeader,
     alerts: Alerts,
@@ -64,8 +65,6 @@ impl PartialEq for AlertInfoHeader {
     }
 }
 
-partial_eq_refs!(AlertInfoHeader);
-
 /// Representation of the list of alerts from an `AlertInfoHeader`.
 ///
 /// This is usable as an iterator.
@@ -84,7 +83,7 @@ impl Alerts {
 }
 
 /// Representation of an alert contained in an `Alert-Info` header.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct Alert {
     uri: AbsoluteUri,
     parameters: Vec<AcceptParameter>,
@@ -133,8 +132,6 @@ impl PartialEq for Alert {
         self_params == other_params
     }
 }
-
-partial_eq_refs!(Alert);
 
 impl Hash for Alert {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

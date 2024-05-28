@@ -32,22 +32,3 @@ pub(crate) fn extend_vec<T>(first: T, others: Vec<T>) -> Vec<T> {
     res.extend(others);
     res
 }
-
-macro_rules! partial_eq_refs {
-    (
-        $struct:ident
-    ) => {
-        impl PartialEq<&$struct> for $struct {
-            fn eq(&self, other: &&$struct) -> bool {
-                self == *other
-            }
-        }
-
-        impl PartialEq<$struct> for &$struct {
-            fn eq(&self, other: &$struct) -> bool {
-                *self == other
-            }
-        }
-    };
-}
-pub(crate) use partial_eq_refs;

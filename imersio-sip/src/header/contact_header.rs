@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, collections::HashSet, hash::Hash, ops::Deref};
 
-use crate::{common::name_address::NameAddress, utils::partial_eq_refs, GenericParameter};
+use partial_eq_refs::PartialEqRefs;
+
+use crate::{common::name_address::NameAddress, GenericParameter};
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
 
@@ -14,7 +16,7 @@ static EMPTY_CONTACTS: Vec<Contact> = vec![];
 /// in HTTP.
 ///
 /// [[RFC3261, Section 20.10](https://datatracker.ietf.org/doc/html/rfc3261#section-20.10)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct ContactHeader {
     header: GenericHeader,
     contacts: Contacts,
@@ -57,12 +59,10 @@ impl PartialEq<ContactHeader> for ContactHeader {
     }
 }
 
-partial_eq_refs!(ContactHeader);
-
 /// Representation of the list of contacts of a `Contact` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum Contacts {
     /// Any contacts.
     Any,
@@ -114,8 +114,6 @@ impl PartialEq for Contacts {
     }
 }
 
-partial_eq_refs!(Contacts);
-
 impl IntoIterator for Contacts {
     type Item = Contact;
     type IntoIter = <Vec<Contact> as IntoIterator>::IntoIter;
@@ -140,7 +138,7 @@ impl Deref for Contacts {
 }
 
 /// Representation of a contact in a `Contact` header.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct Contact {
     address: NameAddress,
     parameters: Vec<ContactParameter>,
@@ -209,8 +207,6 @@ impl PartialEq for Contact {
     }
 }
 
-partial_eq_refs!(Contact);
-
 impl Hash for Contact {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.address.hash(state);
@@ -221,7 +217,7 @@ impl Hash for Contact {
 }
 
 /// Representation of a contact parameter.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialEqRefs)]
 pub enum ContactParameter {
     /// A `q` parameter.
     Q(String),
@@ -279,8 +275,6 @@ impl std::fmt::Display for ContactParameter {
         )
     }
 }
-
-partial_eq_refs!(ContactParameter);
 
 impl PartialOrd for ContactParameter {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {

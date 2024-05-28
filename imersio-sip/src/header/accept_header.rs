@@ -1,8 +1,9 @@
 use std::{collections::HashSet, hash::Hash};
 
+use partial_eq_refs::PartialEqRefs;
+
 use crate::{
     common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
-    utils::partial_eq_refs,
     HeaderAccessor,
 };
 
@@ -15,7 +16,7 @@ use super::generic_header::GenericHeader;
 /// present, the server SHOULD assume a default value of `application/sdp`.
 ///
 /// [[RFC3261, Section 20.1](https://datatracker.ietf.org/doc/html/rfc3261#section-20.1)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AcceptHeader {
     header: GenericHeader,
     ranges: AcceptRanges,
@@ -61,8 +62,6 @@ impl PartialEq for AcceptHeader {
     }
 }
 
-partial_eq_refs!(AcceptHeader);
-
 /// Representation of the list of range from an `AcceptHeader`.
 ///
 /// This is usable as an iterator.
@@ -81,7 +80,7 @@ impl AcceptRanges {
 }
 
 /// Represenation of a range contained in an `AcceptHeader`.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AcceptRange {
     media_range: MediaRange,
     parameters: Vec<AcceptParameter>,
@@ -134,8 +133,6 @@ impl PartialEq for AcceptRange {
     }
 }
 
-partial_eq_refs!(AcceptRange);
-
 impl Hash for AcceptRange {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.media_range.hash(state);
@@ -146,7 +143,7 @@ impl Hash for AcceptRange {
 }
 
 /// Representation of a media range contained in an `AcceptRange`.
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq, PartialEqRefs)]
 pub struct MediaRange {
     r#type: String,
     subtype: String,
@@ -166,8 +163,6 @@ impl std::fmt::Display for MediaRange {
         write!(f, "{}/{}", self.r#type, self.subtype,)
     }
 }
-
-partial_eq_refs!(MediaRange);
 
 #[cfg(test)]
 mod tests {

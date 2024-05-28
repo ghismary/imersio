@@ -1,5 +1,5 @@
 [workspace]
-members = ["imersio-sip"]
+members = ["imersio-sip", "partial_eq_refs"]
 resolver = "2"
 
 [workspace.package]

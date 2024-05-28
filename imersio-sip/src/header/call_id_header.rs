@@ -1,4 +1,4 @@
-use crate::utils::partial_eq_refs;
+use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
 
@@ -8,7 +8,7 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// all registrations of a particular client.
 ///
 /// [[RFC3261, Section 20.8](https://datatracker.ietf.org/doc/html/rfc3261#section-20.8)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct CallIdHeader {
     header: GenericHeader,
     call_id: String,
@@ -53,8 +53,6 @@ impl PartialEq<CallIdHeader> for CallIdHeader {
         self.call_id == other.call_id
     }
 }
-
-partial_eq_refs!(CallIdHeader);
 
 #[cfg(test)]
 mod tests {

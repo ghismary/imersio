@@ -1,8 +1,9 @@
 use std::{collections::HashSet, hash::Hash};
 
+use partial_eq_refs::PartialEqRefs;
+
 use crate::{
     common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
-    utils::partial_eq_refs,
     HeaderAccessor,
 };
 
@@ -17,7 +18,7 @@ use super::generic_header::GenericHeader;
 /// languages are acceptable to the client.
 ///
 /// [[RFC3261, Section 20.3](https://datatracker.ietf.org/doc/html/rfc3261#section-20.3)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AcceptLanguageHeader {
     header: GenericHeader,
     languages: Languages,
@@ -63,8 +64,6 @@ impl PartialEq for AcceptLanguageHeader {
     }
 }
 
-partial_eq_refs!(AcceptLanguageHeader);
-
 /// Representation of the list of languages from an `AcceptLanguageHeader`.
 ///
 /// This is usable as an iterator.
@@ -83,7 +82,7 @@ impl Languages {
 }
 
 /// Representation of a language contained in an `Accept-Language` header.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct Language {
     language: String,
     parameters: Vec<AcceptParameter>,
@@ -143,8 +142,6 @@ impl PartialEq for Language {
         self_params == other_params
     }
 }
-
-partial_eq_refs!(Language);
 
 impl Hash for Language {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

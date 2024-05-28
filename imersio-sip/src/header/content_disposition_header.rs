@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
-use crate::{utils::partial_eq_refs, GenericParameter};
+use partial_eq_refs::PartialEqRefs;
+
+use crate::GenericParameter;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
 
@@ -11,7 +13,7 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// UAC or UAS.
 ///
 /// [[RFC3261, Section 20.11](https://datatracker.ietf.org/doc/html/rfc3261#section-20.11)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct ContentDispositionHeader {
     header: GenericHeader,
     r#type: DispositionType,
@@ -82,10 +84,8 @@ impl PartialEq for ContentDispositionHeader {
     }
 }
 
-partial_eq_refs!(ContentDispositionHeader);
-
 /// Representation of a disposition type from a `Content-Disposition` header.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum DispositionType {
     /// The value `render` indicates that the body part should be displayed or
     /// otherwise rendered to the user.
@@ -148,10 +148,8 @@ impl PartialEq<DispositionType> for DispositionType {
     }
 }
 
-partial_eq_refs!(DispositionType);
-
 /// Representation of a parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum DispositionParameter {
     /// The handling parameter describes how the UAS should react if it
     /// receives a message body whose content type or disposition type it
@@ -210,8 +208,6 @@ impl PartialEq<DispositionParameter> for DispositionParameter {
     }
 }
 
-partial_eq_refs!(DispositionParameter);
-
 impl PartialOrd for DispositionParameter {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
@@ -242,7 +238,7 @@ impl From<GenericParameter> for DispositionParameter {
 }
 
 /// Representation of the `handling` parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum HandlingValue {
     /// The handling of the content type is optional.
     Optional,
@@ -297,8 +293,6 @@ impl PartialEq<HandlingValue> for HandlingValue {
         }
     }
 }
-
-partial_eq_refs!(HandlingValue);
 
 impl Hash for HandlingValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

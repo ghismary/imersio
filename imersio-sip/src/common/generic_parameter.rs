@@ -1,9 +1,9 @@
 use std::hash::Hash;
 
-use crate::utils::partial_eq_refs;
+use partial_eq_refs::PartialEqRefs;
 
 /// Representation of a generic parameter.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct GenericParameter {
     key: String,
     value: Option<String>,
@@ -48,8 +48,6 @@ impl PartialEq<GenericParameter> for GenericParameter {
                 == other.value().map(|v| v.to_ascii_lowercase())
     }
 }
-
-partial_eq_refs!(GenericParameter);
 
 impl Hash for GenericParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

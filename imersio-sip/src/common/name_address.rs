@@ -1,8 +1,10 @@
 use std::hash::Hash;
 
-use crate::{utils::partial_eq_refs, Uri};
+use partial_eq_refs::PartialEqRefs;
 
-#[derive(Clone, Debug, Eq)]
+use crate::Uri;
+
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct NameAddress {
     display_name: Option<String>,
     uri: Uri,
@@ -41,8 +43,6 @@ impl PartialEq for NameAddress {
         self.uri == other.uri
     }
 }
-
-partial_eq_refs!(NameAddress);
 
 impl Hash for NameAddress {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

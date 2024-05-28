@@ -1,8 +1,9 @@
 use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
+use partial_eq_refs::PartialEqRefs;
+
 use crate::{
-    common::header_value_collection::HeaderValueCollection, uri::AbsoluteUri,
-    utils::partial_eq_refs, GenericParameter,
+    common::header_value_collection::HeaderValueCollection, uri::AbsoluteUri, GenericParameter,
 };
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -14,7 +15,7 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// response.
 ///
 /// [[RFC3261, Section 20.9](https://datatracker.ietf.org/doc/html/rfc3261#section-20.9)]
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct CallInfoHeader {
     header: GenericHeader,
     infos: CallInfos,
@@ -64,8 +65,6 @@ impl PartialEq for CallInfoHeader {
     }
 }
 
-partial_eq_refs!(CallInfoHeader);
-
 /// Representation of the list of call informations from a `Call-Info` header.
 ///
 /// This is usable as an iterator.
@@ -84,7 +83,7 @@ impl CallInfos {
 }
 
 /// Representation of a call info, containing its uri and parameters.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct CallInfo {
     uri: AbsoluteUri,
     parameters: Vec<CallInfoParameter>,
@@ -134,8 +133,6 @@ impl PartialEq for CallInfo {
     }
 }
 
-partial_eq_refs!(CallInfo);
-
 impl Hash for CallInfo {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.uri.hash(state);
@@ -146,7 +143,7 @@ impl Hash for CallInfo {
 }
 
 /// Representation of an information about the caller or the callee.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum CallInfoParameter {
     /// The `icon` purpose parameter designates an image suitable as an iconic
     /// representation of the caller or callee.
@@ -225,8 +222,6 @@ impl PartialEq<CallInfoParameter> for CallInfoParameter {
         }
     }
 }
-
-partial_eq_refs!(CallInfoParameter);
 
 impl Hash for CallInfoParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

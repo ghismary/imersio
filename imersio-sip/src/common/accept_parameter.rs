@@ -1,8 +1,10 @@
 use std::{cmp::Ordering, hash::Hash};
 
-use crate::{utils::partial_eq_refs, GenericParameter};
+use partial_eq_refs::PartialEqRefs;
 
-#[derive(Clone, Debug, Eq)]
+use crate::GenericParameter;
+
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum AcceptParameter {
     Q(String),
     Other(GenericParameter),
@@ -68,8 +70,6 @@ impl PartialEq<AcceptParameter> for AcceptParameter {
         }
     }
 }
-
-partial_eq_refs!(AcceptParameter);
 
 impl Hash for AcceptParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

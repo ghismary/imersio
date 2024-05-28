@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
-use crate::utils::partial_eq_refs;
+use partial_eq_refs::PartialEqRefs;
 
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum MessageQop {
     Auth,
     AuthInt,
@@ -43,8 +43,6 @@ impl PartialEq<MessageQop> for MessageQop {
         }
     }
 }
-
-partial_eq_refs!(MessageQop);
 
 impl Hash for MessageQop {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

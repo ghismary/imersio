@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 
-use crate::utils::partial_eq_refs;
+use partial_eq_refs::PartialEqRefs;
 
 use super::HeaderAccessor;
 
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct GenericHeader {
     name: String,
     separator: String,
@@ -54,8 +54,6 @@ impl PartialEq for GenericHeader {
         self.name.eq_ignore_ascii_case(&other.name) && self.value.eq_ignore_ascii_case(&other.value)
     }
 }
-
-partial_eq_refs!(GenericHeader);
 
 impl PartialOrd for GenericHeader {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
