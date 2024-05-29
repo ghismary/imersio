@@ -13,7 +13,7 @@ mod contact_header;
 mod content_disposition_header;
 mod content_encoding_header;
 mod generic_header;
-mod parser;
+pub(crate) mod parser;
 
 use std::str::FromStr;
 

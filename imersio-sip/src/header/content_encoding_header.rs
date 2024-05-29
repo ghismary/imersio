@@ -1,8 +1,9 @@
-use std::{collections::HashSet, ops::Deref};
-
 use partial_eq_refs::PartialEqRefs;
 
-use crate::HeaderAccessor;
+use crate::{
+    common::{content_encoding::ContentEncoding, header_value_collection::HeaderValueCollection},
+    HeaderAccessor,
+};
 
 use super::generic_header::GenericHeader;
 
@@ -27,7 +28,7 @@ pub struct ContentEncodingHeader {
 }
 
 impl ContentEncodingHeader {
-    pub(crate) fn new<S: Into<String>>(header: GenericHeader, encodings: Vec<S>) -> Self {
+    pub(crate) fn new(header: GenericHeader, encodings: Vec<ContentEncoding>) -> Self {
         ContentEncodingHeader {
             header,
             encodings: encodings.into(),
@@ -69,55 +70,7 @@ impl PartialEq<ContentEncodingHeader> for ContentEncodingHeader {
 /// Representation of the list of encodings in a `Content-Encoding` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct ContentEncodings(Vec<String>);
-
-impl<S> From<Vec<S>> for ContentEncodings
-where
-    S: Into<String>,
-{
-    fn from(value: Vec<S>) -> Self {
-        Self(value.into_iter().map(Into::into).collect::<Vec<String>>())
-    }
-}
-
-impl std::fmt::Display for ContentEncodings {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.iter()
-                .map(|encoding| encoding.to_ascii_lowercase())
-                .collect::<Vec<String>>()
-                .join(", ")
-        )
-    }
-}
-
-impl PartialEq<ContentEncodings> for ContentEncodings {
-    fn eq(&self, other: &ContentEncodings) -> bool {
-        let self_encodings: HashSet<_> = self.iter().map(|v| v.to_ascii_lowercase()).collect();
-        let other_encodings: HashSet<_> = other.iter().map(|v| v.to_ascii_lowercase()).collect();
-        self_encodings == other_encodings
-    }
-}
-
-impl IntoIterator for ContentEncodings {
-    type Item = String;
-    type IntoIter = <Vec<String> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl Deref for ContentEncodings {
-    type Target = [String];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0[..]
-    }
-}
+pub type ContentEncodings = HeaderValueCollection<ContentEncoding>;
 
 #[cfg(test)]
 mod tests {

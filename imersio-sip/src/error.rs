@@ -6,6 +6,9 @@ pub enum Error {
     /// Failed converting AInfo to AuthParam.
     #[error("failed converting AInfo to AuthParam")]
     FailedConvertingAInfoToAuthParam,
+    /// Invalid content encoding.
+    #[error("invalid content encoding")]
+    InvalidContentEncoding(String),
     /// Invalid message header.
     #[error("invalid message header")]
     InvalidMessageHeader(String),

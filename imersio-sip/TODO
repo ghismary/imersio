@@ -23,4 +23,5 @@
 
 
 
- - Add Encoding struct + Use HeaderValueCollection for Encodings
+ - Handle quoted strings correctly
+ - Add trait for parameters?

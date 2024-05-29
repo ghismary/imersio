@@ -3,7 +3,10 @@ use std::{collections::HashSet, hash::Hash};
 use partial_eq_refs::PartialEqRefs;
 
 use crate::{
-    common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
+    common::{
+        accept_parameter::AcceptParameter, content_encoding::ContentEncoding,
+        header_value_collection::HeaderValueCollection,
+    },
     HeaderAccessor,
 };
 
@@ -81,21 +84,21 @@ impl AcceptEncodings {
 /// Representation of an encoding from an `Accept-Encoding` header.
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AcceptEncoding {
-    encoding: String,
+    encoding: ContentEncoding,
     parameters: Vec<AcceptParameter>,
 }
 
 impl AcceptEncoding {
-    pub(crate) fn new<S: Into<String>>(encoding: S, parameters: Vec<AcceptParameter>) -> Self {
+    pub(crate) fn new(encoding: ContentEncoding, parameters: Vec<AcceptParameter>) -> Self {
         AcceptEncoding {
-            encoding: encoding.into(),
+            encoding,
             parameters,
         }
     }
 
     /// Get the encoding.
     pub fn encoding(&self) -> &str {
-        &self.encoding
+        self.encoding.as_ref()
     }
 
     /// Get a reference to the parameters for the encoding.
@@ -130,7 +133,7 @@ impl std::fmt::Display for AcceptEncoding {
 
 impl PartialEq for AcceptEncoding {
     fn eq(&self, other: &Self) -> bool {
-        if !self.encoding.eq_ignore_ascii_case(&other.encoding) {
+        if self.encoding != other.encoding {
             return false;
         }
 
@@ -142,7 +145,7 @@ impl PartialEq for AcceptEncoding {
 
 impl Hash for AcceptEncoding {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.encoding.to_ascii_lowercase().hash(state);
+        self.encoding.hash(state);
         let mut sorted_params = self.parameters.clone();
         sorted_params.sort();
         sorted_params.hash(state);

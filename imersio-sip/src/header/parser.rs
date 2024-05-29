@@ -11,8 +11,8 @@ use nom::{
 
 use crate::{
     common::{
-        accept_parameter::AcceptParameter, algorithm::Algorithm, message_qop::MessageQop,
-        name_address::NameAddress,
+        accept_parameter::AcceptParameter, algorithm::Algorithm, content_encoding::ContentEncoding,
+        message_qop::MessageQop, name_address::NameAddress,
     },
     method::parser::method,
     parser::{
@@ -172,12 +172,17 @@ fn accept(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn content_coding(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    token(input)
+pub(crate) fn content_coding(input: &[u8]) -> ParserResult<&[u8], ContentEncoding> {
+    map(token, ContentEncoding::new)(input)
 }
 
-fn codings(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    alt((content_coding, map(tag("*"), String::from_utf8_lossy)))(input)
+fn codings(input: &[u8]) -> ParserResult<&[u8], ContentEncoding> {
+    alt((
+        content_coding,
+        map(tag("*"), |v| {
+            ContentEncoding::new(String::from_utf8_lossy(v))
+        }),
+    ))(input)
 }
 
 fn encoding(input: &[u8]) -> ParserResult<&[u8], AcceptEncoding> {
