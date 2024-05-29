@@ -5,7 +5,7 @@ use partial_eq_refs::PartialEqRefs;
 use crate::{
     common::{
         algorithm::Algorithm, header_value_collection::HeaderValueCollection,
-        message_qop::MessageQop,
+        message_qop::MessageQop, wrapped_string::WrappedString,
     },
     Error, HeaderAccessor, Uri,
 };
@@ -276,27 +276,27 @@ pub type AuthParameters = HeaderValueCollection<AuthParameter>;
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub enum AuthParameter {
     /// A `username` parameter.
-    Username(String),
+    Username(WrappedString),
     /// A `realm` parameter.
-    Realm(String),
+    Realm(WrappedString),
     /// A `nonce` parameter.
-    Nonce(String),
+    Nonce(WrappedString),
     /// An `uri` parameter.
     DigestUri(Uri),
     /// A `response` parameter.
-    DResponse(String),
+    DResponse(WrappedString),
     /// An `algoritm` parameter.
     Algorithm(Algorithm),
     /// A `cnonce` parameter.
-    CNonce(String),
+    CNonce(WrappedString),
     /// An `opaque` parameter.
-    Opaque(String),
+    Opaque(WrappedString),
     /// A `qop` parameter.
     MessageQop(MessageQop),
     /// A `nc` parameter.
-    NonceCount(String),
+    NonceCount(WrappedString),
     /// Any other parameter.
-    Other(String, String),
+    Other(String, WrappedString),
 }
 
 impl AuthParameter {
@@ -320,17 +320,17 @@ impl AuthParameter {
     /// Get the value of the parameter.
     pub fn value(&self) -> String {
         match self {
-            Self::Username(value) => value.clone(),
-            Self::Realm(value) => value.clone(),
-            Self::Nonce(value) => value.clone(),
+            Self::Username(value) => value.value(),
+            Self::Realm(value) => value.value(),
+            Self::Nonce(value) => value.value(),
             Self::DigestUri(value) => value.to_string(),
-            Self::DResponse(value) => value.clone(),
-            Self::Algorithm(value) => value.value().to_string(),
-            Self::CNonce(value) => value.clone(),
-            Self::Opaque(value) => value.clone(),
-            Self::MessageQop(value) => value.value().to_string(),
-            Self::NonceCount(value) => value.clone(),
-            Self::Other(_, value) => value.clone(),
+            Self::DResponse(value) => value.value(),
+            Self::Algorithm(value) => value.value().into(),
+            Self::CNonce(value) => value.value(),
+            Self::Opaque(value) => value.value(),
+            Self::MessageQop(value) => value.value().into(),
+            Self::NonceCount(value) => value.value(),
+            Self::Other(_, value) => value.value(),
         }
     }
 }
@@ -338,17 +338,17 @@ impl AuthParameter {
 impl std::fmt::Display for AuthParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (key, value) = match self {
-            Self::Username(value) => ("username".to_string(), format!("\"{value}\"")),
-            Self::Realm(value) => ("realm".to_string(), format!("\"{value}\"")),
-            Self::Nonce(value) => ("nonce".to_string(), format!("\"{value}\"")),
-            Self::DigestUri(value) => ("uri".to_string(), format!("\"{value}\"")),
-            Self::DResponse(value) => ("response".to_string(), format!("\"{value}\"")),
-            Self::Algorithm(value) => ("algorithm".to_string(), value.to_string()),
-            Self::CNonce(value) => ("cnonce".to_string(), format!("\"{value}\"")),
-            Self::Opaque(value) => ("opaque".to_string(), format!("\"{value}\"")),
-            Self::MessageQop(value) => ("qop".to_string(), value.value().to_string()),
-            Self::NonceCount(value) => ("nc".to_string(), value.clone()),
-            Self::Other(key, value) => (key.clone(), value.clone()),
+            Self::Username(value) => ("username".into(), value.to_string()),
+            Self::Realm(value) => ("realm".into(), value.to_string()),
+            Self::Nonce(value) => ("nonce".into(), value.to_string()),
+            Self::DigestUri(value) => ("uri".into(), format!("\"{value}\"")),
+            Self::DResponse(value) => ("response".into(), value.to_string()),
+            Self::Algorithm(value) => ("algorithm".into(), value.to_string()),
+            Self::CNonce(value) => ("cnonce".into(), value.to_string()),
+            Self::Opaque(value) => ("opaque".into(), value.to_string()),
+            Self::MessageQop(value) => ("qop".into(), value.to_string()),
+            Self::NonceCount(value) => ("nc".into(), value.to_string()),
+            Self::Other(key, value) => (key.clone(), value.to_string()),
         };
         write!(f, "{}={}", key, value)
     }
@@ -362,13 +362,13 @@ impl PartialEq<AuthParameter> for AuthParameter {
             | (Self::Nonce(a), Self::Nonce(b))
             | (Self::DResponse(a), Self::DResponse(b))
             | (Self::CNonce(a), Self::CNonce(b))
-            | (Self::Opaque(a), Self::Opaque(b)) => a == b,
+            | (Self::Opaque(a), Self::Opaque(b))
+            | (Self::NonceCount(a), Self::NonceCount(b)) => a == b,
             (Self::DigestUri(a), Self::DigestUri(b)) => a == b,
             (Self::Algorithm(a), Self::Algorithm(b)) => a == b,
             (Self::MessageQop(a), Self::MessageQop(b)) => a == b,
-            (Self::NonceCount(a), Self::NonceCount(b)) => a.eq_ignore_ascii_case(b),
             (Self::Other(akey, avalue), Self::Other(bkey, bvalue)) => {
-                akey.eq_ignore_ascii_case(bkey) && avalue.eq_ignore_ascii_case(bvalue)
+                akey.eq_ignore_ascii_case(bkey) && avalue == bvalue
             }
             _ => false,
         }
@@ -384,11 +384,11 @@ impl Hash for AuthParameter {
             | Self::Nonce(value)
             | Self::DResponse(value)
             | Self::CNonce(value)
-            | Self::Opaque(value) => value.hash(state),
-            Self::DigestUri(value) => value.to_string().hash(state),
-            Self::Algorithm(value) => value.value().to_ascii_lowercase().hash(state),
-            Self::MessageQop(value) => value.value().to_ascii_lowercase().hash(state),
-            Self::NonceCount(value) => value.to_ascii_lowercase().hash(state),
+            | Self::Opaque(value)
+            | Self::NonceCount(value) => value.hash(state),
+            Self::DigestUri(value) => value.hash(state),
+            Self::Algorithm(value) => value.hash(state),
+            Self::MessageQop(value) => value.hash(state),
             Self::Other(_, value) => value.to_ascii_lowercase().hash(state),
         }
     }

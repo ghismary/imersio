@@ -4,14 +4,16 @@ use partial_eq_refs::PartialEqRefs;
 
 use crate::Uri;
 
+use super::wrapped_string::WrappedString;
+
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct NameAddress {
-    display_name: Option<String>,
+    display_name: Option<WrappedString>,
     uri: Uri,
 }
 
 impl NameAddress {
-    pub(crate) fn new(uri: Uri, display_name: Option<String>) -> Self {
+    pub(crate) fn new(uri: Uri, display_name: Option<WrappedString>) -> Self {
         Self { display_name, uri }
     }
 
@@ -30,7 +32,7 @@ impl std::fmt::Display for NameAddress {
             f,
             "{}<{}>",
             match &self.display_name {
-                Some(display_name) => format!("\"{display_name}\" "),
+                Some(display_name) => format!("{} ", display_name),
                 None => "".to_string(),
             },
             self.uri

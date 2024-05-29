@@ -12,7 +12,7 @@ use nom::{
 use crate::{
     common::{
         accept_parameter::AcceptParameter, algorithm::Algorithm, content_encoding::ContentEncoding,
-        message_qop::MessageQop, name_address::NameAddress,
+        message_qop::MessageQop, name_address::NameAddress, wrapped_string::WrappedString,
     },
     method::parser::method,
     parser::{
@@ -120,8 +120,12 @@ fn q_param(input: &[u8]) -> ParserResult<&[u8], AcceptParameter> {
     })(input)
 }
 
-fn gen_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    alt((token, host, quoted_string))(input)
+fn gen_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+    alt((
+        map(token, WrappedString::new_not_wrapped),
+        map(host, WrappedString::new_not_wrapped),
+        quoted_string,
+    ))(input)
 }
 
 fn generic_param(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
@@ -327,7 +331,7 @@ fn allow(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn nonce_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn nonce_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     quoted_string(input)
 }
 
@@ -336,7 +340,7 @@ fn nextnonce(input: &[u8]) -> ParserResult<&[u8], AInfo> {
         "nextnonce",
         map(
             separated_pair(tag_no_case("nextnonce"), equal, nonce_value),
-            |(_, value)| AInfo::NextNonce(value.into_owned()),
+            |(_, value)| AInfo::NextNonce(value),
         ),
     )(input)
 }
@@ -359,13 +363,15 @@ fn message_qop(input: &[u8]) -> ParserResult<&[u8], AInfo> {
     )(input)
 }
 
-fn response_digest(input: &[u8]) -> ParserResult<&[u8], String> {
+fn response_digest(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     map(delimited(ldquot, many0(lhex), rdquot), |digits| {
-        digits
-            .iter()
-            .map(|digit| String::from_utf8_lossy(digit).into_owned())
-            .collect::<Vec<String>>()
-            .join("")
+        WrappedString::new_quoted(
+            digits
+                .iter()
+                .map(|digit| String::from_utf8_lossy(digit).into_owned())
+                .collect::<Vec<String>>()
+                .join(""),
+        )
     })(input)
 }
 
@@ -380,7 +386,7 @@ fn response_auth(input: &[u8]) -> ParserResult<&[u8], AInfo> {
 }
 
 #[inline]
-fn cnonce_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn cnonce_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     nonce_value(input)
 }
 
@@ -389,18 +395,20 @@ fn cnonce(input: &[u8]) -> ParserResult<&[u8], AInfo> {
         "cnonce",
         map(
             separated_pair(tag_no_case("cnonce"), equal, cnonce_value),
-            |(_, value)| AInfo::CNonce(value.into_owned()),
+            |(_, value)| AInfo::CNonce(value),
         ),
     )(input)
 }
 
-fn nc_value(input: &[u8]) -> ParserResult<&[u8], String> {
+fn nc_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     map(count(lhex, 8), |digits| {
-        digits
-            .iter()
-            .map(|digit| String::from_utf8_lossy(digit).into_owned())
-            .collect::<Vec<String>>()
-            .join("")
+        WrappedString::new_not_wrapped(
+            digits
+                .iter()
+                .map(|digit| String::from_utf8_lossy(digit).into_owned())
+                .collect::<Vec<String>>()
+                .join(""),
+        )
     })(input)
 }
 
@@ -438,33 +446,33 @@ fn authentication_info(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn username_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn username_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     quoted_string(input)
 }
 
 fn username(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
         separated_pair(tag_no_case("username"), equal, username_value),
-        |(_, value)| AuthParameter::Username(value.into_owned()),
+        |(_, value)| AuthParameter::Username(value),
     )(input)
 }
 
 #[inline]
-fn realm_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn realm_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     quoted_string(input)
 }
 
 fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
         separated_pair(tag_no_case("realm"), equal, realm_value),
-        |(_, value)| AuthParameter::Realm(value.into_owned()),
+        |(_, value)| AuthParameter::Realm(value),
     )(input)
 }
 
 fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
         separated_pair(tag_no_case("nonce"), equal, nonce_value),
-        |(_, value)| AuthParameter::Nonce(value.into_owned()),
+        |(_, value)| AuthParameter::Nonce(value),
     )(input)
 }
 
@@ -479,17 +487,17 @@ fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     )(input)
 }
 
-fn request_digest(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn request_digest(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     map(
         delimited(ldquot, recognize(many_m_n(32, 32, lhex)), rdquot),
-        String::from_utf8_lossy,
+        |v| WrappedString::new_quoted(String::from_utf8_lossy(v)),
     )(input)
 }
 
 fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
         separated_pair(tag_no_case("response"), equal, request_digest),
-        |(_, value)| AuthParameter::DResponse(value.into_owned()),
+        |(_, value)| AuthParameter::DResponse(value),
     )(input)
 }
 
@@ -511,7 +519,7 @@ fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
 fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
         separated_pair(tag_no_case("opaque"), equal, quoted_string),
-        |(_, value)| AuthParameter::Opaque(value.into_owned()),
+        |(_, value)| AuthParameter::Opaque(value),
     )(input)
 }
 
@@ -522,8 +530,12 @@ fn auth_param_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
 
 fn auth_param(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     map(
-        separated_pair(auth_param_name, equal, alt((token, quoted_string))),
-        |(key, value)| AuthParameter::Other(key.to_string(), value.to_string()),
+        separated_pair(
+            auth_param_name,
+            equal,
+            alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
+        ),
+        |(key, value)| AuthParameter::Other(key.to_string(), value),
     )(input)
 }
 
@@ -712,17 +724,19 @@ fn addr_spec(input: &[u8]) -> ParserResult<&[u8], Uri> {
     alt((sip_uri, sips_uri, map(absolute_uri, Uri::Absolute)))(input)
 }
 
-fn display_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn display_name(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     alt((
         quoted_string,
-        map(recognize(many0(pair(token, lws))), String::from_utf8_lossy),
+        map(recognize(many0(pair(token, lws))), |v| {
+            WrappedString::new_not_wrapped(String::from_utf8_lossy(v))
+        }),
     ))(input)
 }
 
 fn name_addr(input: &[u8]) -> ParserResult<&[u8], NameAddress> {
     map(
         pair(opt(display_name), delimited(laquot, addr_spec, raquot)),
-        |(display_name, uri)| NameAddress::new(uri, display_name.map(Into::into)),
+        |(display_name, uri)| NameAddress::new(uri, display_name),
     )(input)
 }
 

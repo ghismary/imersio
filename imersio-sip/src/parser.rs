@@ -12,6 +12,8 @@ use nom::multi::{count, many0, many1, many_m_n};
 use nom::sequence::{pair, preceded, tuple};
 use nom::{IResult, InputTakeAtPosition};
 
+use crate::common::wrapped_string::WrappedString;
+
 pub(crate) type ParserResult<T, U> = IResult<T, U, VerboseError<T>>;
 
 pub(crate) fn take1(input: &[u8]) -> ParserResult<&[u8], u8> {
@@ -190,7 +192,7 @@ fn quoted_pair(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     ))(input)
 }
 
-pub(crate) fn quoted_string(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+pub(crate) fn quoted_string(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     map(
         tuple((
             sws,
@@ -198,7 +200,7 @@ pub(crate) fn quoted_string(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
             recognize(many0(alt((qdtext, quoted_pair)))),
             dquote,
         )),
-        |(_, _, value, _)| String::from_utf8_lossy(value),
+        |(_, _, value, _)| WrappedString::new_quoted(String::from_utf8_lossy(value)),
     )(input)
 }
 

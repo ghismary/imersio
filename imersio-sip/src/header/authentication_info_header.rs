@@ -3,7 +3,10 @@ use std::hash::Hash;
 use partial_eq_refs::PartialEqRefs;
 
 use crate::{
-    common::{header_value_collection::HeaderValueCollection, message_qop::MessageQop},
+    common::{
+        header_value_collection::HeaderValueCollection, message_qop::MessageQop,
+        wrapped_string::WrappedString,
+    },
     HeaderAccessor,
 };
 
@@ -131,15 +134,15 @@ pub type AInfos = HeaderValueCollection<AInfo>;
 #[non_exhaustive]
 pub enum AInfo {
     /// A `nextnonce` authentication info.
-    NextNonce(String),
+    NextNonce(WrappedString),
     /// A `qop` authentication info.
     MessageQop(MessageQop),
     /// A `rspauth` authentication info.
-    ResponseAuth(String),
+    ResponseAuth(WrappedString),
     /// A `cnonce` authentication info.
-    CNonce(String),
+    CNonce(WrappedString),
     /// A `nonce` authentication info.
-    NonceCount(String),
+    NonceCount(WrappedString),
 }
 
 impl AInfo {
@@ -157,10 +160,10 @@ impl AInfo {
     /// Get the value of the authentication info.
     pub fn value(&self) -> &str {
         match self {
-            Self::NextNonce(value)
-            | Self::ResponseAuth(value)
-            | Self::CNonce(value)
-            | Self::NonceCount(value) => value,
+            Self::NextNonce(value) | Self::ResponseAuth(value) | Self::CNonce(value) => {
+                value.as_ref()
+            }
+            Self::NonceCount(value) => value,
             Self::MessageQop(value) => value.value(),
         }
     }
@@ -169,11 +172,11 @@ impl AInfo {
 impl std::fmt::Display for AInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (key, value) = match self {
-            Self::NextNonce(value) => ("nextnonce", format!("\"{value}\"")),
-            Self::MessageQop(value) => ("qop", value.value().to_string()),
-            Self::ResponseAuth(value) => ("rspauth", format!("\"{value}\"")),
-            Self::CNonce(value) => ("cnonce", format!("\"{value}\"")),
-            Self::NonceCount(value) => ("nc", value.clone()),
+            Self::NextNonce(value) => ("nextnonce", value.to_string()),
+            Self::MessageQop(value) => ("qop", value.to_string()),
+            Self::ResponseAuth(value) => ("rspauth", value.to_string()),
+            Self::CNonce(value) => ("cnonce", value.to_string()),
+            Self::NonceCount(value) => ("nc", value.to_string()),
         };
         write!(f, "{}={}", key, value)
     }
@@ -184,9 +187,9 @@ impl PartialEq<AInfo> for AInfo {
         match (self, other) {
             (Self::NextNonce(a), Self::NextNonce(b))
             | (Self::ResponseAuth(a), Self::ResponseAuth(b))
-            | (Self::CNonce(a), Self::CNonce(b)) => a == b,
+            | (Self::CNonce(a), Self::CNonce(b))
+            | (Self::NonceCount(a), Self::NonceCount(b)) => a == b,
             (Self::MessageQop(a), Self::MessageQop(b)) => a == b,
-            (Self::NonceCount(a), Self::NonceCount(b)) => a.eq_ignore_ascii_case(b),
             _ => false,
         }
     }
@@ -196,11 +199,11 @@ impl Hash for AInfo {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.key().to_ascii_lowercase().hash(state);
         match self {
-            Self::NextNonce(value) | Self::ResponseAuth(value) | Self::CNonce(value) => {
-                value.hash(state)
-            }
+            Self::NextNonce(value)
+            | Self::ResponseAuth(value)
+            | Self::CNonce(value)
+            | Self::NonceCount(value) => value.hash(state),
             Self::MessageQop(value) => value.value().to_ascii_lowercase().hash(state),
-            Self::NonceCount(value) => value.to_ascii_lowercase().hash(state),
         }
     }
 }
