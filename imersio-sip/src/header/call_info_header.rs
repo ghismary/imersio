@@ -3,7 +3,7 @@ use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 use partial_eq_refs::PartialEqRefs;
 
 use crate::{
-    common::header_value_collection::HeaderValueCollection, uri::AbsoluteUri, GenericParameter,
+    common::header_value_collection::HeaderValueCollection, AbsoluteUri, GenericParameter,
 };
 
 use super::{generic_header::GenericHeader, HeaderAccessor};

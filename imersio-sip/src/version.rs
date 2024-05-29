@@ -16,7 +16,7 @@
 
 use std::str::FromStr;
 
-use crate::error::Error;
+use crate::Error;
 
 /// Represents a version of the SIP specification.
 #[derive(Clone, Copy, Eq, PartialEq)]

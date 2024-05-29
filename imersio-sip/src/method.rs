@@ -22,7 +22,7 @@ use std::{
     str::{self, FromStr},
 };
 
-use crate::error::Error;
+use crate::Error;
 
 /// The Request Method
 ///

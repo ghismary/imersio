@@ -2,9 +2,9 @@ use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
 use partial_eq_refs::PartialEqRefs;
 
-use crate::GenericParameter;
+use crate::{GenericParameter, HeaderAccessor};
 
-use super::{generic_header::GenericHeader, HeaderAccessor};
+use super::generic_header::GenericHeader;
 
 /// Representation of a Content-Disposition header.
 ///

@@ -2,9 +2,9 @@ use std::{cmp::Ordering, collections::HashSet, hash::Hash, ops::Deref};
 
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{common::name_address::NameAddress, GenericParameter};
+use crate::{common::name_address::NameAddress, GenericParameter, HeaderAccessor};
 
-use super::{generic_header::GenericHeader, HeaderAccessor};
+use super::generic_header::GenericHeader;
 
 static EMPTY_CONTACTS: Vec<Contact> = vec![];
 

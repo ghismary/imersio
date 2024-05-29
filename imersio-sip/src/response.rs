@@ -4,7 +4,7 @@
 
 use bytes::Bytes;
 
-use crate::error::Error;
+use crate::Error;
 use crate::Reason;
 use crate::Version;
 

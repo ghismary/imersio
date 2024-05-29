@@ -28,5 +28,7 @@ pub use crate::method::Method;
 pub use crate::reason::{Reason, StatusCode};
 pub use crate::request::Request;
 pub use crate::response::Response;
-pub use crate::uri::Uri;
+pub use crate::uri::{
+    AbsoluteUri, HostPort, SipUri, Uri, UriHeaders, UriParameters, UriScheme, UserInfo,
+};
 pub use crate::version::Version;

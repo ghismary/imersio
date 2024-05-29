@@ -4,8 +4,7 @@ use partial_eq_refs::PartialEqRefs;
 
 use crate::{
     common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
-    uri::AbsoluteUri,
-    HeaderAccessor,
+    AbsoluteUri, HeaderAccessor,
 };
 
 use super::generic_header::GenericHeader;

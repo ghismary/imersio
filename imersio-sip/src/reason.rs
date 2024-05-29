@@ -3,7 +3,7 @@
 use std::borrow::Cow;
 use std::{str, str::FromStr};
 
-use crate::error::Error;
+use crate::Error;
 
 /// A SIP response reason, the combination of the `StatusCode` and the reason
 /// phrase.
