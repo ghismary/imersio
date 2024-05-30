@@ -59,18 +59,6 @@ where
     }
 }
 
-impl<T> IntoIterator for HeaderValueCollection<T>
-where
-    T: Eq + PartialEq + Hash,
-{
-    type Item = T;
-    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
 impl<T> Deref for HeaderValueCollection<T>
 where
     T: Eq + PartialEq + Hash,
