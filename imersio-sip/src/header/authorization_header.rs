@@ -25,7 +25,7 @@ pub struct AuthorizationHeader {
 
 impl AuthorizationHeader {
     pub(crate) fn new(header: GenericHeader, credentials: Credentials) -> Self {
-        AuthorizationHeader {
+        Self {
             header,
             credentials,
         }

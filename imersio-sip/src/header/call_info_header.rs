@@ -23,7 +23,7 @@ pub struct CallInfoHeader {
 
 impl CallInfoHeader {
     pub(crate) fn new(header: GenericHeader, infos: Vec<CallInfo>) -> Self {
-        CallInfoHeader {
+        Self {
             header,
             infos: infos.into(),
         }

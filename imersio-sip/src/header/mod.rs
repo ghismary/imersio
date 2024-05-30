@@ -14,13 +14,14 @@ mod content_disposition_header;
 mod content_encoding_header;
 mod content_language_header;
 mod content_length_header;
+mod content_type_header;
 mod generic_header;
 pub(crate) mod parser;
 
 use std::str::FromStr;
 
 pub use accept_encoding_header::{AcceptEncoding, AcceptEncodingHeader, AcceptEncodings};
-pub use accept_header::{AcceptHeader, AcceptRange, AcceptRanges, MediaRange};
+pub use accept_header::{AcceptHeader, AcceptRange, AcceptRanges};
 pub use accept_language_header::{AcceptLanguageHeader, Language, Languages};
 pub use alert_info_header::{Alert, AlertInfoHeader, Alerts};
 pub use allow_header::{AllowHeader, Methods};
@@ -35,6 +36,7 @@ pub use content_disposition_header::{
 pub use content_encoding_header::{ContentEncodingHeader, ContentEncodings};
 pub use content_language_header::{ContentLanguage, ContentLanguageHeader, ContentLanguages};
 pub use content_length_header::ContentLengthHeader;
+pub use content_type_header::{ContentTypeHeader, MediaParameter, MediaType};
 use generic_header::GenericHeader;
 
 use crate::Error;
@@ -164,6 +166,8 @@ headers! {
     (ContentLanguage, ContentLanguageHeader);
     /// A Content-Length header.
     (ContentLength, ContentLengthHeader);
+    /// A Content-Type header.
+    (ContentType, ContentTypeHeader);
     /// An extension header.
     (ExtensionHeader, GenericHeader);
 }

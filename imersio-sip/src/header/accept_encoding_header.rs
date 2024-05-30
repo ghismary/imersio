@@ -26,7 +26,7 @@ pub struct AcceptEncodingHeader {
 
 impl AcceptEncodingHeader {
     pub(crate) fn new(header: GenericHeader, encodings: Vec<AcceptEncoding>) -> Self {
-        AcceptEncodingHeader {
+        Self {
             header,
             encodings: encodings.into(),
         }

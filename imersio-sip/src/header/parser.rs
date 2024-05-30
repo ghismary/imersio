@@ -12,7 +12,8 @@ use nom::{
 use crate::{
     common::{
         accept_parameter::AcceptParameter, algorithm::Algorithm, content_encoding::ContentEncoding,
-        message_qop::MessageQop, name_address::NameAddress, wrapped_string::WrappedString,
+        media_range::MediaRange, message_qop::MessageQop, name_address::NameAddress,
+        wrapped_string::WrappedString,
     },
     method::parser::method,
     parser::{
@@ -26,7 +27,7 @@ use crate::{
 
 use super::{
     accept_encoding_header::{AcceptEncoding, AcceptEncodingHeader},
-    accept_header::{AcceptHeader, AcceptRange, MediaRange},
+    accept_header::{AcceptHeader, AcceptRange},
     accept_language_header::{AcceptLanguageHeader, Language},
     alert_info_header::{Alert, AlertInfoHeader},
     allow_header::AllowHeader,
@@ -40,7 +41,8 @@ use super::{
     },
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
-    ContentLanguage, ContentLanguageHeader, ContentLengthHeader, Header,
+    ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader, Header,
+    MediaParameter, MediaType,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -976,6 +978,53 @@ fn content_length(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
+fn m_attribute(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    token(input)
+}
+
+fn m_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+    alt((map(token, WrappedString::new_not_wrapped), quoted_string))(input)
+}
+
+fn m_parameter(input: &[u8]) -> ParserResult<&[u8], MediaParameter> {
+    map(
+        separated_pair(m_attribute, equal, m_value),
+        |(key, value)| MediaParameter::new(key, value),
+    )(input)
+}
+
+fn media_type(input: &[u8]) -> ParserResult<&[u8], MediaType> {
+    map(
+        tuple((m_type, slash, m_subtype, many0(preceded(semi, m_parameter)))),
+        |(r#type, _, subtype, parameters)| {
+            MediaType::new(MediaRange::new(r#type, subtype), parameters)
+        },
+    )(input)
+}
+
+fn content_type(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "content_type",
+        map(
+            tuple((
+                map(
+                    alt((tag_no_case("Content-Type"), tag_no_case("c"))),
+                    String::from_utf8_lossy,
+                ),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(media_type),
+            )),
+            |(name, separator, (value, media_type))| {
+                Header::ContentType(ContentTypeHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    media_type,
+                ))
+            },
+        ),
+    )(input)
+}
+
+#[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
 }
@@ -1006,6 +1055,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "content-encoding",
                     "content-language",
                     "content-length",
+                    "content-type",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1036,6 +1086,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             content_encoding,
             content_language,
             content_length,
+            content_type,
             extension_header,
         )),
     )(input)

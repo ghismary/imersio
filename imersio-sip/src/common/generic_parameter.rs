@@ -10,7 +10,7 @@ pub struct GenericParameter {
 }
 
 impl GenericParameter {
-    /// Create a `GenericParam`.
+    /// Create a `GenericParameter`.
     pub fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
         Self {
             key: key.into(),
@@ -18,12 +18,12 @@ impl GenericParameter {
         }
     }
 
-    /// Get the key of the `GenericParam`.
+    /// Get the key of the generic parameter.
     pub fn key(&self) -> &str {
         &self.key
     }
 
-    /// Get the value of the `GenericParam`.
+    /// Get the value of the generic parameter.
     pub fn value(&self) -> Option<&str> {
         self.value.as_deref()
     }
@@ -41,7 +41,7 @@ impl std::fmt::Display for GenericParameter {
     }
 }
 
-impl PartialEq<GenericParameter> for GenericParameter {
+impl PartialEq for GenericParameter {
     fn eq(&self, other: &GenericParameter) -> bool {
         self.key().eq_ignore_ascii_case(other.key())
             && self.value().map(|v| v.to_ascii_lowercase())

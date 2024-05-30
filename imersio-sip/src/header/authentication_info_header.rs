@@ -26,7 +26,7 @@ pub struct AuthenticationInfoHeader {
 
 impl AuthenticationInfoHeader {
     pub(crate) fn new(header: GenericHeader, infos: Vec<AInfo>) -> Self {
-        AuthenticationInfoHeader {
+        Self {
             header,
             infos: infos.into(),
         }

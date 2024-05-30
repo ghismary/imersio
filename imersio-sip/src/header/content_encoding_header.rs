@@ -29,7 +29,7 @@ pub struct ContentEncodingHeader {
 
 impl ContentEncodingHeader {
     pub(crate) fn new(header: GenericHeader, encodings: Vec<ContentEncoding>) -> Self {
-        ContentEncodingHeader {
+        Self {
             header,
             encodings: encodings.into(),
         }

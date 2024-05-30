@@ -26,7 +26,7 @@ pub struct AcceptLanguageHeader {
 
 impl AcceptLanguageHeader {
     pub(crate) fn new(header: GenericHeader, languages: Vec<Language>) -> Self {
-        AcceptLanguageHeader {
+        Self {
             header,
             languages: languages.into(),
         }

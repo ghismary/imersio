@@ -3,7 +3,10 @@ use std::{collections::HashSet, hash::Hash};
 use partial_eq_refs::PartialEqRefs;
 
 use crate::{
-    common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
+    common::{
+        accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection,
+        media_range::MediaRange,
+    },
     HeaderAccessor,
 };
 
@@ -24,7 +27,7 @@ pub struct AcceptHeader {
 
 impl AcceptHeader {
     pub(crate) fn new(header: GenericHeader, ranges: Vec<AcceptRange>) -> Self {
-        AcceptHeader {
+        Self {
             header,
             ranges: ranges.into(),
         }
@@ -79,7 +82,7 @@ impl AcceptRanges {
     }
 }
 
-/// Represenation of a range contained in an `AcceptHeader`.
+/// Representation of a range contained in an `AcceptHeader`.
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct AcceptRange {
     media_range: MediaRange,
@@ -142,34 +145,12 @@ impl Hash for AcceptRange {
     }
 }
 
-/// Representation of a media range contained in an `AcceptRange`.
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq, PartialEqRefs)]
-pub struct MediaRange {
-    r#type: String,
-    subtype: String,
-}
-
-impl MediaRange {
-    pub(crate) fn new<S: Into<String>>(r#type: S, subtype: S) -> Self {
-        MediaRange {
-            r#type: r#type.into(),
-            subtype: subtype.into(),
-        }
-    }
-}
-
-impl std::fmt::Display for MediaRange {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.r#type, self.subtype,)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::AcceptHeader;
     use crate::{
-        header::accept_header::{AcceptParameter, MediaRange},
-        Header, HeaderAccessor,
+        common::media_range::MediaRange, header::accept_header::AcceptParameter, Header,
+        HeaderAccessor,
     };
     use claim::{assert_err, assert_ok};
     use std::str::FromStr;

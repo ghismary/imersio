@@ -16,7 +16,7 @@ pub struct CallIdHeader {
 
 impl CallIdHeader {
     pub(crate) fn new<S: Into<String>>(header: GenericHeader, call_id: S) -> Self {
-        CallIdHeader {
+        Self {
             header,
             call_id: call_id.into(),
         }

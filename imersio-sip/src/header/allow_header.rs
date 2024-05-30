@@ -18,7 +18,7 @@ pub struct AllowHeader {
 
 impl AllowHeader {
     pub(crate) fn new(header: GenericHeader, methods: Vec<Method>) -> Self {
-        AllowHeader {
+        Self {
             header,
             methods: methods.into(),
         }

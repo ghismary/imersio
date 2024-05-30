@@ -24,7 +24,7 @@ pub struct ContactHeader {
 
 impl ContactHeader {
     pub(crate) fn new(header: GenericHeader, contacts: Contacts) -> Self {
-        ContactHeader { header, contacts }
+        Self { header, contacts }
     }
 
     /// Get a reference to the contacts from the Contact header.

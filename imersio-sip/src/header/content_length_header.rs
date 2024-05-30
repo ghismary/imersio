@@ -4,6 +4,13 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 
 /// Representation of a Content-Length header.
 ///
+/// The Content-Length header field indicates the size of the message body,
+/// in decimal number of octets, sent to the recipient. Applications SHOULD
+/// use this field to indicate the size of the message body to be
+/// transferred, regardless of the media type of the entity. If a
+/// stream-based protocol (such as TCP) is used as transport, the header field
+/// MUST be used.
+///
 /// [[RFC3261, Section 20.14](https://datatracker.ietf.org/doc/html/rfc3261#section-20.14)]
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct ContentLengthHeader {
@@ -13,7 +20,7 @@ pub struct ContentLengthHeader {
 
 impl ContentLengthHeader {
     pub(crate) fn new(header: GenericHeader, content_length: u32) -> Self {
-        ContentLengthHeader {
+        Self {
             header,
             content_length,
         }

@@ -26,7 +26,7 @@ pub struct AlertInfoHeader {
 
 impl AlertInfoHeader {
     pub(crate) fn new(header: GenericHeader, alerts: Vec<Alert>) -> Self {
-        AlertInfoHeader {
+        Self {
             header,
             alerts: alerts.into(),
         }

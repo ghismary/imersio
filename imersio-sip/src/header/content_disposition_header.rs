@@ -26,7 +26,7 @@ impl ContentDispositionHeader {
         r#type: DispositionType,
         parameters: Vec<DispositionParameter>,
     ) -> Self {
-        ContentDispositionHeader {
+        Self {
             header,
             r#type,
             parameters,
