@@ -155,19 +155,14 @@ impl Hash for AcceptEncoding {
 #[cfg(test)]
 mod tests {
     use super::AcceptEncodingHeader;
+    use crate::header::tests::{header_equality, header_inequality, valid_header};
     use crate::{Header, HeaderAccessor};
     use claim::{assert_err, assert_ok};
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(AcceptEncodingHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::AcceptEncoding(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
-    }
+    valid_header!(AcceptEncoding, AcceptEncodingHeader, "Accept-Encoding");
+    header_equality!(AcceptEncoding, "Accept-Encoding");
+    header_inequality!(AcceptEncoding, "Accept-Encoding");
 
     #[test]
     fn test_valid_accept_encoding_header_with_single_encoding() {
@@ -251,18 +246,6 @@ mod tests {
         assert_err!(header);
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
-    }
-
     #[test]
     fn test_accept_encoding_header_equality_with_space_characters_differences() {
         header_equality("Accept-Encoding: gzip", "Accept-Encoding:  gzip");
@@ -274,18 +257,6 @@ mod tests {
             "Accept-Encoding: gzip, deflate",
             "Accept-Encoding: deflate, gzip",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::AcceptEncoding(first_header), Header::AcceptEncoding(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Accept-Encoding header");
-        }
     }
 
     #[test]

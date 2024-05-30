@@ -155,19 +155,14 @@ impl Hash for Language {
 #[cfg(test)]
 mod tests {
     use super::AcceptLanguageHeader;
+    use crate::header::tests::{header_equality, header_inequality, valid_header};
     use crate::{Header, HeaderAccessor};
     use claim::{assert_err, assert_ok};
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(AcceptLanguageHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::AcceptLanguage(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not an Accept-Language header");
-        }
-    }
+    valid_header!(AcceptLanguage, AcceptLanguageHeader, "Accept-Language");
+    header_equality!(AcceptLanguage, "Accept-Language");
+    header_inequality!(AcceptLanguage, "Accept-Language");
 
     #[test]
     fn test_valid_accept_language_header_with_single_language() {
@@ -264,18 +259,6 @@ mod tests {
         assert_err!(header);
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::AcceptLanguage(first_header), Header::AcceptLanguage(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Accept-Language header");
-        }
-    }
-
     #[test]
     fn test_accept_language_header_equality_same_headers_with_space_characters_differences() {
         header_equality("Accept-Language: fr", "Accept-Language:  fr");
@@ -289,18 +272,6 @@ mod tests {
     #[test]
     fn test_accept_language_header_equality_same_languages_with_different_cases() {
         header_equality("Accept-Language: fr, en", "accept-language: EN, FR");
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::AcceptLanguage(first_header), Header::AcceptLanguage(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Accept-Language header");
-        }
     }
 
     #[test]

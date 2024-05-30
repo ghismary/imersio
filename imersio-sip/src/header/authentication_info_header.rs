@@ -211,19 +211,21 @@ impl Hash for AInfo {
 #[cfg(test)]
 mod tests {
     use super::AuthenticationInfoHeader;
-    use crate::{common::message_qop::MessageQop, Header, HeaderAccessor};
-    use claim::{assert_err, assert_ok};
+    use crate::{
+        common::message_qop::MessageQop,
+        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
+        Header, HeaderAccessor,
+    };
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(AuthenticationInfoHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::AuthenticationInfo(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not an Authentication-Info header");
-        }
-    }
+    valid_header!(
+        AuthenticationInfo,
+        AuthenticationInfoHeader,
+        "Authentication-Info"
+    );
+    header_equality!(AuthenticationInfo, "Authentication-Info");
+    header_inequality!(AuthenticationInfo, "Authentication-Info");
 
     #[test]
     fn test_valid_authentication_info_header_with_nextnonce() {
@@ -254,10 +256,6 @@ mod tests {
         });
     }
 
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
-    }
-
     #[test]
     fn test_invalid_authentication_info_header_empty() {
         invalid_header("Authentication-Info:");
@@ -266,20 +264,6 @@ mod tests {
     #[test]
     fn test_invalid_authentication_info_header_empty_with_space_characters() {
         invalid_header("Authentication-Info:         ");
-    }
-
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (
-            Header::AuthenticationInfo(first_header),
-            Header::AuthenticationInfo(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Authentication-Info header");
-        }
     }
 
     #[test]
@@ -296,20 +280,6 @@ mod tests {
             "Authentication-Info: qop=auth",
             "Authentication-Info:   qop=auth",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (
-            Header::AuthenticationInfo(first_header),
-            Header::AuthenticationInfo(second_header),
-        ) = (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Authentication-Info header");
-        }
     }
 
     #[test]

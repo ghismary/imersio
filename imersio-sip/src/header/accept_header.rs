@@ -149,21 +149,19 @@ impl Hash for AcceptRange {
 mod tests {
     use super::AcceptHeader;
     use crate::{
-        common::media_range::MediaRange, header::accept_header::AcceptParameter, Header,
-        HeaderAccessor,
+        common::media_range::MediaRange,
+        header::{
+            accept_header::AcceptParameter,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
+        Header, HeaderAccessor,
     };
-    use claim::{assert_err, assert_ok};
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(AcceptHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::Accept(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not an Accept header");
-        }
-    }
+    valid_header!(Accept, AcceptHeader, "Accept");
+    header_equality!(Accept, "Accept");
+    header_inequality!(Accept, "Accept");
 
     #[test]
     fn test_valid_accept_header_with_single_range() {
@@ -252,10 +250,6 @@ mod tests {
         });
     }
 
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
-    }
-
     #[test]
     fn test_invalid_accept_header_only_range_type() {
         invalid_header("Accept: application");
@@ -271,18 +265,6 @@ mod tests {
         invalid_header("Accept: 😁/😁");
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Accept(first_header), Header::Accept(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Accept header");
-        }
-    }
-
     #[test]
     fn test_accept_header_equality_same_headers_with_just_space_characters_differences() {
         header_equality("Accept: text/html", "Accept:  text/html");
@@ -294,18 +276,6 @@ mod tests {
             "Accept: text/html, application/sdp",
             "Accept: application/sdp, text/html",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Accept(first_header), Header::Accept(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Accept header");
-        }
     }
 
     #[test]

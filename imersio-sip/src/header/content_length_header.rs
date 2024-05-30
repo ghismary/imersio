@@ -61,19 +61,19 @@ impl PartialEq<ContentLengthHeader> for ContentLengthHeader {
 #[cfg(test)]
 mod tests {
     use super::ContentLengthHeader;
-    use crate::{header::HeaderAccessor, Header};
-    use claim::{assert_err, assert_ok};
+    use crate::{
+        header::{
+            tests::header_equality, tests::header_inequality, tests::invalid_header,
+            tests::valid_header, HeaderAccessor,
+        },
+        Header,
+    };
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(ContentLengthHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::ContentLength(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not a Content-Length header");
-        }
-    }
+    valid_header!(ContentLength, ContentLengthHeader, "Content-Length");
+    header_equality!(ContentLength, "Content-Length");
+    header_inequality!(ContentLength, "Content-Length");
 
     #[test]
     fn test_valid_content_length_header() {
@@ -87,10 +87,6 @@ mod tests {
         valid_header("l: 173", |header| {
             assert_eq!(header.content_length(), 173);
         });
-    }
-
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
     }
 
     #[test]
@@ -113,18 +109,6 @@ mod tests {
         invalid_header("Content-Length: mysize");
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::ContentLength(first_header), Header::ContentLength(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Length header");
-        }
-    }
-
     #[test]
     fn test_content_length_header_equality_same_header_with_space_characters_differences() {
         header_equality("Content-Length: 349", "Content-Length:     349");
@@ -137,15 +121,7 @@ mod tests {
 
     #[test]
     fn test_content_length_header_inequality() {
-        let first_header = Header::from_str("Content-Length: 349");
-        let second_header = Header::from_str("Content-Length: 173");
-        if let (Header::ContentLength(first_header), Header::ContentLength(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Length header");
-        }
+        header_inequality("Content-Length: 349", "Content-Length: 173");
     }
 
     #[test]

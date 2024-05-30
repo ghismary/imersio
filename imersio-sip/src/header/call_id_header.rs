@@ -57,19 +57,19 @@ impl PartialEq<CallIdHeader> for CallIdHeader {
 #[cfg(test)]
 mod tests {
     use super::CallIdHeader;
-    use crate::{header::HeaderAccessor, Header};
-    use claim::{assert_err, assert_ok};
+    use crate::{
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        Header,
+    };
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(CallIdHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::CallId(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not a Call-ID header");
-        }
-    }
+    valid_header!(CallId, CallIdHeader, "Call-ID");
+    header_equality!(CallId, "Call-ID");
+    header_inequality!(CallId, "Call-ID");
 
     #[test]
     fn test_valid_call_id_header_with_arobase_character() {
@@ -91,10 +91,6 @@ mod tests {
         });
     }
 
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
-    }
-
     #[test]
     fn test_invalid_call_id_header_empty() {
         invalid_header("Call-ID:");
@@ -112,27 +108,7 @@ mod tests {
 
     #[test]
     fn test_call_id_header_equality_same_header_with_space_characters_differences() {
-        let first_header = Header::from_str("Call-ID: a84b4c76e66710");
-        let second_header = Header::from_str("Call-ID:  a84b4c76e66710");
-        if let (Header::CallId(first_header), Header::CallId(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Call-ID header");
-        }
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::CallId(first_header), Header::CallId(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Call-ID header");
-        }
+        header_equality("Call-ID: a84b4c76e66710", "Call-ID:  a84b4c76e66710");
     }
 
     #[test]

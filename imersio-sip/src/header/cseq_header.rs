@@ -70,19 +70,19 @@ impl PartialEq<CSeqHeader> for CSeqHeader {
 #[cfg(test)]
 mod tests {
     use super::CSeqHeader;
-    use crate::{header::HeaderAccessor, Header};
-    use claim::{assert_err, assert_ok};
+    use crate::{
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        Header,
+    };
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(CSeqHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::CSeq(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not a CSeq header");
-        }
-    }
+    valid_header!(CSeq, CSeqHeader, "CSeq");
+    header_equality!(CSeq, "CSeq");
+    header_inequality!(CSeq, "CSeq");
 
     #[test]
     fn test_valid_cseq_header_1() {
@@ -98,10 +98,6 @@ mod tests {
             assert_eq!(header.cseq(), 89_378);
             assert_eq!(header.method(), "ACK");
         });
-    }
-
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
     }
 
     #[test]
@@ -129,33 +125,9 @@ mod tests {
         invalid_header("CSeq: INVITE");
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::CSeq(first_header), Header::CSeq(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a CSeq header");
-        }
-    }
-
     #[test]
     fn test_cseq_header_equality_same_header_with_space_characters_differences() {
         header_equality("CSeq: 4711 INVITE", "CSeq  :     4711   INVITE");
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::CSeq(first_header), Header::CSeq(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a CSeq header");
-        }
     }
 
     #[test]

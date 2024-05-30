@@ -143,29 +143,32 @@ impl Hash for Alert {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Header, HeaderAccessor, Uri};
-    use claim::{assert_err, assert_ok};
+    use super::AlertInfoHeader;
+    use crate::{
+        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
+        Header, HeaderAccessor, Uri,
+    };
+    use claim::assert_ok;
     use std::str::FromStr;
+
+    valid_header!(AlertInfo, AlertInfoHeader, "Alert-Info");
+    header_equality!(AlertInfo, "Alert-Info");
+    header_inequality!(AlertInfo, "Alert-Info");
 
     #[test]
     fn test_valid_alert_info_header() {
-        let header = Header::from_str("Alert-Info: <http://www.example.com/sounds/moo.wav>");
-        assert_ok!(&header);
-        if let Header::AlertInfo(header) = header.unwrap() {
-            assert_eq!(header.alerts().len(), 1);
-            assert!(header.alerts().contains(
-                Uri::from_str("http://www.example.com/sounds/moo.wav")
-                    .unwrap()
-                    .as_absolute_uri()
-                    .unwrap()
-            ));
-        } else {
-            panic!("Not an Alert-Info header");
-        }
-    }
-
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
+        valid_header(
+            "Alert-Info: <http://www.example.com/sounds/moo.wav>",
+            |header| {
+                assert_eq!(header.alerts().len(), 1);
+                assert!(header.alerts().contains(
+                    Uri::from_str("http://www.example.com/sounds/moo.wav")
+                        .unwrap()
+                        .as_absolute_uri()
+                        .unwrap()
+                ));
+            },
+        );
     }
 
     #[test]
@@ -183,18 +186,6 @@ mod tests {
         invalid_header("Alert-Info: http://www.example.com/sounds/moo.wav");
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::AlertInfo(first_header), Header::AlertInfo(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Alert-Info header");
-        }
-    }
-
     #[test]
     fn test_alert_info_header_equality_with_space_characters_differences() {
         header_equality(
@@ -209,18 +200,6 @@ mod tests {
             "Alert-Info: <http://www.example.com/sounds/moo.wav>;myparam=test",
             "Alert-Info: <http://www.example.com/sounds/moo.wav> ;MyParam=TEST",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::AlertInfo(first_header), Header::AlertInfo(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Alert-Info header");
-        }
     }
 
     #[test]

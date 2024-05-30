@@ -412,21 +412,18 @@ mod tests {
     use super::AuthorizationHeader;
     use crate::{
         common::{algorithm::Algorithm, message_qop::MessageQop},
-        header::authorization_header::AuthParameter,
+        header::{
+            authorization_header::AuthParameter,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
         Header, HeaderAccessor, Uri,
     };
-    use claim::{assert_err, assert_ok};
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(AuthorizationHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::Authorization(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not an Authorization header");
-        }
-    }
+    valid_header!(Authorization, AuthorizationHeader, "Authorization");
+    header_equality!(Authorization, "Authorization");
+    header_inequality!(Authorization, "Authorization");
 
     #[test]
     fn test_valid_authorization_header_1() {
@@ -535,10 +532,6 @@ mod tests {
         });
     }
 
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
-    }
-
     #[test]
     fn test_invalid_authorization_header_empty() {
         invalid_header("Authorization:");
@@ -562,18 +555,6 @@ mod tests {
     #[test]
     fn test_invalid_authorization_header_with_missing_digest_scheme() {
         invalid_header("Authorization: qop=auth");
-    }
-
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Authorization(first_header), Header::Authorization(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Authorization header");
-        }
     }
 
     #[test]
@@ -606,18 +587,6 @@ mod tests {
             "Authorization: CustomScheme algorithm=MD5-Sess",
             "authorization: customscheme  Algorithm=Md5-sess",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Authorization(first_header), Header::Authorization(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Authorization header");
-        }
     }
 
     #[test]
@@ -663,25 +632,24 @@ mod tests {
         }
     }
 
-    // TODO: Handle quoted string in a proper way.
-    // #[test]
-    // fn test_authorization_header_to_string_with_extension_parameter() {
-    //     let header = Header::from_str(
-    //         r#"authorization:  diGest username ="Alice" ,   nextnonce= "47364c23432d2e131a5fb210812c""#,
-    //     );
-    //     if let Header::Authorization(header) = header.unwrap() {
-    //         assert_eq!(
-    //             header.to_string(),
-    //             r#"authorization:  diGest username ="Alice" ,   nextnonce= "47364c23432d2e131a5fb210812c""#
-    //         );
-    //         assert_eq!(
-    //             header.to_normalized_string(),
-    //             r#"Authorization: Digest username="Alice", nextnonce="47364c23432d2e131a5fb210812c""#
-    //         );
-    //         assert_eq!(
-    //             header.to_compact_string(),
-    //             r#"Authorization: Digest username="Alice", nextnonce="47364c23432d2e131a5fb210812c""#
-    //         );
-    //     }
-    // }
+    #[test]
+    fn test_authorization_header_to_string_with_extension_parameter() {
+        let header = Header::from_str(
+            r#"authorization:  diGest username ="Alice" ,   nextnonce= "47364c23432d2e131a5fb210812c""#,
+        );
+        if let Header::Authorization(header) = header.unwrap() {
+            assert_eq!(
+                header.to_string(),
+                r#"authorization:  diGest username ="Alice" ,   nextnonce= "47364c23432d2e131a5fb210812c""#
+            );
+            assert_eq!(
+                header.to_normalized_string(),
+                r#"Authorization: Digest username="Alice", nextnonce="47364c23432d2e131a5fb210812c""#
+            );
+            assert_eq!(
+                header.to_compact_string(),
+                r#"Authorization: Digest username="Alice", nextnonce="47364c23432d2e131a5fb210812c""#
+            );
+        }
+    }
 }

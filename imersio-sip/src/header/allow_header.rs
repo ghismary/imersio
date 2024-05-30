@@ -69,19 +69,14 @@ pub type Methods = HeaderValueCollection<Method>;
 #[cfg(test)]
 mod tests {
     use super::AllowHeader;
+    use crate::header::tests::{header_equality, header_inequality, valid_header};
     use crate::{Header, HeaderAccessor, Method};
     use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(AllowHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::Allow(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not an Allow header");
-        }
-    }
+    valid_header!(Allow, AllowHeader, "Allow");
+    header_equality!(Allow, "Allow");
+    header_inequality!(Allow, "Allow");
 
     #[test]
     fn test_valid_allow_header_with_methods() {
@@ -117,18 +112,6 @@ mod tests {
         });
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Allow(first_header), Header::Allow(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Allow header");
-        }
-    }
-
     #[test]
     fn test_allow_header_equality_same_headers_with_space_characters_differences() {
         header_equality(
@@ -143,18 +126,6 @@ mod tests {
             "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE",
             "Allow: INVITE, BYE, CANCEL, OPTIONS, ACK",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Allow(first_header), Header::Allow(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not an Allow header");
-        }
     }
 
     #[test]

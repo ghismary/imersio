@@ -302,21 +302,19 @@ impl From<GenericParameter> for ContactParameter {
 mod tests {
     use super::ContactHeader;
     use crate::{
-        header::{contact_header::Contacts, HeaderAccessor},
+        header::{
+            contact_header::Contacts,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
         Header, Uri,
     };
-    use claim::{assert_err, assert_ok};
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(ContactHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::Contact(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not a Contact header");
-        }
-    }
+    valid_header!(Contact, ContactHeader, "Contact");
+    header_equality!(Contact, "Contact");
+    header_inequality!(Contact, "Contact");
 
     #[test]
     fn test_valid_contact_header() {
@@ -362,10 +360,6 @@ mod tests {
         });
     }
 
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
-    }
-
     #[test]
     fn test_invalid_contact_header_empty() {
         invalid_header("Contact:");
@@ -379,18 +373,6 @@ mod tests {
     #[test]
     fn test_invalid_contact_header_with_invalid_character() {
         invalid_header("Contact: 😁");
-    }
-
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
     }
 
     #[test]
@@ -428,18 +410,6 @@ mod tests {
             "Contact: <sip:alice@atlanta.com>;expires=3600",
             "CONTACT: <sip:alice@atlanta.com>;ExPiReS=3600",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::Contact(first_header), Header::Contact(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Contact header");
-        }
     }
 
     #[test]

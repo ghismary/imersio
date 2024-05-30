@@ -131,19 +131,16 @@ impl Hash for ContentLanguage {
 #[cfg(test)]
 mod tests {
     use super::ContentLanguageHeader;
-    use crate::{Header, HeaderAccessor};
-    use claim::{assert_err, assert_ok};
+    use crate::{
+        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
+        Header, HeaderAccessor,
+    };
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(ContentLanguageHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::ContentLanguage(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not a Content-Language header");
-        }
-    }
+    valid_header!(ContentLanguage, ContentLanguageHeader, "Content-Language");
+    header_equality!(ContentLanguage, "Content-Language");
+    header_inequality!(ContentLanguage, "Content-Language");
 
     #[test]
     fn test_valid_content_language_header() {
@@ -168,10 +165,6 @@ mod tests {
         });
     }
 
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
-    }
-
     #[test]
     fn test_invalid_content_language_header_empty() {
         invalid_header("Content-Language:");
@@ -187,18 +180,6 @@ mod tests {
         invalid_header("Content-Language: 😁");
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::ContentLanguage(first_header), Header::ContentLanguage(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Language header");
-        }
-    }
-
     #[test]
     fn test_content_language_header_equality_same_header_with_space_characters_differences() {
         header_equality("Content-Language: fr", "Content-Language:  fr");
@@ -212,18 +193,6 @@ mod tests {
     #[test]
     fn test_content_language_header_equality_same_languages_with_different_cases() {
         header_equality("Content-Language: fr", "content-language: FR");
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::ContentLanguage(first_header), Header::ContentLanguage(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Language header");
-        }
     }
 
     #[test]

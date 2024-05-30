@@ -19,6 +19,9 @@ mod cseq_header;
 mod generic_header;
 pub(crate) mod parser;
 
+#[cfg(test)]
+mod tests;
+
 use std::str::FromStr;
 
 pub use accept_encoding_header::{AcceptEncoding, AcceptEncodingHeader, AcceptEncodings};

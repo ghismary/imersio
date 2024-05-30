@@ -195,21 +195,18 @@ mod tests {
     use super::ContentTypeHeader;
     use crate::{
         common::{media_range::MediaRange, wrapped_string::WrappedString},
-        header::MediaParameter,
+        header::{
+            tests::header_equality, tests::header_inequality, tests::invalid_header,
+            tests::valid_header, MediaParameter,
+        },
         Header, HeaderAccessor,
     };
-    use claim::{assert_err, assert_ok};
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(ContentTypeHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::ContentType(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not a Content-Type header");
-        }
-    }
+    valid_header!(ContentType, ContentTypeHeader, "Content-Type");
+    header_equality!(ContentType, "Content-Type");
+    header_inequality!(ContentType, "Content-Type");
 
     #[test]
     fn test_valid_content_type_header_without_parameters() {
@@ -232,10 +229,6 @@ mod tests {
                 MediaParameter::new("charset", WrappedString::new_not_wrapped("ISO-8859-4"))
             );
         });
-    }
-
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
     }
 
     #[test]
@@ -263,18 +256,6 @@ mod tests {
         invalid_header("Content-Type: 😁/😁");
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::ContentType(first_header), Header::ContentType(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Type header");
-        }
-    }
-
     #[test]
     fn test_content_type_header_equality_same_headers_with_just_space_characters_differences() {
         header_equality("Content-Type: text/html", "Content-Type:  text/html");
@@ -283,18 +264,6 @@ mod tests {
     #[test]
     fn test_content_type_header_equality_same_headers_one_normal_form_the_other_in_compact_form() {
         header_equality("Content-Type: application/sdp", "c: application/sdp");
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::ContentType(first_header), Header::ContentType(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Content-Type header");
-        }
     }
 
     #[test]

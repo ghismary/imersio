@@ -256,21 +256,19 @@ impl From<GenericParameter> for CallInfoParameter {
 mod tests {
     use super::CallInfoHeader;
     use crate::{
-        header::{call_info_header::CallInfoParameter, HeaderAccessor},
+        header::{
+            call_info_header::CallInfoParameter,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
         GenericParameter, Header, Uri,
     };
-    use claim::{assert_err, assert_ok};
+    use claim::assert_ok;
     use std::str::FromStr;
 
-    fn valid_header<F: FnOnce(CallInfoHeader)>(header: &str, f: F) {
-        let header = Header::from_str(header);
-        assert_ok!(&header);
-        if let Header::CallInfo(header) = header.unwrap() {
-            f(header);
-        } else {
-            panic!("Not a Call-Info header");
-        }
-    }
+    valid_header!(CallInfo, CallInfoHeader, "Call-Info");
+    header_equality!(CallInfo, "Call-Info");
+    header_inequality!(CallInfo, "Call-Info");
 
     #[test]
     fn test_valid_call_info_header_with_icon_and_info() {
@@ -384,10 +382,6 @@ mod tests {
         );
     }
 
-    fn invalid_header(header: &str) {
-        assert_err!(Header::from_str(header));
-    }
-
     #[test]
     fn test_invalid_call_info_header_empty() {
         invalid_header("Call-Info:");
@@ -408,18 +402,6 @@ mod tests {
         invalid_header("Call-Info: http://wwww.example.com/alice/photo.jpg");
     }
 
-    fn header_equality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_eq!(first_header, second_header);
-        } else {
-            panic!("Not an Authorization header");
-        }
-    }
-
     #[test]
     fn test_call_info_header_equality_same_header_with_space_characters_differences() {
         header_equality("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/>;purpose=info", "Call-Info: <http://wwww.example.com/alice/photo.jpg>; purpose=icon, <http://www.example.com/alice/> ;purpose=info");
@@ -436,18 +418,6 @@ mod tests {
             "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon",
             "call-info: <http://wwww.example.com/alice/photo.jpg> ;puRpoSe=Icon",
         );
-    }
-
-    fn header_inequality(first_header: &str, second_header: &str) {
-        let first_header = Header::from_str(first_header);
-        let second_header = Header::from_str(second_header);
-        if let (Header::CallInfo(first_header), Header::CallInfo(second_header)) =
-            (first_header.unwrap(), second_header.unwrap())
-        {
-            assert_ne!(first_header, second_header);
-        } else {
-            panic!("Not a Call-Info header");
-        }
     }
 
     #[test]
