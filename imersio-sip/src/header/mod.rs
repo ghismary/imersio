@@ -13,6 +13,7 @@ mod contact_header;
 mod content_disposition_header;
 mod content_encoding_header;
 mod content_language_header;
+mod content_length_header;
 mod generic_header;
 pub(crate) mod parser;
 
@@ -33,6 +34,7 @@ pub use content_disposition_header::{
 };
 pub use content_encoding_header::{ContentEncodingHeader, ContentEncodings};
 pub use content_language_header::{ContentLanguage, ContentLanguageHeader, ContentLanguages};
+pub use content_length_header::ContentLengthHeader;
 use generic_header::GenericHeader;
 
 use crate::Error;
@@ -160,6 +162,8 @@ headers! {
     (ContentEncoding, ContentEncodingHeader);
     /// A Content-Language header.
     (ContentLanguage, ContentLanguageHeader);
+    /// A Content-Length header.
+    (ContentLength, ContentLengthHeader);
     /// An extension header.
     (ExtensionHeader, GenericHeader);
 }

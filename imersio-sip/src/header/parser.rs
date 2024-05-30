@@ -40,7 +40,7 @@ use super::{
     },
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
-    ContentLanguage, ContentLanguageHeader, Header,
+    ContentLanguage, ContentLanguageHeader, ContentLengthHeader, Header,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -951,6 +951,30 @@ fn content_language(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn content_length(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "content_length",
+        map(
+            tuple((
+                map(
+                    alt((tag_no_case("Content-Length"), tag_no_case("l"))),
+                    String::from_utf8_lossy,
+                ),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(map(recognize(many1(digit)), |l| {
+                    String::from_utf8_lossy(l).parse::<u32>().unwrap()
+                })),
+            )),
+            |(name, separator, (value, content_length))| {
+                Header::ContentLength(ContentLengthHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    content_length,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -981,6 +1005,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "content-disposition",
                     "content-encoding",
                     "content-language",
+                    "content-length",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1010,6 +1035,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             content_disposition,
             content_encoding,
             content_language,
+            content_length,
             extension_header,
         )),
     )(input)
