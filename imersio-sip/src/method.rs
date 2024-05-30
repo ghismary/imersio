@@ -127,7 +127,7 @@ macro_rules! methods {
     (
         $(
             $(#[$docs:meta])*
-            ($konst:ident, $word:expr);
+            ($konst:ident, $word:expr),
         )+
     ) => {
         impl Method {
@@ -141,17 +141,17 @@ macro_rules! methods {
 
 methods! {
     /// ACK method
-    (ACK, "ACK");
+    (ACK, "ACK"),
     /// BYE method
-    (BYE, "BYE");
+    (BYE, "BYE"),
     /// CANCEL method
-    (CANCEL, "CANCEL");
+    (CANCEL, "CANCEL"),
     /// INVITE method
-    (INVITE, "INVITE");
+    (INVITE, "INVITE"),
     /// OPTIONS method
-    (OPTIONS, "OPTIONS");
+    (OPTIONS, "OPTIONS"),
     /// REGISTER method
-    (REGISTER, "REGISTER");
+    (REGISTER, "REGISTER"),
 }
 
 fn parse(input: &[u8]) -> Result<Method, Error> {

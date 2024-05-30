@@ -88,7 +88,7 @@ impl PartialEq for AuthenticationInfoHeader {
 macro_rules! authentication_info_header {
     (
         $(
-            ($token:ident, $has_token:ident, $enum_name:ident);
+            ($token:ident, $has_token:ident, $enum_name:ident),
         )+
     ) => {
         impl AuthenticationInfoHeader {
@@ -117,10 +117,10 @@ macro_rules! authentication_info_header {
 }
 
 authentication_info_header! {
-    (next_nonce, has_next_nonce, NextNonce);
-    (response_auth, has_response_auth, ResponseAuth);
-    (cnonce, has_cnonce, CNonce);
-    (nonce_count, has_nonce_count, NonceCount);
+    (next_nonce, has_next_nonce, NextNonce),
+    (response_auth, has_response_auth, ResponseAuth),
+    (cnonce, has_cnonce, CNonce),
+    (nonce_count, has_nonce_count, NonceCount),
 }
 
 /// Representation of the list of authentication infos from an

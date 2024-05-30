@@ -221,7 +221,7 @@ impl PartialEq for Credentials {
 macro_rules! credentials {
     (
         $(
-            ($token:ident, $has_token:ident, $enum_name:ident);
+            ($token:ident, $has_token:ident, $enum_name:ident),
         )+
     ) => {
         impl Credentials {
@@ -256,13 +256,13 @@ macro_rules! credentials {
 }
 
 credentials! {
-    (username, has_username, Username);
-    (realm, has_realm, Realm);
-    (nonce, has_nonce, Nonce);
-    (dresponse, has_dresponse, DResponse);
-    (cnonce, has_cnonce, CNonce);
-    (opaque, has_opaque, Opaque);
-    (nonce_count, has_nonce_count, NonceCount);
+    (username, has_username, Username),
+    (realm, has_realm, Realm),
+    (nonce, has_nonce, Nonce),
+    (dresponse, has_dresponse, DResponse),
+    (cnonce, has_cnonce, CNonce),
+    (opaque, has_opaque, Opaque),
+    (nonce_count, has_nonce_count, NonceCount),
 }
 
 /// Representation of a list of authentication parameters from an

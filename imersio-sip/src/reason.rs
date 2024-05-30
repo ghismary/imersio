@@ -478,7 +478,7 @@ macro_rules! reasons {
     (
         $(
             $(#[$docs:meta])*
-            ($code:expr, $konst:ident, $phrase:expr);
+            ($code:expr, $konst:ident, $phrase:expr),
         )+
     ) => {
         impl StatusCode {
@@ -500,159 +500,159 @@ macro_rules! reasons {
 reasons! {
     /// 100 Trying
     /// [[RFC3261, Section 21.1.1](https://datatracker.ietf.org/doc/html/rfc3261#section-21.1.1)]
-    (100, TRYING, "Trying");
+    (100, TRYING, "Trying"),
     /// 180 Ringing
     /// [[RFC3261, Section 21.1.2](https://datatracker.ietf.org/doc/html/rfc3261#section-21.1.2)]
-    (180, RINGING, "Ringing");
+    (180, RINGING, "Ringing"),
     /// 181 Call Is Being Forwarded
     /// [[RFC3261, Section 21.1.3](https://datatracker.ietf.org/doc/html/rfc3261#section-21.1.3)]
-    (181, CALL_IS_BEING_FORWARDED, "Call Is Being Forwarded");
+    (181, CALL_IS_BEING_FORWARDED, "Call Is Being Forwarded"),
     /// 182 Queued
     /// [[RFC3261, Section 21.1.4](https://datatracker.ietf.org/doc/html/rfc3261#section-21.1.4)]
-    (182, QUEUED, "Queued");
+    (182, QUEUED, "Queued"),
     /// 183 Session Progress
     /// [[RFC3261, Section 21.1.5](https://datatracker.ietf.org/doc/html/rfc3261#section-21.1.5)]
-    (183, SESSION_PROGRESS, "Session Progress");
+    (183, SESSION_PROGRESS, "Session Progress"),
 
     /// 200 OK
     /// [[RFC3261, Section 21.2.1](https://datatracker.ietf.org/doc/html/rfc3261#section-21.2.1)]
-    (200, OK, "OK");
+    (200, OK, "OK"),
 
     /// 300 Multiple Choices
     /// [[RFC3261, Section 21.3.1](https://datatracker.ietf.org/doc/html/rfc3261#section-21.3.1)]
-    (300, MULTIPLE_CHOICES, "Multiple Choices");
+    (300, MULTIPLE_CHOICES, "Multiple Choices"),
     /// 301 Moved Permanently
     /// [[RFC3261, Section 21.3.2](https://datatracker.ietf.org/doc/html/rfc3261#section-21.3.2)]
-    (301, MOVED_PERMANENTLY, "Moved Permanently");
+    (301, MOVED_PERMANENTLY, "Moved Permanently"),
     /// 302 Moved Temporarily
     /// [[RFC3261, Section 21.3.3](https://datatracker.ietf.org/doc/html/rfc3261#section-21.3.3)]
-    (302, MOVED_TEMPORARILY, "Moved Temporarily");
+    (302, MOVED_TEMPORARILY, "Moved Temporarily"),
     /// 305 Use Proxy
     /// [[RFC3261, Section 21.3.4](https://datatracker.ietf.org/doc/html/rfc3261#section-21.3.4)]
-    (305, USE_PROXY, "Use Proxy");
+    (305, USE_PROXY, "Use Proxy"),
     /// 380 Alternative Service
     /// [[RFC3261, Section 21.3.5](https://datatracker.ietf.org/doc/html/rfc3261#section-21.3.5)]
-    (380, ALTERNATE_SERVICE, "Alternative Service");
+    (380, ALTERNATE_SERVICE, "Alternative Service"),
 
     /// 400 Bad Request
     /// [[RFC3261, Section 21.4.1](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.1)]
-    (400, BAD_REQUEST, "Bad Request");
+    (400, BAD_REQUEST, "Bad Request"),
     /// 401 Unauthorized
     /// [[RFC3261, Section 21.4.2](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.2)]
-    (401, UNAUTHORIZED, "Unauthorized");
+    (401, UNAUTHORIZED, "Unauthorized"),
     /// 402 Payment Required
     /// [[RFC3261, Section 21.4.3](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.3)]
-    (402, PAYMENT_REQUIRED, "Payment Required");
+    (402, PAYMENT_REQUIRED, "Payment Required"),
     /// 403 Forbidden
     /// [[RFC3261, Section 21.4.4](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.4)]
-    (403, FORBIDDEN, "Forbidden");
+    (403, FORBIDDEN, "Forbidden"),
     /// 404 Not Found
     /// [[RFC3261, Section 21.4.5](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.5)]
-    (404, NOT_FOUND, "Not Found");
+    (404, NOT_FOUND, "Not Found"),
     /// 405 Method Not Allowed
     /// [[RFC3261, Section 21.4.6](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.6)]
-    (405, METHOD_NOT_ALLOWED, "Method Not Allowed");
+    (405, METHOD_NOT_ALLOWED, "Method Not Allowed"),
     /// 406 Not Acceptable
     /// [[RFC3261, Section 21.4.7](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.7)]
-    (406, NOT_ACCEPTABLE, "Not Acceptable");
+    (406, NOT_ACCEPTABLE, "Not Acceptable"),
     /// 407 Proxy Authentication Required
     /// [[RFC3261, Section 21.4.8](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.8)]
-    (407, PROXY_AUTHENTICATION_REQUIRED, "Proxy Authentication Required");
+    (407, PROXY_AUTHENTICATION_REQUIRED, "Proxy Authentication Required"),
     /// 408 Request Timeout
     /// [[RFC3261, Section 21.4.9](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.9)]
-    (408, REQUEST_TIMEOUT, "Request Timeout");
+    (408, REQUEST_TIMEOUT, "Request Timeout"),
     /// 410 Gone
     /// [[RFC3261, Section 21.4.10](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.10)]
-    (410, GONE, "Gone");
+    (410, GONE, "Gone"),
     /// 413 Request Entity Too Large
     /// [[RFC3261, Section 21.4.11](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.11)]
-    (413, REQUEST_ENTITY_TOO_LARGE, "Request Entity Too Large");
+    (413, REQUEST_ENTITY_TOO_LARGE, "Request Entity Too Large"),
     /// 414 Request-URI Too Long
     /// [[RFC3261, Section 21.4.12](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.12)]
-    (414, REQUEST_URI_TOO_LONG, "Request-URI Too Long");
+    (414, REQUEST_URI_TOO_LONG, "Request-URI Too Long"),
     /// 415 Unsupported Media Type
     /// [[RFC3261, Section 21.4.13](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.13)]
-    (415, UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type");
+    (415, UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type"),
     /// 416 Unsupported URI Scheme
     /// [[RFC3261, Section 21.4.14](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.14)]
-    (416, UNSUPPORTED_URI_SCHEME, "Unsupported URI Scheme");
+    (416, UNSUPPORTED_URI_SCHEME, "Unsupported URI Scheme"),
     /// 420 Bad Extension
     /// [[RFC3261, Section 21.4.15](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.15)]
-    (420, BAD_EXTENSION, "Bad Extension");
+    (420, BAD_EXTENSION, "Bad Extension"),
     /// 421 Extension Required
     /// [[RFC3261, Section 21.4.16](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.16)]
-    (421, EXTENSION_REQUIRED, "Extension Required");
+    (421, EXTENSION_REQUIRED, "Extension Required"),
     /// 423 Interval Too Brief
     /// [[RFC3261, Section 21.4.17](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.17)]
-    (423, INTERVAL_TOO_BRIEF, "Interval Too Brief");
+    (423, INTERVAL_TOO_BRIEF, "Interval Too Brief"),
     /// 480 Temporarily Unavailable
     /// [[RFC3261, Section 21.4.18](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.18)]
-    (480, TEMPORARILY_UNAVAILABLE, "Temporarily Unavailable");
+    (480, TEMPORARILY_UNAVAILABLE, "Temporarily Unavailable"),
     /// 481 Call/Transaction Does Not Exist
     /// [[RFC3261, Section 21.4.19](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.19)]
-    (481, CALL_TRANSACTION_DOES_NOT_EXIST, "Call/Transaction Does Not Exist");
+    (481, CALL_TRANSACTION_DOES_NOT_EXIST, "Call/Transaction Does Not Exist"),
     /// 482 Loop Detected
     /// [[RFC3261, Section 21.4.20](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.20)]
-    (482, LOOP_DETECTED, "Loop Detected");
+    (482, LOOP_DETECTED, "Loop Detected"),
     /// 483 Too Many Hops
     /// [[RFC3261, Section 21.4.21](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.21)]
-    (483, TOO_MANY_HOPS, "Too Many Hops");
+    (483, TOO_MANY_HOPS, "Too Many Hops"),
     /// 484 Address Incomplete
     /// [[RFC3261, Section 21.4.22](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.22)]
-    (484, ADDRESS_INCOMPLETE, "Address Incomplete");
+    (484, ADDRESS_INCOMPLETE, "Address Incomplete"),
     /// 485 Ambiguous
     /// [[RFC3261, Section 21.4.23](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.23)]
-    (485, AMBIGUOUS, "Ambiguous");
+    (485, AMBIGUOUS, "Ambiguous"),
     /// 486 Busy Here
     /// [[RFC3261, Section 21.4.24](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.24)]
-    (486, BUSY_HERE, "Busy Here");
+    (486, BUSY_HERE, "Busy Here"),
     /// 487 Request Terminated
     /// [[RFC3261, Section 21.4.25](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.25)]
-    (487, REQUEST_TERMINATED, "Request Terminated");
+    (487, REQUEST_TERMINATED, "Request Terminated"),
     /// 488 Not Acceptable Here
     /// [[RFC3261, Section 21.4.26](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.26)]
-    (488, NOT_ACCEPTABLE_HERE, "Not Acceptable Here");
+    (488, NOT_ACCEPTABLE_HERE, "Not Acceptable Here"),
     /// 491 Request Pending
     /// [[RFC3261, Section 21.4.27](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.27)]
-    (491, REQUEST_PENDING, "Request Pending");
+    (491, REQUEST_PENDING, "Request Pending"),
     /// 493 Undecipherable
     /// [[RFC3261, Section 21.4.28](https://datatracker.ietf.org/doc/html/rfc3261#section-21.4.28)]
-    (493, UNDECIPHERABLE, "Undecipherable");
+    (493, UNDECIPHERABLE, "Undecipherable"),
 
     /// 500 Server Internal Error
     /// [[RFC3261, Section 21.5.1](https://datatracker.ietf.org/doc/html/rfc3261#section-21.5.1)]
-    (500, SERVER_INTERNAL_ERROR, "Server Internal Error");
+    (500, SERVER_INTERNAL_ERROR, "Server Internal Error"),
     /// 501 Not Implemented
     /// [[RFC3261, Section 21.5.2](https://datatracker.ietf.org/doc/html/rfc3261#section-21.5.2)]
-    (501, NOT_IMPLEMENTED, "Not Implemented");
+    (501, NOT_IMPLEMENTED, "Not Implemented"),
     /// 502 Bad Gateway
     /// [[RFC3261, Section 21.5.3](https://datatracker.ietf.org/doc/html/rfc3261#section-21.5.3)]
-    (502, BAD_GATEWAY, "Bad Gateway");
+    (502, BAD_GATEWAY, "Bad Gateway"),
     /// 503 Service Unavailable
     /// [[RFC3261, Section 21.5.4](https://datatracker.ietf.org/doc/html/rfc3261#section-21.5.4)]
-    (503, SERVICE_UNAVAILABLE, "Service Unavailable");
+    (503, SERVICE_UNAVAILABLE, "Service Unavailable"),
     /// 504 Server Time-out
     /// [[RFC3261, Section 21.5.5](https://datatracker.ietf.org/doc/html/rfc3261#section-21.5.5)]
-    (504, SERVER_TIMEOUT, "Server Time-out");
+    (504, SERVER_TIMEOUT, "Server Time-out"),
     /// 505 Version Not Supported
     /// [[RFC3261, Section 21.5.6](https://datatracker.ietf.org/doc/html/rfc3261#section-21.5.6)]
-    (505, VERSION_NOT_SUPPORTED, "Version Not Supported");
+    (505, VERSION_NOT_SUPPORTED, "Version Not Supported"),
     /// 513 Message Too Large
     /// [[RFC3261, Section 21.5.7](https://datatracker.ietf.org/doc/html/rfc3261#section-21.5.7)]
-    (513, MESSAGE_TOO_LARGE, "Message Too Large");
+    (513, MESSAGE_TOO_LARGE, "Message Too Large"),
 
     /// 600 Busy Everywhere
     /// [[RFC3261, Section 21.6.1](https://datatracker.ietf.org/doc/html/rfc3261#section-21.6.1)]
-    (600, BUSY_EVERYWHERE, "Busy Everywhere");
+    (600, BUSY_EVERYWHERE, "Busy Everywhere"),
     /// 603 Decline
     /// [[RFC3261, Section 21.6.2](https://datatracker.ietf.org/doc/html/rfc3261#section-21.6.2)]
-    (603, DECLINE, "Decline");
+    (603, DECLINE, "Decline"),
     /// 604 Does Not Exist Anywhere
     /// [[RFC3261, Section 21.6.3](https://datatracker.ietf.org/doc/html/rfc3261#section-21.6.3)]
-    (604, DOES_NOT_EXIST_ANYWHERE, "Does Not Exist Anywhere");
+    (604, DOES_NOT_EXIST_ANYWHERE, "Does Not Exist Anywhere"),
     /// 606 Not Acceptable
     /// [[RFC3261, Section 21.6.4](https://datatracker.ietf.org/doc/html/rfc3261#section-21.6.4)]
-    (606, NOT_ACCEPTABLE_GLOBAL, "Not Acceptable");
+    (606, NOT_ACCEPTABLE_GLOBAL, "Not Acceptable"),
 }
 
 // A string of packed 3-ASCII-digit status code values for the supported range

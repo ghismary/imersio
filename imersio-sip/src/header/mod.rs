@@ -111,7 +111,7 @@ macro_rules! headers {
     (
         $(
             $(#[$docs:meta])*
-            ($variant:ident, $type:ident);
+            ($variant:ident, $type:ident),
         )+
     ) => {
         /// Representation of a SIP message header.
@@ -141,39 +141,39 @@ macro_rules! headers {
 
 headers! {
     /// An Accept message header.
-    (Accept, AcceptHeader);
+    (Accept, AcceptHeader),
     /// An Accept-Encoding message header.
-    (AcceptEncoding, AcceptEncodingHeader);
+    (AcceptEncoding, AcceptEncodingHeader),
     /// An Accept-Language message header.
-    (AcceptLanguage, AcceptLanguageHeader);
+    (AcceptLanguage, AcceptLanguageHeader),
     /// An Alert-Info message header.
-    (AlertInfo, AlertInfoHeader);
+    (AlertInfo, AlertInfoHeader),
     /// An Allow message header.
-    (Allow, AllowHeader);
+    (Allow, AllowHeader),
     /// An Authentication-Info header.
-    (AuthenticationInfo, AuthenticationInfoHeader);
+    (AuthenticationInfo, AuthenticationInfoHeader),
     /// An Authorization header.
-    (Authorization, AuthorizationHeader);
+    (Authorization, AuthorizationHeader),
     /// A Call-ID header.
-    (CallId, CallIdHeader);
+    (CallId, CallIdHeader),
     /// A Call-Info header.
-    (CallInfo, CallInfoHeader);
+    (CallInfo, CallInfoHeader),
     /// A Contact header.
-    (Contact, ContactHeader);
+    (Contact, ContactHeader),
     /// A Content-Disposition header.
-    (ContentDisposition, ContentDispositionHeader);
+    (ContentDisposition, ContentDispositionHeader),
     /// A Content-Encoding header.
-    (ContentEncoding, ContentEncodingHeader);
+    (ContentEncoding, ContentEncodingHeader),
     /// A Content-Language header.
-    (ContentLanguage, ContentLanguageHeader);
+    (ContentLanguage, ContentLanguageHeader),
     /// A Content-Length header.
-    (ContentLength, ContentLengthHeader);
+    (ContentLength, ContentLengthHeader),
     /// A Content-Type header.
-    (ContentType, ContentTypeHeader);
+    (ContentType, ContentTypeHeader),
     /// A CSeq header.
-    (CSeq, CSeqHeader);
+    (CSeq, CSeqHeader),
     /// An extension header.
-    (ExtensionHeader, GenericHeader);
+    (ExtensionHeader, GenericHeader),
 }
 
 impl Header {
