@@ -41,8 +41,8 @@ use super::{
     },
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
-    ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader, Header,
-    MediaParameter, MediaType,
+    CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
+    Header, MediaParameter, MediaType,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -1024,6 +1024,32 @@ fn content_type(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn cseq(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "cseq",
+        map(
+            tuple((
+                map(tag_no_case("CSeq"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(separated_pair(
+                    map(recognize(many1(digit)), |cseq| {
+                        String::from_utf8_lossy(cseq).parse::<u32>().unwrap()
+                    }),
+                    lws,
+                    method,
+                )),
+            )),
+            |(name, separator, (value, (cseq, method)))| {
+                Header::CSeq(CSeqHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    cseq,
+                    method,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1056,6 +1082,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "content-language",
                     "content-length",
                     "content-type",
+                    "cseq",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1087,6 +1114,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             content_language,
             content_length,
             content_type,
+            cseq,
             extension_header,
         )),
     )(input)

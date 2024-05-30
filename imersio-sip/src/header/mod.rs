@@ -15,6 +15,7 @@ mod content_encoding_header;
 mod content_language_header;
 mod content_length_header;
 mod content_type_header;
+mod cseq_header;
 mod generic_header;
 pub(crate) mod parser;
 
@@ -37,6 +38,7 @@ pub use content_encoding_header::{ContentEncodingHeader, ContentEncodings};
 pub use content_language_header::{ContentLanguage, ContentLanguageHeader, ContentLanguages};
 pub use content_length_header::ContentLengthHeader;
 pub use content_type_header::{ContentTypeHeader, MediaParameter, MediaType};
+pub use cseq_header::CSeqHeader;
 use generic_header::GenericHeader;
 
 use crate::Error;
@@ -168,6 +170,8 @@ headers! {
     (ContentLength, ContentLengthHeader);
     /// A Content-Type header.
     (ContentType, ContentTypeHeader);
+    /// A CSeq header.
+    (CSeq, CSeqHeader);
     /// An extension header.
     (ExtensionHeader, GenericHeader);
 }
