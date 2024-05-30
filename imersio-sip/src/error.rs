@@ -9,6 +9,9 @@ pub enum Error {
     /// Invalid content encoding.
     #[error("invalid content encoding")]
     InvalidContentEncoding(String),
+    /// Invalid content language.
+    #[error("invalid content language")]
+    InvalidContentLanguage(String),
     /// Invalid message header.
     #[error("invalid message header")]
     InvalidMessageHeader(String),

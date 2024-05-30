@@ -40,7 +40,7 @@ use super::{
     },
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
-    Header,
+    ContentLanguage, ContentLanguageHeader, Header,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -915,6 +915,43 @@ fn content_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
+fn primary_tag(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+    recognize(many_m_n(1, 8, alpha))(input)
+}
+
+#[inline]
+fn subtag(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+    primary_tag(input)
+}
+
+pub(crate) fn language_tag(input: &[u8]) -> ParserResult<&[u8], ContentLanguage> {
+    map(
+        recognize(pair(primary_tag, many0(preceded(tag("-"), subtag)))),
+        |value| ContentLanguage::new(String::from_utf8_lossy(value)),
+    )(input)
+}
+
+fn content_language(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "content_language",
+        map(
+            tuple((
+                map(tag_no_case("Content-Language"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(language_tag, many0(preceded(comma, language_tag)))),
+            )),
+            |(name, separator, (value, (first_language, other_languages)))| {
+                let languages = extend_vec(first_language, other_languages);
+                Header::ContentLanguage(ContentLanguageHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    languages,
+                ))
+            },
+        ),
+    )(input)
+}
+
+#[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
 }
@@ -943,6 +980,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "contact",
                     "content-disposition",
                     "content-encoding",
+                    "content-language",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -971,6 +1009,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             contact,
             content_disposition,
             content_encoding,
+            content_language,
             extension_header,
         )),
     )(input)

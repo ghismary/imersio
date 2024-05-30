@@ -12,6 +12,7 @@ mod call_info_header;
 mod contact_header;
 mod content_disposition_header;
 mod content_encoding_header;
+mod content_language_header;
 mod generic_header;
 pub(crate) mod parser;
 
@@ -31,6 +32,7 @@ pub use content_disposition_header::{
     ContentDispositionHeader, DispositionParameter, DispositionType, HandlingValue,
 };
 pub use content_encoding_header::{ContentEncodingHeader, ContentEncodings};
+pub use content_language_header::{ContentLanguage, ContentLanguageHeader, ContentLanguages};
 use generic_header::GenericHeader;
 
 use crate::Error;
@@ -99,35 +101,67 @@ macro_rules! generic_header_accessors {
 }
 pub(crate) use generic_header_accessors;
 
-/// Representation of a SIP message header.
-#[derive(Clone, Debug)]
-pub enum Header {
+macro_rules! headers {
+    (
+        $(
+            $(#[$docs:meta])*
+            ($variant:ident, $type:ident);
+        )+
+    ) => {
+        /// Representation of a SIP message header.
+        #[derive(Clone, Debug)]
+        pub enum Header {
+            $(
+                $(#[$docs])*
+                $variant($type),
+            )+
+        }
+
+        impl std::fmt::Display for Header {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(
+                    f,
+                    "{}",
+                    match self {
+                        $(
+                            Header::$variant(header) => header.to_string(),
+                        )+
+                    }
+                )
+            }
+        }
+    }
+}
+
+headers! {
     /// An Accept message header.
-    Accept(AcceptHeader),
+    (Accept, AcceptHeader);
     /// An Accept-Encoding message header.
-    AcceptEncoding(AcceptEncodingHeader),
+    (AcceptEncoding, AcceptEncodingHeader);
     /// An Accept-Language message header.
-    AcceptLanguage(AcceptLanguageHeader),
+    (AcceptLanguage, AcceptLanguageHeader);
     /// An Alert-Info message header.
-    AlertInfo(AlertInfoHeader),
+    (AlertInfo, AlertInfoHeader);
     /// An Allow message header.
-    Allow(AllowHeader),
+    (Allow, AllowHeader);
     /// An Authentication-Info header.
-    AuthenticationInfo(AuthenticationInfoHeader),
+    (AuthenticationInfo, AuthenticationInfoHeader);
     /// An Authorization header.
-    Authorization(AuthorizationHeader),
+    (Authorization, AuthorizationHeader);
     /// A Call-ID header.
-    CallId(CallIdHeader),
+    (CallId, CallIdHeader);
     /// A Call-Info header.
-    CallInfo(CallInfoHeader),
+    (CallInfo, CallInfoHeader);
     /// A Contact header.
-    Contact(ContactHeader),
+    (Contact, ContactHeader);
     /// A Content-Disposition header.
-    ContentDisposition(ContentDispositionHeader),
+    (ContentDisposition, ContentDispositionHeader);
     /// A Content-Encoding header.
-    ContentEncoding(ContentEncodingHeader),
+    (ContentEncoding, ContentEncodingHeader);
+    /// A Content-Language header.
+    (ContentLanguage, ContentLanguageHeader);
     /// An extension header.
-    ExtensionHeader(GenericHeader),
+    (ExtensionHeader, GenericHeader);
 }
 
 impl Header {
@@ -135,30 +169,6 @@ impl Header {
     #[inline]
     pub fn from_bytes(input: &[u8]) -> Result<Header, Error> {
         parse(input)
-    }
-}
-
-impl std::fmt::Display for Header {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Header::Accept(header) => header.to_string(),
-                Header::AcceptEncoding(header) => header.to_string(),
-                Header::AcceptLanguage(header) => header.to_string(),
-                Header::AlertInfo(header) => header.to_string(),
-                Header::Allow(header) => header.to_string(),
-                Header::AuthenticationInfo(header) => header.to_string(),
-                Header::Authorization(header) => header.to_string(),
-                Header::CallId(header) => header.to_string(),
-                Header::CallInfo(header) => header.to_string(),
-                Header::Contact(header) => header.to_string(),
-                Header::ContentDisposition(header) => header.to_string(),
-                Header::ContentEncoding(header) => header.to_string(),
-                Header::ExtensionHeader(header) => header.to_string(),
-            }
-        )
     }
 }
 
