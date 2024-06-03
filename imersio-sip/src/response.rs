@@ -195,7 +195,7 @@ impl Builder {
 
     /// Set the SIP reason for this response.
     ///
-    /// By default this is `Reason::ok()`.
+    /// By default, this is `Reason::ok()`.
     ///
     /// # Example
     ///
@@ -210,7 +210,7 @@ impl Builder {
     pub fn reason<T>(self, reason: T) -> Self
     where
         Reason: TryFrom<T>,
-        <Reason as TryFrom<T>>::Error: Into<crate::error::Error>,
+        <Reason as TryFrom<T>>::Error: Into<Error>,
     {
         self.and_then(move |mut head| {
             head.reason = TryFrom::try_from(reason).map_err(Into::into)?;
@@ -220,7 +220,7 @@ impl Builder {
 
     /// Set the SIP version for this response.
     ///
-    /// By default this is SIP/2.0.
+    /// By default, this is SIP/2.0.
     ///
     /// # Example
     ///
@@ -322,7 +322,7 @@ mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use claim::{assert_err, assert_ok};
+    use claims::{assert_err, assert_ok};
 
     #[test]
     fn test_valid_response() {

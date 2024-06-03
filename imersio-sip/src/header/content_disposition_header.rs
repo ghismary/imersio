@@ -209,7 +209,7 @@ impl PartialEq<DispositionParameter> for DispositionParameter {
 }
 
 impl PartialOrd for DispositionParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -222,7 +222,7 @@ impl Hash for DispositionParameter {
 }
 
 impl Ord for DispositionParameter {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self.key().cmp(other.key()) {
             Ordering::Equal => {}
             ord => return ord,
@@ -301,13 +301,13 @@ impl Hash for HandlingValue {
 }
 
 impl PartialOrd for HandlingValue {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for HandlingValue {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.value().cmp(other.value())
     }
 }
@@ -319,7 +319,7 @@ mod tests {
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(

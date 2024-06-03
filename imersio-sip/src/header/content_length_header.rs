@@ -68,7 +68,7 @@ mod tests {
         },
         Header,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(ContentLength, ContentLengthHeader, "Content-Length");

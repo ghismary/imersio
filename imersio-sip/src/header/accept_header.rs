@@ -156,7 +156,7 @@ mod tests {
         },
         Header, HeaderAccessor,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(Accept, AcceptHeader, "Accept");

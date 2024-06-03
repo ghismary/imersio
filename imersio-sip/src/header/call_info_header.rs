@@ -65,7 +65,7 @@ impl PartialEq for CallInfoHeader {
     }
 }
 
-/// Representation of the list of call informations from a `Call-Info` header.
+/// Representation of the list of call information from a `Call-Info` header.
 ///
 /// This is usable as an iterator.
 pub type CallInfos = HeaderValueCollection<CallInfo>;
@@ -237,7 +237,7 @@ impl PartialOrd for CallInfoParameter {
 }
 
 impl Ord for CallInfoParameter {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self.key().cmp(other.key()) {
             Ordering::Equal => {}
             ord => return ord,
@@ -263,7 +263,7 @@ mod tests {
         },
         GenericParameter, Header, Uri,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(CallInfo, CallInfoHeader, "Call-Info");

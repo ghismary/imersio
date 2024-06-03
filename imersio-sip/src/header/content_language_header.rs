@@ -135,7 +135,7 @@ mod tests {
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(ContentLanguage, ContentLanguageHeader, "Content-Language");

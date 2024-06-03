@@ -418,7 +418,7 @@ mod tests {
         },
         Header, HeaderAccessor, Uri,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(Authorization, AuthorizationHeader, "Authorization");

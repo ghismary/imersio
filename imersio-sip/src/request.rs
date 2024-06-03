@@ -144,7 +144,7 @@ impl Builder {
 
     /// Set the method for this SIP request.
     ///
-    /// By default this is `INVITE`.
+    /// By default, this is `INVITE`.
     pub fn method<T>(self, method: T) -> Self
     where
         Method: TryFrom<T>,
@@ -159,7 +159,7 @@ impl Builder {
 
     /// Get the method for this SIP request.
     ///
-    /// By default this is `INVITE`. If the builder has an error, it returns
+    /// By default, this is `INVITE`. If the builder has an error, it returns
     /// None.
     pub fn method_ref(&self) -> Option<&Method> {
         self.inner.as_ref().ok().map(|head| &head.method)
@@ -182,7 +182,7 @@ impl Builder {
 
     /// Set the version for this SIP request.
     ///
-    /// By default this is SIP/2.0.
+    /// By default, this is SIP/2.0.
     pub fn version(self, version: Version) -> Self {
         self.and_then(move |mut head| {
             head.version = version;
@@ -192,7 +192,7 @@ impl Builder {
 
     /// Get the version for this SIP request.
     ///
-    /// By default this is SIP/2.0.
+    /// By default, this is SIP/2.0.
     pub fn version_ref(&self) -> Option<&Version> {
         self.inner.as_ref().ok().map(|head| &head.version)
     }
@@ -276,7 +276,7 @@ mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use claim::{assert_err, assert_ok};
+    use claims::{assert_err, assert_ok};
 
     #[test]
     fn test_valid_request() {

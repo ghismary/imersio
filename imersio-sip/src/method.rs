@@ -227,7 +227,7 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use claim::assert_err;
+    use claims::assert_err;
 
     #[test]
     fn test_method_eq() {

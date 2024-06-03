@@ -232,7 +232,7 @@ impl StatusCode {
         parse_status_code(input)
     }
 
-    /// Convert a u16 to a status code.
+    /// Convert an u16 to a status code.
     ///
     /// The function validates the correctness of the supplied u16. It must be
     /// greater or equal to 100 and less than 1000.
@@ -887,7 +887,7 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use claim::{assert_err, assert_ok};
+    use claims::{assert_err, assert_ok};
 
     #[test]
     fn test_invalid_status_code() {

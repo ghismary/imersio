@@ -71,7 +71,7 @@ mod tests {
     use super::AllowHeader;
     use crate::header::tests::{header_equality, header_inequality, valid_header};
     use crate::{Header, HeaderAccessor, Method};
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(Allow, AllowHeader, "Allow");

@@ -56,13 +56,13 @@ impl PartialEq for GenericHeader {
 }
 
 impl PartialOrd for GenericHeader {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for GenericHeader {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self
             .name
             .to_ascii_lowercase()

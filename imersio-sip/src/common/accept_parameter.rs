@@ -79,13 +79,13 @@ impl Hash for AcceptParameter {
 }
 
 impl PartialOrd for AcceptParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for AcceptParameter {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self.key().cmp(other.key()) {
             Ordering::Equal => {}
             ord => return ord,

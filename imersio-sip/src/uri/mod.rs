@@ -198,7 +198,7 @@ fn parse_uri(input: &[u8]) -> Result<Uri, Error> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use claim::{assert_err, assert_ok};
+    use claims::{assert_err, assert_ok};
 
     #[test]
     fn test_valid_uri_parsing() {

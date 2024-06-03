@@ -157,7 +157,7 @@ mod tests {
     use super::AcceptLanguageHeader;
     use crate::header::tests::{header_equality, header_inequality, valid_header};
     use crate::{Header, HeaderAccessor};
-    use claim::{assert_err, assert_ok};
+    use claims::{assert_err, assert_ok};
     use std::str::FromStr;
 
     valid_header!(AcceptLanguage, AcceptLanguageHeader, "Accept-Language");

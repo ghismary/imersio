@@ -164,13 +164,13 @@ impl PartialEq for MediaParameter {
 }
 
 impl PartialOrd for MediaParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for MediaParameter {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self
             .key()
             .to_ascii_lowercase()
@@ -201,7 +201,7 @@ mod tests {
         },
         Header, HeaderAccessor,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(ContentType, ContentTypeHeader, "Content-Type");
@@ -290,7 +290,7 @@ mod tests {
     #[test]
     fn test_content_type_header_to_string() {
         let header = Header::from_str("content-typE  :  text/html ; charset=  ISO-8859-4");
-        if let Header::Accept(header) = header.unwrap() {
+        if let Header::ContentType(header) = header.unwrap() {
             assert_eq!(
                 header.to_string(),
                 "content-typE  :  text/html ; charset=  ISO-8859-4"

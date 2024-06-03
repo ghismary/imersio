@@ -339,7 +339,7 @@ const ESCAPED_CHARS: [u8; 256] = [
 #[cfg(test)]
 mod tests {
     use super::*;
-    use claim::assert_ok;
+    use claims::assert_ok;
 
     #[test]
     fn test_quoted_string() {

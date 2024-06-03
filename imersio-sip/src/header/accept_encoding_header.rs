@@ -157,7 +157,7 @@ mod tests {
     use super::AcceptEncodingHeader;
     use crate::header::tests::{header_equality, header_inequality, valid_header};
     use crate::{Header, HeaderAccessor};
-    use claim::{assert_err, assert_ok};
+    use claims::{assert_err, assert_ok};
     use std::str::FromStr;
 
     valid_header!(AcceptEncoding, AcceptEncodingHeader, "Accept-Encoding");
@@ -279,7 +279,7 @@ mod tests {
     #[test]
     fn test_accept_encoding_header_to_string() {
         let header = Header::from_str("accept-encoding:   gZip  , DeFlate");
-        if let Header::Accept(header) = header.unwrap() {
+        if let Header::AcceptEncoding(header) = header.unwrap() {
             assert_eq!(header.to_string(), "accept-encoding:   gZip  , DeFlate");
             assert_eq!(
                 header.to_normalized_string(),

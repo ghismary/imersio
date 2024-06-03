@@ -277,7 +277,7 @@ impl std::fmt::Display for ContactParameter {
 }
 
 impl PartialOrd for ContactParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -309,7 +309,7 @@ mod tests {
         },
         Header, Uri,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(Contact, ContactHeader, "Contact");

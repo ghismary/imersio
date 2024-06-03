@@ -755,13 +755,11 @@ fn c_p_q(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
 
 #[inline]
 fn delta_seconds(input: &[u8]) -> ParserResult<&[u8], u32> {
-    map(
-        recognize(many1(digit)),
-        |digits| match String::from_utf8_lossy(digits).parse::<u32>() {
-            Err(_) => u32::MAX, // If the value is larger than 2**32-1 (4294967295 seconds or 136 years), use the max
-            Ok(value) => value,
-        },
-    )(input)
+    map(recognize(many1(digit)), |digits| {
+        String::from_utf8_lossy(digits)
+            .parse::<u32>()
+            .unwrap_or(u32::MAX)
+    })(input)
 }
 
 fn c_p_expires(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {

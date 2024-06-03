@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use claim::assert_err;
+use claims::assert_err;
 
 use crate::Header;
 

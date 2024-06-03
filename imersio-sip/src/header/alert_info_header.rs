@@ -148,7 +148,7 @@ mod tests {
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor, Uri,
     };
-    use claim::assert_ok;
+    use claims::assert_ok;
     use std::str::FromStr;
 
     valid_header!(AlertInfo, AlertInfoHeader, "Alert-Info");
