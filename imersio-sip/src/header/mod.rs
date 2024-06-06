@@ -16,6 +16,7 @@ mod content_language_header;
 mod content_length_header;
 mod content_type_header;
 mod cseq_header;
+mod date_header;
 mod generic_header;
 pub(crate) mod parser;
 
@@ -42,6 +43,7 @@ pub use content_language_header::{ContentLanguage, ContentLanguageHeader, Conten
 pub use content_length_header::ContentLengthHeader;
 pub use content_type_header::{ContentTypeHeader, MediaParameter, MediaType};
 pub use cseq_header::CSeqHeader;
+pub use date_header::DateHeader;
 use generic_header::GenericHeader;
 
 use crate::Error;
@@ -175,6 +177,8 @@ headers! {
     (ContentType, ContentTypeHeader),
     /// A CSeq header.
     (CSeq, CSeqHeader),
+    /// A Date header.
+    (Date, DateHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }

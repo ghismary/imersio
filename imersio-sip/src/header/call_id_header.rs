@@ -72,7 +72,7 @@ mod tests {
     header_inequality!(CallId, "Call-ID");
 
     #[test]
-    fn test_valid_call_id_header_with_arobase_character() {
+    fn test_valid_call_id_header_with_at_character() {
         valid_header(
             "Call-ID: f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com",
             |header| {
@@ -85,7 +85,7 @@ mod tests {
     }
 
     #[test]
-    fn test_valid_call_id_header_without_arobase_character() {
+    fn test_valid_call_id_header_without_at_character() {
         valid_header("Call-ID: f81d4fae-7dec-11d0-a765-00a0c91e6bf6", |header| {
             assert_eq!(header.call_id(), "f81d4fae-7dec-11d0-a765-00a0c91e6bf6");
         });
@@ -120,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn test_call_id_header_inequality_one_with_arobase_part_the_other_without() {
+    fn test_call_id_header_inequality_one_with_at_part_the_other_without() {
         header_inequality(
             "Call-ID: f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com",
             "Call-ID: f81d4fae-7dec-11d0-a765-00a0c91e6bf6",

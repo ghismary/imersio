@@ -1,5 +1,7 @@
+use chrono::{DateTime, Utc};
 use std::borrow::Cow;
 
+use nom::error::{ErrorKind, ParseError, VerboseError};
 use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case},
@@ -9,6 +11,8 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, tuple},
 };
 
+use crate::header::date_header::DateHeader;
+use crate::parser::sp;
 use crate::{
     common::{
         accept_parameter::AcceptParameter, algorithm::Algorithm, content_encoding::ContentEncoding,
@@ -1048,6 +1052,114 @@ fn cseq(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn wkday(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        alt((
+            tag("Mon"),
+            tag("Tue"),
+            tag("Wed"),
+            tag("Thu"),
+            tag("Fri"),
+            tag("Sat"),
+            tag("Sun"),
+        )),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn month(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        alt((
+            tag("Jan"),
+            tag("Feb"),
+            tag("Mar"),
+            tag("Apr"),
+            tag("May"),
+            tag("Jun"),
+            tag("Jul"),
+            tag("Aug"),
+            tag("Sep"),
+            tag("Oct"),
+            tag("Nov"),
+            tag("Dec"),
+        )),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn date1(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        recognize(tuple((count(digit, 2), sp, month, sp, count(digit, 4)))),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn time(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        recognize(tuple((
+            count(digit, 2),
+            tag(":"),
+            count(digit, 2),
+            tag(":"),
+            count(digit, 2),
+        ))),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn rfc1123_date(input: &[u8]) -> ParserResult<&[u8], DateTime<Utc>> {
+    let result = map(
+        recognize(tuple((
+            wkday,
+            tag(","),
+            sp,
+            date1,
+            sp,
+            time,
+            sp,
+            tag("GMT"),
+        ))),
+        String::from_utf8_lossy,
+    )(input);
+    match result {
+        Err(e) => Err(e),
+        Ok((rest, date)) => {
+            let result = DateTime::parse_from_rfc2822(date.as_ref());
+            match result {
+                Ok(date) => Ok((rest, date.to_utc())),
+                Err(_) => Err(nom::Err::Error(VerboseError::from_error_kind(
+                    input,
+                    ErrorKind::Verify,
+                ))),
+            }
+        }
+    }
+}
+
+#[inline]
+fn sip_date(input: &[u8]) -> ParserResult<&[u8], DateTime<Utc>> {
+    rfc1123_date(input)
+}
+
+fn date(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "date",
+        map(
+            tuple((
+                map(tag_no_case("Date"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(sip_date),
+            )),
+            |(name, separator, (value, date))| {
+                Header::Date(DateHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    date,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1081,6 +1193,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "content-length",
                     "content-type",
                     "cseq",
+                    "date",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1113,6 +1226,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             content_length,
             content_type,
             cseq,
+            date,
             extension_header,
         )),
     )(input)

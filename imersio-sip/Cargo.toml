@@ -14,6 +14,7 @@ unsafe_code = "forbid"
 
 [dependencies]
 bytes = "1.6"
+chrono = "0.4"
 nom = "7.1"
 partial_eq_refs = { path = "../partial_eq_refs" }
 thiserror = "1.0"
