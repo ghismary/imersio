@@ -46,7 +46,7 @@ use super::{
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
     CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
-    ErrorInfoHeader, ErrorUri, Header, MediaParameter, MediaType,
+    ErrorInfoHeader, ErrorUri, ExpiresHeader, Header, MediaParameter, MediaType,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -1192,6 +1192,25 @@ fn error_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn expires(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "expires",
+        map(
+            tuple((
+                map(tag_no_case("Expires"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(delta_seconds),
+            )),
+            |(name, separator, (value, expires))| {
+                Header::Expires(ExpiresHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    expires,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1227,6 +1246,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "cseq",
                     "date",
                     "error-info",
+                    "expires",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1261,6 +1281,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             cseq,
             date,
             error_info,
+            expires,
             extension_header,
         )),
     )(input)

@@ -18,6 +18,7 @@ mod content_type_header;
 mod cseq_header;
 mod date_header;
 mod error_info_header;
+mod expires_header;
 mod generic_header;
 
 pub(crate) mod parser;
@@ -47,6 +48,7 @@ pub use content_type_header::{ContentTypeHeader, MediaParameter, MediaType};
 pub use cseq_header::CSeqHeader;
 pub use date_header::DateHeader;
 pub use error_info_header::{ErrorInfoHeader, ErrorUri, ErrorUris};
+pub use expires_header::ExpiresHeader;
 use generic_header::GenericHeader;
 
 use crate::Error;
@@ -184,6 +186,8 @@ headers! {
     (Date, DateHeader),
     /// An Error-Info header.
     (ErrorInfo, ErrorInfoHeader),
+    /// An Expires header.
+    (Expires, ExpiresHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }
