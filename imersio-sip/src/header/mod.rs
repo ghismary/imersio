@@ -22,6 +22,7 @@ mod expires_header;
 mod from_header;
 mod generic_header;
 mod in_reply_to_header;
+mod max_forwards_header;
 
 pub(crate) mod parser;
 
@@ -54,6 +55,7 @@ pub use expires_header::ExpiresHeader;
 pub use from_header::{FromHeader, FromParameter, FromParameters};
 use generic_header::GenericHeader;
 pub use in_reply_to_header::{CallIds, InReplyToHeader};
+pub use max_forwards_header::MaxForwardsHeader;
 
 use crate::Error;
 
@@ -196,6 +198,8 @@ headers! {
     (From, FromHeader),
     /// An In-Reply-To header.
     (InReplyTo, InReplyToHeader),
+    /// A Max-Forwards header.
+    (MaxForwards, MaxForwardsHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }

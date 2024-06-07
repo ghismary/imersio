@@ -13,6 +13,7 @@ use nom::{
 
 use crate::header::date_header::DateHeader;
 use crate::header::from_header::{FromHeader, FromParameter};
+use crate::header::max_forwards_header::MaxForwardsHeader;
 use crate::parser::sp;
 use crate::{
     common::{
@@ -1277,6 +1278,29 @@ fn in_reply_to(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn max_forwards(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "max_forwards",
+        map(
+            tuple((
+                map(tag_no_case("Max-Forwards"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(map(recognize(many1(digit)), |value| {
+                    String::from_utf8_lossy(value)
+                        .parse::<u8>()
+                        .unwrap_or(u8::MAX)
+                })),
+            )),
+            |(name, separator, (value, max_forwards))| {
+                Header::MaxForwards(MaxForwardsHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    max_forwards,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1315,6 +1339,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "expires",
                     "from",
                     "in-reply-to",
+                    "max-forwards",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1352,8 +1377,9 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 error_info,
                 expires,
                 from,
+                in_reply_to,
             )),
-            alt((in_reply_to, extension_header)),
+            alt((max_forwards, extension_header)),
         )),
     )(input)
 }
