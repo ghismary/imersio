@@ -19,6 +19,7 @@ mod cseq_header;
 mod date_header;
 mod error_info_header;
 mod expires_header;
+mod from_header;
 mod generic_header;
 
 pub(crate) mod parser;
@@ -49,6 +50,7 @@ pub use cseq_header::CSeqHeader;
 pub use date_header::DateHeader;
 pub use error_info_header::{ErrorInfoHeader, ErrorUri, ErrorUris};
 pub use expires_header::ExpiresHeader;
+pub use from_header::{FromHeader, FromParameter, FromParameters};
 use generic_header::GenericHeader;
 
 use crate::Error;
@@ -188,6 +190,8 @@ headers! {
     (ErrorInfo, ErrorInfoHeader),
     /// An Expires header.
     (Expires, ExpiresHeader),
+    /// A From header.
+    (From, FromHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }

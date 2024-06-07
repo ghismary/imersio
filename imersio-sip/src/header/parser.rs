@@ -12,6 +12,7 @@ use nom::{
 };
 
 use crate::header::date_header::DateHeader;
+use crate::header::from_header::{FromHeader, FromParameter};
 use crate::parser::sp;
 use crate::{
     common::{
@@ -734,7 +735,7 @@ fn display_name(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     alt((
         quoted_string,
         map(recognize(many0(pair(token, lws))), |v| {
-            WrappedString::new_not_wrapped(String::from_utf8_lossy(v))
+            WrappedString::new_not_wrapped(String::from_utf8_lossy(v).trim_end())
         }),
     ))(input)
 }
@@ -1211,6 +1212,51 @@ fn expires(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn tag_param(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
+    map(
+        separated_pair(
+            map(tag_no_case("tag"), String::from_utf8_lossy),
+            equal,
+            token,
+        ),
+        |(key, value)| GenericParameter::new(key, Some(value)),
+    )(input)
+}
+
+fn from_param(input: &[u8]) -> ParserResult<&[u8], FromParameter> {
+    map(alt((tag_param, generic_param)), Into::into)(input)
+}
+
+fn from_spec(input: &[u8]) -> ParserResult<&[u8], (NameAddress, Vec<FromParameter>)> {
+    pair(
+        alt((map(addr_spec, |uri| NameAddress::new(uri, None)), name_addr)),
+        many0(preceded(semi, from_param)),
+    )(input)
+}
+
+fn from(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "from",
+        map(
+            tuple((
+                map(
+                    alt((tag_no_case("From"), tag_no_case("f"))),
+                    String::from_utf8_lossy,
+                ),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(from_spec),
+            )),
+            |(name, separator, (value, (address, parameters)))| {
+                Header::From(FromHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    address,
+                    parameters,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1247,6 +1293,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "date",
                     "error-info",
                     "expires",
+                    "from",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1282,6 +1329,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             date,
             error_info,
             expires,
+            from,
             extension_header,
         )),
     )(input)

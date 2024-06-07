@@ -14,6 +14,7 @@ pub struct NameAddress {
 
 impl NameAddress {
     pub(crate) fn new(uri: Uri, display_name: Option<WrappedString>) -> Self {
+        let display_name = display_name.filter(|display_name| !display_name.is_empty());
         Self { display_name, uri }
     }
 
