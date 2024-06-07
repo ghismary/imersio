@@ -46,7 +46,7 @@ use super::{
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
     CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
-    Header, MediaParameter, MediaType,
+    ErrorInfoHeader, ErrorUri, Header, MediaParameter, MediaType,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -1160,6 +1160,38 @@ fn date(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn error_uri(input: &[u8]) -> ParserResult<&[u8], ErrorUri> {
+    map(
+        tuple((
+            laquot,
+            request_uri,
+            raquot,
+            many0(preceded(semi, generic_param)),
+        )),
+        |(_, uri, _, parameters)| ErrorUri::new(uri, parameters),
+    )(input)
+}
+
+fn error_info(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "error_info",
+        map(
+            tuple((
+                map(tag_no_case("Error-Info"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(error_uri, many0(preceded(comma, error_uri)))),
+            )),
+            |(name, separator, (value, (first_uri, other_uris)))| {
+                let uris = extend_vec(first_uri, other_uris);
+                Header::ErrorInfo(ErrorInfoHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    uris,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1194,6 +1226,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "content-type",
                     "cseq",
                     "date",
+                    "error-info",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1227,6 +1260,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
             content_type,
             cseq,
             date,
+            error_info,
             extension_header,
         )),
     )(input)

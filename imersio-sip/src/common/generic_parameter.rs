@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::hash::Hash;
 
 use partial_eq_refs::PartialEqRefs;
@@ -34,9 +35,12 @@ impl std::fmt::Display for GenericParameter {
         write!(
             f,
             "{}{}{}",
-            self.key,
+            self.key.to_ascii_lowercase(),
             if self.value.is_some() { "=" } else { "" },
-            self.value.as_deref().unwrap_or_default()
+            self.value
+                .as_deref()
+                .unwrap_or_default()
+                .to_ascii_lowercase()
         )
     }
 }
@@ -53,5 +57,27 @@ impl Hash for GenericParameter {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.key().to_ascii_lowercase().hash(state);
         self.value().map(|v| v.to_ascii_lowercase()).hash(state);
+    }
+}
+
+impl PartialOrd for GenericParameter {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for GenericParameter {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self
+            .key()
+            .to_ascii_lowercase()
+            .cmp(&other.key().to_ascii_lowercase())
+        {
+            Ordering::Equal => {}
+            ord => return ord,
+        }
+        self.value()
+            .unwrap()
+            .to_ascii_lowercase()
+            .cmp(&other.value().unwrap().to_ascii_lowercase())
     }
 }
