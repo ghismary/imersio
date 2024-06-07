@@ -21,6 +21,7 @@ mod error_info_header;
 mod expires_header;
 mod from_header;
 mod generic_header;
+mod in_reply_to_header;
 
 pub(crate) mod parser;
 
@@ -52,6 +53,7 @@ pub use error_info_header::{ErrorInfoHeader, ErrorUri, ErrorUris};
 pub use expires_header::ExpiresHeader;
 pub use from_header::{FromHeader, FromParameter, FromParameters};
 use generic_header::GenericHeader;
+pub use in_reply_to_header::{CallIds, InReplyToHeader};
 
 use crate::Error;
 
@@ -192,6 +194,8 @@ headers! {
     (Expires, ExpiresHeader),
     /// A From header.
     (From, FromHeader),
+    /// An In-Reply-To header.
+    (InReplyTo, InReplyToHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }

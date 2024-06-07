@@ -47,7 +47,7 @@ use super::{
     content_encoding_header::ContentEncodingHeader,
     generic_header::GenericHeader,
     CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
-    ErrorInfoHeader, ErrorUri, ExpiresHeader, Header, MediaParameter, MediaType,
+    ErrorInfoHeader, ErrorUri, ExpiresHeader, Header, InReplyToHeader, MediaParameter, MediaType,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -1257,6 +1257,26 @@ fn from(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn in_reply_to(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "in_reply_to",
+        map(
+            tuple((
+                map(tag_no_case("In-Reply-To"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(pair(callid, many0(preceded(comma, callid)))),
+            )),
+            |(name, separator, (value, (first_call_id, other_call_ids)))| {
+                let call_ids = extend_vec(first_call_id, other_call_ids);
+                Header::InReplyTo(InReplyToHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    call_ids,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1294,6 +1314,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "error-info",
                     "expires",
                     "from",
+                    "in-reply-to",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1310,27 +1331,29 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
         "message_header",
         alt((
-            accept,
-            accept_encoding,
-            accept_language,
-            alert_info,
-            allow,
-            authentication_info,
-            authorization,
-            call_id,
-            call_info,
-            contact,
-            content_disposition,
-            content_encoding,
-            content_language,
-            content_length,
-            content_type,
-            cseq,
-            date,
-            error_info,
-            expires,
-            from,
-            extension_header,
+            alt((
+                accept,
+                accept_encoding,
+                accept_language,
+                alert_info,
+                allow,
+                authentication_info,
+                authorization,
+                call_id,
+                call_info,
+                contact,
+                content_disposition,
+                content_encoding,
+                content_language,
+                content_length,
+                content_type,
+                cseq,
+                date,
+                error_info,
+                expires,
+                from,
+            )),
+            alt((in_reply_to, extension_header)),
         )),
     )(input)
 }
