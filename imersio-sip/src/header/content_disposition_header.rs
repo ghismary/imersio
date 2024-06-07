@@ -135,7 +135,7 @@ impl std::fmt::Display for DispositionType {
     }
 }
 
-impl PartialEq<DispositionType> for DispositionType {
+impl PartialEq for DispositionType {
     fn eq(&self, other: &DispositionType) -> bool {
         match (self, other) {
             (Self::Render, Self::Render)
@@ -198,7 +198,7 @@ impl std::fmt::Display for DispositionParameter {
     }
 }
 
-impl PartialEq<DispositionParameter> for DispositionParameter {
+impl PartialEq for DispositionParameter {
     fn eq(&self, other: &DispositionParameter) -> bool {
         match (self, other) {
             (Self::Handling(shandling), Self::Handling(ohandling)) => shandling == ohandling,
@@ -284,7 +284,7 @@ impl std::fmt::Display for HandlingValue {
     }
 }
 
-impl PartialEq<HandlingValue> for HandlingValue {
+impl PartialEq for HandlingValue {
     fn eq(&self, other: &HandlingValue) -> bool {
         match (self, other) {
             (Self::Optional, Self::Optional) | (Self::Required, Self::Required) => true,

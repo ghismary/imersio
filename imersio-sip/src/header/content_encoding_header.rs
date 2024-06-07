@@ -61,7 +61,7 @@ impl std::fmt::Display for ContentEncodingHeader {
     }
 }
 
-impl PartialEq<ContentEncodingHeader> for ContentEncodingHeader {
+impl PartialEq for ContentEncodingHeader {
     fn eq(&self, other: &ContentEncodingHeader) -> bool {
         self.encodings == other.encodings
     }

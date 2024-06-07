@@ -49,7 +49,7 @@ impl std::fmt::Display for ContentLanguageHeader {
     }
 }
 
-impl PartialEq<ContentLanguageHeader> for ContentLanguageHeader {
+impl PartialEq for ContentLanguageHeader {
     fn eq(&self, other: &ContentLanguageHeader) -> bool {
         self.languages == other.languages
     }

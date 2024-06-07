@@ -208,7 +208,7 @@ impl std::fmt::Display for CallInfoParameter {
     }
 }
 
-impl PartialEq<CallInfoParameter> for CallInfoParameter {
+impl PartialEq for CallInfoParameter {
     fn eq(&self, other: &CallInfoParameter) -> bool {
         match (self, other) {
             (Self::IconPurpose, Self::IconPurpose)

@@ -50,7 +50,7 @@ impl std::fmt::Display for MaxForwardsHeader {
     }
 }
 
-impl PartialEq<MaxForwardsHeader> for MaxForwardsHeader {
+impl PartialEq for MaxForwardsHeader {
     fn eq(&self, other: &MaxForwardsHeader) -> bool {
         self.max_forwards == other.max_forwards
     }

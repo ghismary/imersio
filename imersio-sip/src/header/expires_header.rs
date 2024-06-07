@@ -48,7 +48,7 @@ impl std::fmt::Display for ExpiresHeader {
     }
 }
 
-impl PartialEq<ExpiresHeader> for ExpiresHeader {
+impl PartialEq for ExpiresHeader {
     fn eq(&self, other: &ExpiresHeader) -> bool {
         self.expires == other.expires
     }

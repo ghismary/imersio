@@ -182,7 +182,7 @@ impl std::fmt::Display for AInfo {
     }
 }
 
-impl PartialEq<AInfo> for AInfo {
+impl PartialEq for AInfo {
     fn eq(&self, other: &AInfo) -> bool {
         match (self, other) {
             (Self::NextNonce(a), Self::NextNonce(b))

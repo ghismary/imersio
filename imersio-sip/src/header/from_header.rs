@@ -77,7 +77,7 @@ impl std::fmt::Display for FromHeader {
     }
 }
 
-impl PartialEq<FromHeader> for FromHeader {
+impl PartialEq for FromHeader {
     fn eq(&self, other: &FromHeader) -> bool {
         self.address == other.address && self.parameters == other.parameters
     }

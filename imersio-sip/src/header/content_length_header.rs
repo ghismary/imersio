@@ -52,7 +52,7 @@ impl std::fmt::Display for ContentLengthHeader {
     }
 }
 
-impl PartialEq<ContentLengthHeader> for ContentLengthHeader {
+impl PartialEq for ContentLengthHeader {
     fn eq(&self, other: &ContentLengthHeader) -> bool {
         self.content_length == other.content_length
     }

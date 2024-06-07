@@ -354,7 +354,7 @@ impl std::fmt::Display for AuthParameter {
     }
 }
 
-impl PartialEq<AuthParameter> for AuthParameter {
+impl PartialEq for AuthParameter {
     fn eq(&self, other: &AuthParameter) -> bool {
         match (self, other) {
             (Self::Username(a), Self::Username(b))

@@ -53,7 +53,7 @@ impl std::fmt::Display for ContactHeader {
     }
 }
 
-impl PartialEq<ContactHeader> for ContactHeader {
+impl PartialEq for ContactHeader {
     fn eq(&self, other: &ContactHeader) -> bool {
         self.contacts == other.contacts
     }

@@ -61,7 +61,7 @@ impl std::fmt::Display for CSeqHeader {
     }
 }
 
-impl PartialEq<CSeqHeader> for CSeqHeader {
+impl PartialEq for CSeqHeader {
     fn eq(&self, other: &CSeqHeader) -> bool {
         self.cseq == other.cseq && self.method == other.method
     }

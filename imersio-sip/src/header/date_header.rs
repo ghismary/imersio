@@ -47,7 +47,7 @@ impl std::fmt::Display for DateHeader {
     }
 }
 
-impl PartialEq<DateHeader> for DateHeader {
+impl PartialEq for DateHeader {
     fn eq(&self, other: &DateHeader) -> bool {
         self.datetime == other.datetime
     }

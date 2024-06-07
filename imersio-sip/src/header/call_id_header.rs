@@ -48,7 +48,7 @@ impl std::fmt::Display for CallIdHeader {
     }
 }
 
-impl PartialEq<CallIdHeader> for CallIdHeader {
+impl PartialEq for CallIdHeader {
     fn eq(&self, other: &CallIdHeader) -> bool {
         self.call_id == other.call_id
     }
