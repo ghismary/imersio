@@ -14,6 +14,7 @@ use nom::{
 use crate::header::date_header::DateHeader;
 use crate::header::from_header::{FromHeader, FromParameter};
 use crate::header::max_forwards_header::MaxForwardsHeader;
+use crate::header::mime_version_header::MimeVersionHeader;
 use crate::parser::sp;
 use crate::{
     common::{
@@ -1301,6 +1302,28 @@ fn max_forwards(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn mime_version(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "mime_version",
+        map(
+            tuple((
+                map(tag_no_case("MIME-Version"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(map(
+                    recognize(tuple((many1(digit), tag("."), many1(digit)))),
+                    String::from_utf8_lossy,
+                )),
+            )),
+            |(name, separator, (value, version))| {
+                Header::MimeVersion(MimeVersionHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    version,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1340,6 +1363,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "from",
                     "in-reply-to",
                     "max-forwards",
+                    "mime-version",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1379,7 +1403,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 from,
                 in_reply_to,
             )),
-            alt((max_forwards, extension_header)),
+            alt((max_forwards, mime_version, extension_header)),
         )),
     )(input)
 }
