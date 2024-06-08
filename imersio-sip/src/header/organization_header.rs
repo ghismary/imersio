@@ -13,20 +13,20 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct OrganizationHeader {
     header: GenericHeader,
-    organization: Option<String>,
+    organization: String,
 }
 
 impl OrganizationHeader {
-    pub(crate) fn new<S: Into<String>>(header: GenericHeader, organization: Option<S>) -> Self {
+    pub(crate) fn new<S: Into<String>>(header: GenericHeader, organization: S) -> Self {
         Self {
             header,
-            organization: organization.map(Into::into),
+            organization: organization.into(),
         }
     }
 
     /// Get the organization from the Organization header.
-    pub fn organization(&self) -> Option<&str> {
-        self.organization.as_deref()
+    pub fn organization(&self) -> &str {
+        &self.organization
     }
 }
 
@@ -40,10 +40,7 @@ impl HeaderAccessor for OrganizationHeader {
         Some("Organization")
     }
     fn normalized_value(&self) -> String {
-        match &self.organization {
-            Some(value) => value.clone(),
-            None => "".to_string(),
-        }
+        self.organization.clone()
     }
 }
 
@@ -79,28 +76,28 @@ mod tests {
     #[test]
     fn test_valid_organization_header() {
         valid_header("Organization: Boxes by Bob", |header| {
-            assert_eq!(header.organization(), Some("Boxes by Bob"));
+            assert_eq!(header.organization(), "Boxes by Bob");
         });
     }
 
     #[test]
     fn test_valid_organization_header_empty() {
         valid_header("Organization:", |header| {
-            assert_eq!(header.organization(), None);
+            assert_eq!(header.organization(), "");
         });
     }
 
     #[test]
     fn test_valid_organization_header_empty_with_space_characters() {
         valid_header("Organization:    ", |header| {
-            assert_eq!(header.organization(), None);
+            assert_eq!(header.organization(), "");
         });
     }
 
     #[test]
     fn test_valid_organization_header_with_utf8_character() {
         valid_header("Organization: 😁", |header| {
-            assert_eq!(header.organization(), Some("😁"));
+            assert_eq!(header.organization(), "😁");
         });
     }
 

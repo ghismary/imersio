@@ -1357,7 +1357,7 @@ fn organization(input: &[u8]) -> ParserResult<&[u8], Header> {
             |(name, separator, (value, organization))| {
                 Header::Organization(OrganizationHeader::new(
                     GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
-                    organization,
+                    organization.unwrap_or_default(),
                 ))
             },
         ),
