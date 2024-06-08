@@ -51,7 +51,7 @@ use super::{
     generic_header::GenericHeader,
     CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
     ErrorInfoHeader, ErrorUri, ExpiresHeader, Header, InReplyToHeader, MediaParameter, MediaType,
-    MinExpiresHeader, OrganizationHeader,
+    MinExpiresHeader, OrganizationHeader, PriorityHeader, PriorityValue,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -1365,6 +1365,40 @@ fn organization(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
+fn other_priority(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    token(input)
+}
+
+fn priority_value(input: &[u8]) -> ParserResult<&[u8], PriorityValue> {
+    alt((
+        map(tag_no_case("emergency"), |_| PriorityValue::Emergency),
+        map(tag_no_case("urgent"), |_| PriorityValue::Urgent),
+        map(tag_no_case("normal"), |_| PriorityValue::Normal),
+        map(tag_no_case("non-urgent"), |_| PriorityValue::NonUrgent),
+        map(other_priority, |value| PriorityValue::Other(value.into())),
+    ))(input)
+}
+
+fn priority(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "priority",
+        map(
+            tuple((
+                map(tag_no_case("Priority"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(priority_value),
+            )),
+            |(name, separator, (value, priority))| {
+                Header::Priority(PriorityHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    priority,
+                ))
+            },
+        ),
+    )(input)
+}
+
+#[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
 }
@@ -1406,6 +1440,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "mime-version",
                     "min-expires",
                     "organization",
+                    "priority",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1450,6 +1485,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 mime_version,
                 min_expires,
                 organization,
+                priority,
                 extension_header,
             )),
         )),
