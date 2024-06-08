@@ -283,6 +283,16 @@ pub(crate) fn text_utf8char(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     ))(input)
 }
 
+pub(crate) fn text_utf8_trim(input: &[u8]) -> ParserResult<&[u8], String> {
+    map(
+        recognize(pair(
+            many1(text_utf8char),
+            many0(pair(many1(lws), many0(text_utf8char))),
+        )),
+        |v| String::from_utf8_lossy(v).trim_end().to_string(),
+    )(input)
+}
+
 pub(crate) fn token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     input
         .split_at_position1_complete(
