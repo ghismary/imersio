@@ -50,6 +50,7 @@ use super::{
     generic_header::GenericHeader,
     CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
     ErrorInfoHeader, ErrorUri, ExpiresHeader, Header, InReplyToHeader, MediaParameter, MediaType,
+    MinExpiresHeader,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -1324,6 +1325,25 @@ fn mime_version(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn min_expires(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "min_expires",
+        map(
+            tuple((
+                map(tag_no_case("Min-Expires"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(delta_seconds),
+            )),
+            |(name, separator, (value, min_expires))| {
+                Header::MinExpires(MinExpiresHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    min_expires,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1364,6 +1384,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "in-reply-to",
                     "max-forwards",
                     "mime-version",
+                    "min-expires",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1403,7 +1424,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 from,
                 in_reply_to,
             )),
-            alt((max_forwards, mime_version, extension_header)),
+            alt((max_forwards, mime_version, min_expires, extension_header)),
         )),
     )(input)
 }

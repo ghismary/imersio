@@ -24,6 +24,7 @@ mod generic_header;
 mod in_reply_to_header;
 mod max_forwards_header;
 mod mime_version_header;
+mod min_expires_header;
 
 pub(crate) mod parser;
 
@@ -58,6 +59,7 @@ use generic_header::GenericHeader;
 pub use in_reply_to_header::{CallIds, InReplyToHeader};
 pub use max_forwards_header::MaxForwardsHeader;
 pub use mime_version_header::MimeVersionHeader;
+pub use min_expires_header::MinExpiresHeader;
 
 use crate::Error;
 
@@ -204,6 +206,8 @@ headers! {
     (MaxForwards, MaxForwardsHeader),
     /// A MIME-Version header.
     (MimeVersion, MimeVersionHeader),
+    /// A Min-Expires header.
+    (MinExpires, MinExpiresHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }
