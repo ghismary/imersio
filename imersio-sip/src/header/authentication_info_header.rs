@@ -38,19 +38,17 @@ impl AuthenticationInfoHeader {
     }
 
     /// Tell whether the Authentication-Info header contains a `qop` value.
-    pub fn has_message_qop(&self) -> bool {
-        self.infos
-            .iter()
-            .any(|ai| matches!(ai, AInfo::MessageQop(_)))
+    pub fn has_qop(&self) -> bool {
+        self.infos.iter().any(|ai| matches!(ai, AInfo::Qop(_)))
     }
 
     /// Get the `qop` value from the Authentication-Info header.
-    pub fn message_qop(&self) -> Option<&MessageQop> {
+    pub fn qop(&self) -> Option<&MessageQop> {
         self.infos
             .iter()
-            .find(|ai| matches!(ai, AInfo::MessageQop(_)))
+            .find(|ai| matches!(ai, AInfo::Qop(_)))
             .and_then(|ai| {
-                if let AInfo::MessageQop(value) = ai {
+                if let AInfo::Qop(value) = ai {
                     Some(value)
                 } else {
                     None
@@ -136,7 +134,7 @@ pub enum AInfo {
     /// A `nextnonce` authentication info.
     NextNonce(WrappedString),
     /// A `qop` authentication info.
-    MessageQop(MessageQop),
+    Qop(MessageQop),
     /// A `rspauth` authentication info.
     ResponseAuth(WrappedString),
     /// A `cnonce` authentication info.
@@ -150,7 +148,7 @@ impl AInfo {
     pub fn key(&self) -> &str {
         match self {
             Self::NextNonce(_) => "nextnonce",
-            Self::MessageQop(_) => "qop",
+            Self::Qop(_) => "qop",
             Self::ResponseAuth(_) => "rspauth",
             Self::CNonce(_) => "cnonce",
             Self::NonceCount(_) => "nc",
@@ -164,7 +162,7 @@ impl AInfo {
                 value.as_ref()
             }
             Self::NonceCount(value) => value,
-            Self::MessageQop(value) => value.value(),
+            Self::Qop(value) => value.value(),
         }
     }
 }
@@ -173,7 +171,7 @@ impl std::fmt::Display for AInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (key, value) = match self {
             Self::NextNonce(value) => ("nextnonce", value.to_string()),
-            Self::MessageQop(value) => ("qop", value.to_string()),
+            Self::Qop(value) => ("qop", value.to_string()),
             Self::ResponseAuth(value) => ("rspauth", value.to_string()),
             Self::CNonce(value) => ("cnonce", value.to_string()),
             Self::NonceCount(value) => ("nc", value.to_string()),
@@ -189,7 +187,7 @@ impl PartialEq for AInfo {
             | (Self::ResponseAuth(a), Self::ResponseAuth(b))
             | (Self::CNonce(a), Self::CNonce(b))
             | (Self::NonceCount(a), Self::NonceCount(b)) => a == b,
-            (Self::MessageQop(a), Self::MessageQop(b)) => a == b,
+            (Self::Qop(a), Self::Qop(b)) => a == b,
             _ => false,
         }
     }
@@ -203,7 +201,7 @@ impl Hash for AInfo {
             | Self::ResponseAuth(value)
             | Self::CNonce(value)
             | Self::NonceCount(value) => value.hash(state),
-            Self::MessageQop(value) => value.value().to_ascii_lowercase().hash(state),
+            Self::Qop(value) => value.value().to_ascii_lowercase().hash(state),
         }
     }
 }
@@ -235,7 +233,7 @@ mod tests {
                 assert_eq!(header.infos().len(), 1);
                 assert!(header.has_next_nonce());
                 assert_eq!(header.next_nonce(), Some("47364c23432d2e131a5fb210812c"));
-                assert!(!header.has_message_qop());
+                assert!(!header.has_qop());
                 assert!(!header.has_cnonce());
                 assert!(!header.has_nonce_count());
                 assert!(!header.has_response_auth());
@@ -248,8 +246,8 @@ mod tests {
         valid_header("Authentication-Info: qop=auth", |header| {
             assert_eq!(header.infos().len(), 1);
             assert!(!header.has_next_nonce());
-            assert!(header.has_message_qop());
-            assert_eq!(header.message_qop(), Some(&MessageQop::Auth));
+            assert!(header.has_qop());
+            assert_eq!(header.qop(), Some(&MessageQop::Auth));
             assert!(!header.has_cnonce());
             assert!(!header.has_nonce_count());
             assert!(!header.has_response_auth());

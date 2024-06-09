@@ -315,6 +315,18 @@ pub(crate) fn ttl(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     recognize(many_m_n(1, 3, digit))(input)
 }
 
+pub(crate) fn pchar(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+    alt((
+        unreserved,
+        escaped,
+        recognize(verify(take1, |b| b":@&=+$,".contains(b))),
+    ))(input)
+}
+
+pub(crate) fn param(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+    recognize(many0(pchar))(input)
+}
+
 #[rustfmt::skip]
 const ESCAPED_CHARS: [u8; 256] = [
     //  0      1      2      3      4      5      6      7      8      9

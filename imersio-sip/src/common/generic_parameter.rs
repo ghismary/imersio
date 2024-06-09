@@ -1,7 +1,6 @@
+use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
-
-use partial_eq_refs::PartialEqRefs;
 
 /// Representation of a generic parameter.
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
@@ -53,18 +52,12 @@ impl PartialEq for GenericParameter {
     }
 }
 
-impl Hash for GenericParameter {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key().to_ascii_lowercase().hash(state);
-        self.value().map(|v| v.to_ascii_lowercase()).hash(state);
-    }
-}
-
 impl PartialOrd for GenericParameter {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
+
 impl Ord for GenericParameter {
     fn cmp(&self, other: &Self) -> Ordering {
         match self
@@ -79,5 +72,12 @@ impl Ord for GenericParameter {
             .unwrap()
             .to_ascii_lowercase()
             .cmp(&other.value().unwrap().to_ascii_lowercase())
+    }
+}
+
+impl Hash for GenericParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().to_ascii_lowercase().hash(state);
+        self.value().map(|v| v.to_ascii_lowercase()).hash(state);
     }
 }

@@ -1,13 +1,13 @@
+use derive_partial_eq_extras::PartialEqExtras;
+use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use partial_eq_refs::PartialEqRefs;
-
+use super::wrapped_string::WrappedString;
 use crate::Uri;
 
-use super::wrapped_string::WrappedString;
-
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, PartialEqExtras, PartialEqRefs)]
 pub struct NameAddress {
+    #[partial_eq_ignore]
     display_name: Option<WrappedString>,
     uri: Uri,
 }
@@ -41,15 +41,18 @@ impl std::fmt::Display for NameAddress {
     }
 }
 
-impl PartialEq for NameAddress {
-    fn eq(&self, other: &Self) -> bool {
-        self.uri == other.uri
-    }
-}
-
 impl Hash for NameAddress {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.uri.hash(state);
+    }
+}
+
+impl From<Uri> for NameAddress {
+    fn from(value: Uri) -> Self {
+        Self {
+            display_name: None,
+            uri: value,
+        }
     }
 }
 

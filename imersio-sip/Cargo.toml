@@ -15,6 +15,9 @@ unsafe_code = "forbid"
 [dependencies]
 bytes = "1.6"
 chrono = "0.4"
+derive_more = "0.99"
+derive-partial-eq-extras = "0.2"
+itertools = "0.13"
 nom = "7.1"
 partial_eq_refs = { path = "../partial_eq_refs" }
 thiserror = "1.0"

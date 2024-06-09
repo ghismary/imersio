@@ -1,9 +1,8 @@
+use partial_eq_refs::PartialEqRefs;
+use std::cmp::Ordering;
 use std::{hash::Hash, ops::Deref};
 
-use partial_eq_refs::PartialEqRefs;
-
-/// Representation of a wrapped string, for the moment, either quoted
-/// or not wrapped.
+/// Representation of a wrapped string, for the moment, either quoted or not wrapped.
 ///
 /// This may get extended later on.
 #[non_exhaustive]
@@ -47,6 +46,18 @@ impl PartialEq for WrappedString {
             (Self::NotWrapped(a), Self::NotWrapped(b)) => a.eq_ignore_ascii_case(b),
             _ => false,
         }
+    }
+}
+
+impl PartialOrd for WrappedString {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for WrappedString {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.value().cmp(&other.value())
     }
 }
 

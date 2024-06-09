@@ -27,6 +27,7 @@ mod mime_version_header;
 mod min_expires_header;
 mod organization_header;
 mod priority_header;
+mod proxy_authenticate_header;
 
 pub(crate) mod parser;
 
@@ -41,7 +42,7 @@ pub use accept_language_header::{AcceptLanguageHeader, Language, Languages};
 pub use alert_info_header::{Alert, AlertInfoHeader, Alerts};
 pub use allow_header::{AllowHeader, Methods};
 pub use authentication_info_header::{AInfo, AInfos, AuthenticationInfoHeader};
-pub use authorization_header::{AuthParameter, AuthParameters, AuthorizationHeader, Credentials};
+pub use authorization_header::AuthorizationHeader;
 pub use call_id_header::CallIdHeader;
 pub use call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter, CallInfos};
 pub use contact_header::{Contact, ContactHeader, ContactParameter, Contacts};
@@ -64,6 +65,7 @@ pub use mime_version_header::MimeVersionHeader;
 pub use min_expires_header::MinExpiresHeader;
 pub use organization_header::OrganizationHeader;
 pub use priority_header::{PriorityHeader, PriorityValue};
+pub use proxy_authenticate_header::ProxyAuthenticateHeader;
 
 use crate::Error;
 
@@ -216,6 +218,8 @@ headers! {
     (Organization, OrganizationHeader),
     /// A Priority header.
     (Priority, PriorityHeader),
+    /// A Proxy-Authenticate header.
+    (ProxyAuthenticate, ProxyAuthenticateHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }

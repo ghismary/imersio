@@ -32,3 +32,13 @@ pub(crate) fn extend_vec<T>(first: T, others: Vec<T>) -> Vec<T> {
     res.extend(others);
     res
 }
+
+pub(crate) fn compare_vectors<I>(first: I, second: I) -> bool
+where
+    I: IntoIterator,
+    I::Item: Hash + Eq + PartialEq,
+{
+    let first_values: HashSet<_> = first.into_iter().collect();
+    let second_values: HashSet<_> = second.into_iter().collect();
+    first_values == second_values
+}

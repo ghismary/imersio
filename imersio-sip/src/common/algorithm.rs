@@ -1,8 +1,10 @@
+use derive_more::IsVariant;
+use std::cmp::Ordering;
 use std::hash::Hash;
 
 use partial_eq_refs::PartialEqRefs;
 
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
 pub enum Algorithm {
     Md5,
     Md5Sess,
@@ -44,8 +46,26 @@ impl PartialEq<Algorithm> for Algorithm {
     }
 }
 
+impl PartialOrd for Algorithm {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Algorithm {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.value().cmp(other.value())
+    }
+}
+
 impl Hash for Algorithm {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.value().to_ascii_lowercase().hash(state);
+    }
+}
+
+impl From<&str> for Algorithm {
+    fn from(value: &str) -> Self {
+        Algorithm::new(value)
     }
 }

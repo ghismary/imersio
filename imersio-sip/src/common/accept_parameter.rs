@@ -1,10 +1,10 @@
-use std::{cmp::Ordering, hash::Hash};
-
+use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
+use std::{cmp::Ordering, hash::Hash};
 
 use crate::GenericParameter;
 
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
 pub enum AcceptParameter {
     Q(String),
     Other(GenericParameter),
@@ -57,7 +57,7 @@ impl std::fmt::Display for AcceptParameter {
     }
 }
 
-impl PartialEq<AcceptParameter> for AcceptParameter {
+impl PartialEq for AcceptParameter {
     fn eq(&self, other: &AcceptParameter) -> bool {
         match (self, other) {
             (Self::Q(a), Self::Q(b)) => a == b,
@@ -71,13 +71,6 @@ impl PartialEq<AcceptParameter> for AcceptParameter {
     }
 }
 
-impl Hash for AcceptParameter {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key().to_ascii_lowercase().hash(state);
-        self.value().map(|v| v.to_ascii_lowercase()).hash(state);
-    }
-}
-
 impl PartialOrd for AcceptParameter {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -86,11 +79,14 @@ impl PartialOrd for AcceptParameter {
 
 impl Ord for AcceptParameter {
     fn cmp(&self, other: &Self) -> Ordering {
-        match self.key().cmp(other.key()) {
-            Ordering::Equal => {}
-            ord => return ord,
-        }
-        self.value().cmp(&other.value())
+        self.to_string().cmp(&other.to_string())
+    }
+}
+
+impl Hash for AcceptParameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().to_ascii_lowercase().hash(state);
+        self.value().map(|v| v.to_ascii_lowercase()).hash(state);
     }
 }
 

@@ -11,6 +11,11 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, tuple},
 };
 
+use crate::common::auth_parameter::{AuthParameter, AuthParameters};
+use crate::common::challenge::Challenge;
+use crate::common::credentials::Credentials;
+use crate::common::domain_uri::DomainUri;
+use crate::common::stale::Stale;
 use crate::header::date_header::DateHeader;
 use crate::header::from_header::{FromHeader, FromParameter};
 use crate::header::max_forwards_header::MaxForwardsHeader;
@@ -24,8 +29,8 @@ use crate::{
     },
     method::parser::method,
     parser::{
-        alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, quoted_string, raquot,
-        rdquot, semi, slash, star, text_utf8_trim, text_utf8char, token, utf8_cont, word,
+        alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, param, pchar, quoted_string,
+        raquot, rdquot, semi, slash, star, text_utf8_trim, text_utf8char, token, utf8_cont, word,
         ParserResult,
     },
     uri::parser::{absolute_uri, host, request_uri, sip_uri, sips_uri},
@@ -40,7 +45,7 @@ use super::{
     alert_info_header::{Alert, AlertInfoHeader},
     allow_header::AllowHeader,
     authentication_info_header::{AInfo, AuthenticationInfoHeader},
-    authorization_header::{AuthParameter, AuthParameters, AuthorizationHeader, Credentials},
+    authorization_header::AuthorizationHeader,
     call_id_header::CallIdHeader,
     call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter},
     contact_header::{Contact, ContactHeader, ContactParameter, Contacts},
@@ -51,7 +56,7 @@ use super::{
     generic_header::GenericHeader,
     CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
     ErrorInfoHeader, ErrorUri, ExpiresHeader, Header, InReplyToHeader, MediaParameter, MediaType,
-    MinExpiresHeader, OrganizationHeader, PriorityHeader, PriorityValue,
+    MinExpiresHeader, OrganizationHeader, PriorityHeader, PriorityValue, ProxyAuthenticateHeader,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -369,7 +374,7 @@ fn message_qop(input: &[u8]) -> ParserResult<&[u8], AInfo> {
         "message_qop",
         map(
             separated_pair(tag_no_case("qop"), equal, qop_value),
-            |(_, value)| AInfo::MessageQop(MessageQop::new(value)),
+            |(_, value)| AInfo::Qop(MessageQop::new(value)),
         ),
     )(input)
 }
@@ -1398,6 +1403,169 @@ fn priority(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn other_challenge(input: &[u8]) -> ParserResult<&[u8], Challenge> {
+    map(
+        separated_pair(
+            verify(auth_scheme, |s: &Cow<'_, str>| {
+                !s.eq_ignore_ascii_case("Digest")
+            }),
+            lws,
+            pair(auth_param, many0(preceded(comma, auth_param))),
+        ),
+        |(scheme, (first_param, other_params))| {
+            let auth_params = extend_vec(first_param, other_params);
+            Challenge::Other(scheme.to_string(), auth_params.into())
+        },
+    )(input)
+}
+
+fn segment(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        recognize(pair(many0(pchar), many0(preceded(tag(";"), param)))),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn path_segments(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        recognize(pair(segment, many0(preceded(tag("/"), segment)))),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn abs_path(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+    map(
+        recognize(pair(tag("/"), path_segments)),
+        String::from_utf8_lossy,
+    )(input)
+}
+
+fn uri(input: &[u8]) -> ParserResult<&[u8], DomainUri> {
+    alt((
+        map(request_uri, DomainUri::Uri),
+        map(abs_path, |path| DomainUri::AbsPath(path.to_string())),
+    ))(input)
+}
+
+fn domain(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+    map(
+        tuple((
+            tag_no_case("domain"),
+            equal,
+            ldquot,
+            uri,
+            many0(preceded(many1(sp), uri)),
+            rdquot,
+        )),
+        |(_, _, _, first_uri, other_uris, _)| {
+            let uris = extend_vec(first_uri, other_uris);
+            AuthParameter::Domain(uris.into())
+        },
+    )(input)
+}
+
+fn stale(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+    map(
+        separated_pair(
+            tag_no_case("stale"),
+            equal,
+            alt((
+                map(tag_no_case("true"), |v| {
+                    AuthParameter::Stale(Stale::new(String::from_utf8_lossy(v), true))
+                }),
+                map(tag_no_case("false"), |v| {
+                    AuthParameter::Stale(Stale::new(String::from_utf8_lossy(v), false))
+                }),
+            )),
+        ),
+        |(_, stale)| stale,
+    )(input)
+}
+
+fn qop_options(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+    map(
+        separated_pair(
+            tag_no_case("qop"),
+            equal,
+            delimited(
+                ldquot,
+                pair(qop_value, many0(preceded(tag(","), qop_value))),
+                rdquot,
+            ),
+        ),
+        |(_, (first_value, other_values))| {
+            let values = extend_vec(first_value, other_values);
+            AuthParameter::QopOptions(
+                values
+                    .iter()
+                    .map(|v| MessageQop::new(v.to_string()))
+                    .collect::<Vec<MessageQop>>()
+                    .into(),
+            )
+        },
+    )(input)
+}
+
+fn digest_cln(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+    alt((
+        realm,
+        domain,
+        nonce,
+        opaque,
+        stale,
+        algorithm,
+        qop_options,
+        verify(auth_param, |param| {
+            ![
+                "realm",
+                "domain",
+                "nonce",
+                "opaque",
+                "stale",
+                "algorithm",
+                "qop",
+            ]
+            .contains(&param.key().to_ascii_lowercase().as_str())
+        }),
+    ))(input)
+}
+
+fn challenge(input: &[u8]) -> ParserResult<&[u8], Challenge> {
+    alt((
+        map(
+            separated_pair(
+                tag_no_case("Digest"),
+                lws,
+                pair(digest_cln, many0(preceded(comma, digest_cln))),
+            ),
+            |(_, (first_param, other_params))| {
+                let auth_params = extend_vec(first_param, other_params);
+                Challenge::Digest(auth_params.into())
+            },
+        ),
+        other_challenge,
+    ))(input)
+}
+
+fn proxy_authenticate(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "proxy_authenticate",
+        map(
+            tuple((
+                map(tag_no_case("Proxy-Authenticate"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                consumed(challenge),
+            )),
+            |(name, separator, (value, challenge))| {
+                Header::ProxyAuthenticate(ProxyAuthenticateHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    challenge,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1441,6 +1609,7 @@ fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                     "min-expires",
                     "organization",
                     "priority",
+                    "proxy-authenticate",
                 ]
                 .contains(&name.to_string().to_ascii_lowercase().as_str())
             }),
@@ -1486,6 +1655,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 min_expires,
                 organization,
                 priority,
+                proxy_authenticate,
                 extension_header,
             )),
         )),
