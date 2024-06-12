@@ -1,7 +1,7 @@
 //! TODO
 
 use std::borrow::Cow;
-use std::{str, str::FromStr};
+use std::str;
 
 use crate::Error;
 
@@ -149,11 +149,11 @@ impl std::fmt::Display for Reason {
     }
 }
 
-impl FromStr for Reason {
-    type Err = Error;
+impl TryFrom<&str> for Reason {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Reason::from_bytes(s.as_bytes())
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Reason::from_bytes(value.as_bytes())
     }
 }
 
@@ -399,11 +399,11 @@ impl std::fmt::Display for StatusCode {
     }
 }
 
-impl FromStr for StatusCode {
-    type Err = Error;
+impl TryFrom<&str> for StatusCode {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        StatusCode::from_bytes(s.as_bytes())
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        StatusCode::from_bytes(value.as_bytes())
     }
 }
 
@@ -427,15 +427,6 @@ impl TryFrom<&[u8]> for StatusCode {
     #[inline]
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         StatusCode::from_bytes(value)
-    }
-}
-
-impl TryFrom<&str> for StatusCode {
-    type Error = Error;
-
-    #[inline]
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        value.parse()
     }
 }
 
@@ -893,8 +884,8 @@ mod test {
     fn test_invalid_status_code() {
         assert_err!(StatusCode::from_u16(10));
         assert_err!(StatusCode::from_u16(3478));
-        assert_err!(StatusCode::from_str("bob"));
-        assert_err!(StatusCode::from_str("9273"));
+        assert_err!(StatusCode::try_from("bob"));
+        assert_err!(StatusCode::try_from("9273"));
         assert_err!(StatusCode::from_bytes(b"4629"));
     }
 
@@ -909,15 +900,15 @@ mod test {
 
     #[test]
     fn test_invalid_reason() {
-        assert_err!(Reason::from_str("Hello world!"));
-        assert_err!(Reason::from_str("4040 Not Found"));
+        assert_err!(Reason::try_from("Hello world!"));
+        assert_err!(Reason::try_from("4040 Not Found"));
     }
 
     #[test]
     fn test_valid_reason() {
         assert_ok!(Reason::from_bytes(b"200 OK"));
         assert_ok!(Reason::from_bytes(b"200 Bon"));
-        assert_ok!(Reason::from_str("404 Pas Trouvé"));
+        assert_ok!(Reason::try_from("404 Pas Trouvé"));
     }
 
     #[test]
@@ -934,7 +925,7 @@ mod test {
         assert_eq!(Reason::OK.to_string(), "200 OK");
         assert_eq!(Reason::OK, 200);
 
-        let custom_ringing_reason = Reason::from_str("180 Sonne").unwrap();
+        let custom_ringing_reason = Reason::try_from("180 Sonne").unwrap();
         assert_eq!(Reason::RINGING, custom_ringing_reason);
     }
 }

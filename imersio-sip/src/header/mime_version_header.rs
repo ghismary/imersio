@@ -1,3 +1,5 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -5,8 +7,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// Representation of a MIME-Version header.
 ///
 /// [[RFC3261, Section 20.24](https://datatracker.ietf.org/doc/html/rfc3261#section-20.24)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct MimeVersionHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     version: String,
 }
@@ -39,20 +43,10 @@ impl HeaderAccessor for MimeVersionHeader {
     }
 }
 
-impl std::fmt::Display for MimeVersionHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for MimeVersionHeader {
-    fn eq(&self, other: &MimeVersionHeader) -> bool {
-        self.version == other.version
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::MimeVersionHeader;
     use crate::{
         header::{
@@ -61,8 +55,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(MimeVersion, MimeVersionHeader, "MIME-Version");
     header_equality!(MimeVersion, "MIME-Version");
@@ -117,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_mime_version_header_to_string() {
-        let header = Header::from_str("mime-Version  :     1.0");
+        let header = Header::try_from("mime-Version  :     1.0");
         if let Header::MimeVersion(header) = header.unwrap() {
             assert_eq!(header.to_string(), "mime-Version  :     1.0");
             assert_eq!(header.to_normalized_string(), "MIME-Version: 1.0");

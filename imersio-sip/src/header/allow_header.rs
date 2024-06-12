@@ -1,8 +1,10 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{common::header_value_collection::HeaderValueCollection, HeaderAccessor, Method};
-
 use super::generic_header::GenericHeader;
+use crate::method::Methods;
+use crate::{HeaderAccessor, Method};
 
 /// Representation of an Allow header.
 ///
@@ -10,8 +12,10 @@ use super::generic_header::GenericHeader;
 /// generating the message.
 ///
 /// [[RFC3261, Section 20.5](https://datatracker.ietf.org/doc/html/rfc3261#section-20.5)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct AllowHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     methods: Methods,
 }
@@ -49,30 +53,13 @@ impl HeaderAccessor for AllowHeader {
     }
 }
 
-impl std::fmt::Display for AllowHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for AllowHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.methods == other.methods
-    }
-}
-
-/// Representation of the list of methods from an `AllowHeader`.
-///
-/// This is usable as an iterator.
-pub type Methods = HeaderValueCollection<Method>;
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::AllowHeader;
     use crate::header::tests::{header_equality, header_inequality, valid_header};
     use crate::{Header, HeaderAccessor, Method};
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(Allow, AllowHeader, "Allow");
     header_equality!(Allow, "Allow");
@@ -156,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_allow_header_to_string() {
-        let header = Header::from_str("allow:   INVITE , ACK,  OPTIONS   , CANCEL,     BYE");
+        let header = Header::try_from("allow:   INVITE , ACK,  OPTIONS   , CANCEL,     BYE");
         if let Header::Allow(header) = header.unwrap() {
             assert_eq!(
                 header.to_string(),

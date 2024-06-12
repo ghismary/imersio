@@ -5,12 +5,12 @@ use std::convert::TryFrom;
 use std::hash::Hash;
 
 use crate::common::algorithm::Algorithm;
+use crate::common::authentication_info::AuthenticationInfo;
 use crate::common::domain_uri::DomainUris;
 use crate::common::header_value_collection::HeaderValueCollection;
 use crate::common::message_qop::{MessageQop, MessageQops};
 use crate::common::stale::Stale;
 use crate::common::wrapped_string::WrappedString;
-use crate::header::AInfo;
 use crate::{Error, Uri};
 
 /// Representation of a list of authentication parameters from an `AuthorizationHeader` or a
@@ -175,14 +175,14 @@ impl Hash for AuthParameter {
     }
 }
 
-impl TryFrom<AInfo> for AuthParameter {
+impl TryFrom<AuthenticationInfo> for AuthParameter {
     type Error = Error;
 
-    fn try_from(value: AInfo) -> Result<Self, Self::Error> {
+    fn try_from(value: AuthenticationInfo) -> Result<Self, Self::Error> {
         match value {
-            AInfo::CNonce(value) => Ok(AuthParameter::CNonce(value)),
-            AInfo::Qop(value) => Ok(AuthParameter::Qop(value)),
-            AInfo::NonceCount(value) => Ok(AuthParameter::NonceCount(value)),
+            AuthenticationInfo::CNonce(value) => Ok(AuthParameter::CNonce(value)),
+            AuthenticationInfo::Qop(value) => Ok(AuthParameter::Qop(value)),
+            AuthenticationInfo::NonceCount(value) => Ok(AuthParameter::NonceCount(value)),
             _ => Err(Error::FailedConvertingAInfoToAuthParam),
         }
     }

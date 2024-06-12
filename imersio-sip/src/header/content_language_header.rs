@@ -1,16 +1,18 @@
-use std::{hash::Hash, str::FromStr};
-
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{common::header_value_collection::HeaderValueCollection, Error, HeaderAccessor};
-
 use super::generic_header::GenericHeader;
+use crate::common::content_language::{ContentLanguage, ContentLanguages};
+use crate::HeaderAccessor;
 
 /// Representation of a Content-Language header.
 ///
 /// [[RFC3261, Section 20.13](https://datatracker.ietf.org/doc/html/rfc3261#section-20.13)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct ContentLanguageHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     languages: ContentLanguages,
 }
@@ -43,100 +45,15 @@ impl HeaderAccessor for ContentLanguageHeader {
     }
 }
 
-impl std::fmt::Display for ContentLanguageHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for ContentLanguageHeader {
-    fn eq(&self, other: &ContentLanguageHeader) -> bool {
-        self.languages == other.languages
-    }
-}
-
-/// Representation of the list of languages in a `Content-Language` header.
-///
-/// This is usable as an iterator.
-pub type ContentLanguages = HeaderValueCollection<ContentLanguage>;
-
-/// Representation of a language contained in an `Content-Language` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct ContentLanguage(String);
-
-impl ContentLanguage {
-    pub(crate) fn new<S: Into<String>>(language: S) -> Self {
-        Self(language.into())
-    }
-}
-
-impl std::fmt::Display for ContentLanguage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.to_ascii_lowercase())
-    }
-}
-
-impl PartialEq for ContentLanguage {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq_ignore_ascii_case(&other.0)
-    }
-}
-
-impl PartialEq<str> for ContentLanguage {
-    fn eq(&self, other: &str) -> bool {
-        self.0.eq_ignore_ascii_case(other)
-    }
-}
-
-impl PartialEq<ContentLanguage> for str {
-    fn eq(&self, other: &ContentLanguage) -> bool {
-        self.eq_ignore_ascii_case(&other.0)
-    }
-}
-
-impl PartialEq<&str> for ContentLanguage {
-    fn eq(&self, other: &&str) -> bool {
-        self.0.eq_ignore_ascii_case(other)
-    }
-}
-
-impl PartialEq<ContentLanguage> for &str {
-    fn eq(&self, other: &ContentLanguage) -> bool {
-        self.eq_ignore_ascii_case(&other.0)
-    }
-}
-
-impl AsRef<str> for ContentLanguage {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl FromStr for ContentLanguage {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        crate::header::parser::language_tag(s.as_bytes())
-            .map(|(_, language)| language)
-            .map_err(|_| Error::InvalidContentLanguage(s.to_string()))
-    }
-}
-
-impl Hash for ContentLanguage {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.to_ascii_lowercase().hash(state)
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::ContentLanguageHeader;
     use crate::{
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(ContentLanguage, ContentLanguageHeader, "Content-Language");
     header_equality!(ContentLanguage, "Content-Language");
@@ -212,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_content_language_header_to_string() {
-        let header = Header::from_str("content-LanguAge:  fr , EN-GB");
+        let header = Header::try_from("content-LanguAge:  fr , EN-GB");
         if let Header::ContentLanguage(header) = header.unwrap() {
             assert_eq!(header.to_string(), "content-LanguAge:  fr , EN-GB");
             assert_eq!(header.to_normalized_string(), "Content-Language: fr, en-gb");

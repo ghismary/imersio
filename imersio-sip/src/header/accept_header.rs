@@ -1,16 +1,10 @@
-use std::{collections::HashSet, hash::Hash};
-
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    common::{
-        accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection,
-        media_range::MediaRange,
-    },
-    HeaderAccessor,
-};
-
 use super::generic_header::GenericHeader;
+use crate::common::accept_range::{AcceptRange, AcceptRanges};
+use crate::HeaderAccessor;
 
 /// Representation of an Accept header.
 ///
@@ -19,8 +13,10 @@ use super::generic_header::GenericHeader;
 /// present, the server SHOULD assume a default value of `application/sdp`.
 ///
 /// [[RFC3261, Section 20.1](https://datatracker.ietf.org/doc/html/rfc3261#section-20.1)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct AcceptHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     ranges: AcceptRanges,
 }
@@ -53,111 +49,17 @@ impl HeaderAccessor for AcceptHeader {
     }
 }
 
-impl std::fmt::Display for AcceptHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for AcceptHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.ranges == other.ranges
-    }
-}
-
-/// Representation of the list of range from an `AcceptHeader`.
-///
-/// This is usable as an iterator.
-pub type AcceptRanges = HeaderValueCollection<AcceptRange>;
-
-impl AcceptRanges {
-    /// Tell whether the ranges contain the given `MediaRange`.
-    pub fn contains(&self, media_range: &MediaRange) -> bool {
-        self.iter().any(|ar| ar.media_range == media_range)
-    }
-
-    /// Get the `Accept-Range` corresponding to the given `MediaRange`.
-    pub fn get(&self, media_range: &MediaRange) -> Option<&AcceptRange> {
-        self.iter().find(|ar| ar.media_range == media_range)
-    }
-}
-
-/// Representation of a range contained in an `AcceptHeader`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct AcceptRange {
-    media_range: MediaRange,
-    parameters: Vec<AcceptParameter>,
-}
-
-impl AcceptRange {
-    pub(crate) fn new(media_range: MediaRange, parameters: Vec<AcceptParameter>) -> Self {
-        AcceptRange {
-            media_range,
-            parameters,
-        }
-    }
-
-    /// Get a reference to the `MediaRange` of the `AcceptRange`.
-    pub fn media_range(&self) -> &MediaRange {
-        &self.media_range
-    }
-
-    /// Get a reference to the vector of `AcceptParameter` of the `AcceptRange`.
-    pub fn parameters(&self) -> &Vec<AcceptParameter> {
-        &self.parameters
-    }
-}
-
-impl std::fmt::Display for AcceptRange {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.media_range,
-            if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
-        )
-    }
-}
-
-impl PartialEq for AcceptRange {
-    fn eq(&self, other: &Self) -> bool {
-        if self.media_range != other.media_range {
-            return false;
-        }
-
-        let self_params: HashSet<_> = self.parameters.iter().collect();
-        let other_params: HashSet<_> = other.parameters.iter().collect();
-        self_params == other_params
-    }
-}
-
-impl Hash for AcceptRange {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.media_range.hash(state);
-        let mut sorted_params = self.parameters.clone();
-        sorted_params.sort();
-        sorted_params.hash(state);
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::AcceptHeader;
+    use crate::common::accept_parameter::AcceptParameter;
     use crate::{
         common::media_range::MediaRange,
-        header::{
-            accept_header::AcceptParameter,
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-        },
+        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(Accept, AcceptHeader, "Accept");
     header_equality!(Accept, "Accept");
@@ -295,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_accept_header_to_string() {
-        let header = Header::from_str(
+        let header = Header::try_from(
             "accept:   application/sdp ; level =1 , application/x-private   ,  text/html",
         );
         if let Header::Accept(header) = header.unwrap() {

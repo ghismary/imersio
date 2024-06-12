@@ -1,3 +1,5 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -12,8 +14,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// MUST be used.
 ///
 /// [[RFC3261, Section 20.14](https://datatracker.ietf.org/doc/html/rfc3261#section-20.14)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct ContentLengthHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     content_length: u32,
 }
@@ -46,20 +50,10 @@ impl HeaderAccessor for ContentLengthHeader {
     }
 }
 
-impl std::fmt::Display for ContentLengthHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for ContentLengthHeader {
-    fn eq(&self, other: &ContentLengthHeader) -> bool {
-        self.content_length == other.content_length
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::ContentLengthHeader;
     use crate::{
         header::{
@@ -68,8 +62,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(ContentLength, ContentLengthHeader, "Content-Length");
     header_equality!(ContentLength, "Content-Length");
@@ -126,7 +118,7 @@ mod tests {
 
     #[test]
     fn test_content_length_header_to_string() {
-        let header = Header::from_str("cOntEnt-lEngth  :   349");
+        let header = Header::try_from("cOntEnt-lEngth  :   349");
         if let Header::ContentLength(header) = header.unwrap() {
             assert_eq!(header.to_string(), "cOntEnt-lEngth  :   349");
             assert_eq!(header.to_normalized_string(), "Content-Length: 349");

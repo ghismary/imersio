@@ -1,6 +1,5 @@
-use std::cmp::Ordering;
-
 use partial_eq_refs::PartialEqRefs;
+use std::cmp::Ordering;
 
 use crate::HeaderAccessor;
 

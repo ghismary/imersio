@@ -1,13 +1,10 @@
-use std::{cmp::Ordering, collections::HashSet, hash::Hash};
-
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    common::{media_range::MediaRange, wrapped_string::WrappedString},
-    HeaderAccessor,
-};
-
 use super::generic_header::GenericHeader;
+use crate::common::media_type::MediaType;
+use crate::HeaderAccessor;
 
 /// Representation of a Content-Type header.
 ///
@@ -18,8 +15,10 @@ use super::generic_header::GenericHeader;
 /// zero length (for example, an empty audio file).
 ///
 /// [[RFC3261, Section 20.15](https://datatracker.ietf.org/doc/html/rfc3261#section-20.15)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct ContentTypeHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     media_type: MediaType,
 }
@@ -49,160 +48,20 @@ impl HeaderAccessor for ContentTypeHeader {
     }
 }
 
-impl std::fmt::Display for ContentTypeHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for ContentTypeHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.media_type == other.media_type
-    }
-}
-
-/// Representation of a media type contained in a `ContentTypeHeader`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct MediaType {
-    media_range: MediaRange,
-    parameters: Vec<MediaParameter>,
-}
-
-impl MediaType {
-    pub(crate) fn new(media_range: MediaRange, parameters: Vec<MediaParameter>) -> Self {
-        MediaType {
-            media_range,
-            parameters,
-        }
-    }
-
-    /// Get a reference to the `MediaRange` of the media type.
-    pub fn media_range(&self) -> &MediaRange {
-        &self.media_range
-    }
-
-    /// Get a reference to the list of `MediaParameter`s of the media type.
-    pub fn parameters(&self) -> &Vec<MediaParameter> {
-        &self.parameters
-    }
-}
-
-impl std::fmt::Display for MediaType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.media_range,
-            if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
-        )
-    }
-}
-
-impl PartialEq for MediaType {
-    fn eq(&self, other: &Self) -> bool {
-        if self.media_range != other.media_range {
-            return false;
-        }
-
-        let self_params: HashSet<_> = self.parameters.iter().collect();
-        let other_params: HashSet<_> = other.parameters.iter().collect();
-        self_params == other_params
-    }
-}
-
-impl Hash for MediaType {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.media_range.hash(state);
-        let mut sorted_params = self.parameters.clone();
-        sorted_params.sort();
-        sorted_params.hash(state);
-    }
-}
-
-/// Representation of a media parameter.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct MediaParameter {
-    key: String,
-    value: WrappedString,
-}
-
-impl MediaParameter {
-    /// Create a `MediaParameter`.
-    pub fn new<S: Into<String>>(key: S, value: WrappedString) -> Self {
-        Self {
-            key: key.into(),
-            value,
-        }
-    }
-
-    /// Get the key of the media parameter.
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-
-    /// Get the value of the media parameter.
-    pub fn value(&self) -> &WrappedString {
-        &self.value
-    }
-}
-
-impl std::fmt::Display for MediaParameter {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}={}", self.key, self.value)
-    }
-}
-
-impl PartialEq for MediaParameter {
-    fn eq(&self, other: &MediaParameter) -> bool {
-        self.key().eq_ignore_ascii_case(other.key()) && self.value() == other.value()
-    }
-}
-
-impl PartialOrd for MediaParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for MediaParameter {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self
-            .key()
-            .to_ascii_lowercase()
-            .cmp(&other.key().to_ascii_lowercase())
-        {
-            Ordering::Equal => {}
-            ord => return ord,
-        }
-        self.value().cmp(other.value())
-    }
-}
-
-impl Hash for MediaParameter {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key().to_ascii_lowercase().hash(state);
-        self.value().hash(state);
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::ContentTypeHeader;
+    use crate::common::media_parameter::MediaParameter;
     use crate::{
         common::{media_range::MediaRange, wrapped_string::WrappedString},
         header::{
             tests::header_equality, tests::header_inequality, tests::invalid_header,
-            tests::valid_header, MediaParameter,
+            tests::valid_header,
         },
         Header, HeaderAccessor,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(ContentType, ContentTypeHeader, "Content-Type");
     header_equality!(ContentType, "Content-Type");
@@ -289,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_content_type_header_to_string() {
-        let header = Header::from_str("content-typE  :  text/html ; charset=  ISO-8859-4");
+        let header = Header::try_from("content-typE  :  text/html ; charset=  ISO-8859-4");
         if let Header::ContentType(header) = header.unwrap() {
             assert_eq!(
                 header.to_string(),

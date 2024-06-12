@@ -1,16 +1,10 @@
-use std::{collections::HashSet, hash::Hash};
-
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    common::{
-        accept_parameter::AcceptParameter, content_encoding::ContentEncoding,
-        header_value_collection::HeaderValueCollection,
-    },
-    HeaderAccessor,
-};
-
 use super::generic_header::GenericHeader;
+use crate::common::accept_encoding::{AcceptEncoding, AcceptEncodings};
+use crate::HeaderAccessor;
 
 /// Representation of an Accept-Encoding header.
 ///
@@ -18,8 +12,10 @@ use super::generic_header::GenericHeader;
 /// content-codings that are acceptable in the response.
 ///
 /// [[RFC3261, Section 20.2](https://datatracker.ietf.org/doc/html/rfc3261#section-20.2)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct AcceptEncodingHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     encodings: AcceptEncodings,
 }
@@ -52,113 +48,13 @@ impl HeaderAccessor for AcceptEncodingHeader {
     }
 }
 
-impl std::fmt::Display for AcceptEncodingHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for AcceptEncodingHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.encodings == other.encodings
-    }
-}
-
-/// Representation of the list of encodings from an `AcceptEncodingHeader`.
-///
-/// This is usable as an iterator.
-pub type AcceptEncodings = HeaderValueCollection<AcceptEncoding>;
-
-impl AcceptEncodings {
-    /// Tell whether the encodings contain the given encoding.
-    pub fn contains(&self, encoding: &str) -> bool {
-        self.iter().any(|e| e.encoding == encoding)
-    }
-
-    /// Get the `Encoding` corresponding to the given encoding name.
-    pub fn get(&self, encoding: &str) -> Option<&AcceptEncoding> {
-        self.iter().find(|e| e.encoding == encoding)
-    }
-}
-
-/// Representation of an encoding from an `Accept-Encoding` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct AcceptEncoding {
-    encoding: ContentEncoding,
-    parameters: Vec<AcceptParameter>,
-}
-
-impl AcceptEncoding {
-    pub(crate) fn new(encoding: ContentEncoding, parameters: Vec<AcceptParameter>) -> Self {
-        AcceptEncoding {
-            encoding,
-            parameters,
-        }
-    }
-
-    /// Get the encoding.
-    pub fn encoding(&self) -> &str {
-        self.encoding.as_ref()
-    }
-
-    /// Get a reference to the parameters for the encoding.
-    pub fn parameters(&self) -> &Vec<AcceptParameter> {
-        &self.parameters
-    }
-
-    /// Get the value of the `q` parameter for the encoding, if it has one.
-    pub fn q(&self) -> Option<f32> {
-        self.parameters
-            .iter()
-            .find(|param| matches!(param, AcceptParameter::Q(_)))
-            .and_then(|param| param.q())
-    }
-}
-
-impl std::fmt::Display for AcceptEncoding {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.encoding,
-            if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
-        )
-    }
-}
-
-impl PartialEq for AcceptEncoding {
-    fn eq(&self, other: &Self) -> bool {
-        if self.encoding != other.encoding {
-            return false;
-        }
-
-        let self_params: HashSet<_> = self.parameters.iter().collect();
-        let other_params: HashSet<_> = other.parameters.iter().collect();
-        self_params == other_params
-    }
-}
-
-impl Hash for AcceptEncoding {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.encoding.hash(state);
-        let mut sorted_params = self.parameters.clone();
-        sorted_params.sort();
-        sorted_params.hash(state);
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::AcceptEncodingHeader;
-    use crate::header::tests::{header_equality, header_inequality, valid_header};
+    use crate::header::tests::{header_equality, header_inequality, invalid_header, valid_header};
     use crate::{Header, HeaderAccessor};
-    use claims::{assert_err, assert_ok};
-    use std::str::FromStr;
 
     valid_header!(AcceptEncoding, AcceptEncodingHeader, "Accept-Encoding");
     header_equality!(AcceptEncoding, "Accept-Encoding");
@@ -242,8 +138,7 @@ mod tests {
 
     #[test]
     fn test_invalid_accept_encoding_header_with_invalid_character() {
-        let header = Header::from_str("Accept-Encoding: 😁");
-        assert_err!(header);
+        invalid_header("Accept-Encoding: 😁");
     }
 
     #[test]
@@ -278,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_accept_encoding_header_to_string() {
-        let header = Header::from_str("accept-encoding:   gZip  , DeFlate");
+        let header = Header::try_from("accept-encoding:   gZip  , DeFlate");
         if let Header::AcceptEncoding(header) = header.unwrap() {
             assert_eq!(header.to_string(), "accept-encoding:   gZip  , DeFlate");
             assert_eq!(

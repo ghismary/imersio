@@ -1,7 +1,9 @@
-use crate::common::header_value_collection::HeaderValueCollection;
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
+use crate::common::CallIds;
 
 /// Representation of an In-Reply-To header.
 ///
@@ -10,8 +12,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// return call.
 ///
 /// [[RFC3261, Section 20.21](https://datatracker.ietf.org/doc/html/rfc3261#section-20.21)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct InReplyToHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     call_ids: CallIds,
 }
@@ -48,25 +52,10 @@ impl HeaderAccessor for InReplyToHeader {
     }
 }
 
-impl std::fmt::Display for InReplyToHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for InReplyToHeader {
-    fn eq(&self, other: &InReplyToHeader) -> bool {
-        self.call_ids == other.call_ids
-    }
-}
-
-/// Representation of the list of call IDs in a `In-Reply-To` header.
-///
-/// This is usable as an iterator.
-pub type CallIds = HeaderValueCollection<String>;
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::InReplyToHeader;
     use crate::{
         header::{
@@ -75,8 +64,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(InReplyTo, InReplyToHeader, "In-Reply-To");
     header_equality!(InReplyTo, "In-Reply-To");
@@ -168,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_in_reply_to_header_to_string() {
-        let header = Header::from_str(
+        let header = Header::try_from(
             "in-reply-to  :   70710@saturn.bell-tel.com   , 17320@saturn.bell-tel.com",
         );
         if let Header::InReplyTo(header) = header.unwrap() {

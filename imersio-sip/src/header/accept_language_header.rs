@@ -1,13 +1,10 @@
-use std::{collections::HashSet, hash::Hash};
-
+use crate::common::accept_language::{AcceptLanguage, AcceptLanguages};
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
-    HeaderAccessor,
-};
-
 use super::generic_header::GenericHeader;
+use crate::HeaderAccessor;
 
 /// Representation of an Accept-Language header.
 ///
@@ -18,14 +15,16 @@ use super::generic_header::GenericHeader;
 /// languages are acceptable to the client.
 ///
 /// [[RFC3261, Section 20.3](https://datatracker.ietf.org/doc/html/rfc3261#section-20.3)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct AcceptLanguageHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
-    languages: Languages,
+    languages: AcceptLanguages,
 }
 
 impl AcceptLanguageHeader {
-    pub(crate) fn new(header: GenericHeader, languages: Vec<Language>) -> Self {
+    pub(crate) fn new(header: GenericHeader, languages: Vec<AcceptLanguage>) -> Self {
         Self {
             header,
             languages: languages.into(),
@@ -33,7 +32,7 @@ impl AcceptLanguageHeader {
     }
 
     /// Get the `Languages` from the `Accept-Language` header.
-    pub fn languages(&self) -> &Languages {
+    pub fn languages(&self) -> &AcceptLanguages {
         &self.languages
     }
 }
@@ -52,113 +51,12 @@ impl HeaderAccessor for AcceptLanguageHeader {
     }
 }
 
-impl std::fmt::Display for AcceptLanguageHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for AcceptLanguageHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.languages == other.languages
-    }
-}
-
-/// Representation of the list of languages from an `AcceptLanguageHeader`.
-///
-/// This is usable as an iterator.
-pub type Languages = HeaderValueCollection<Language>;
-
-impl Languages {
-    /// Tell whether `Languages` contains the given language.
-    pub fn contains(&self, language: &str) -> bool {
-        self.iter().any(|l| l.language == language)
-    }
-
-    /// Get the `Language` corresponding to the given language name.
-    pub fn get(&self, language: &str) -> Option<&Language> {
-        self.iter().find(|l| l.language == language)
-    }
-}
-
-/// Representation of a language contained in an `Accept-Language` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct Language {
-    language: String,
-    parameters: Vec<AcceptParameter>,
-}
-
-impl Language {
-    pub(crate) fn new(language: String, parameters: Vec<AcceptParameter>) -> Self {
-        Language {
-            language,
-            parameters,
-        }
-    }
-
-    /// Get the language.
-    pub fn language(&self) -> &str {
-        &self.language
-    }
-
-    /// Get a reference to the parameters of the `Language`.
-    pub fn parameters(&self) -> &Vec<AcceptParameter> {
-        &self.parameters
-    }
-
-    /// Get the value of the `q` parameter for the language, if it has one.
-    pub fn q(&self) -> Option<f32> {
-        self.parameters
-            .iter()
-            .find(|param| matches!(param, AcceptParameter::Q(_)))
-            .and_then(|param| param.q())
-    }
-}
-
-impl std::fmt::Display for Language {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.language.to_ascii_lowercase(),
-            if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
-        )
-    }
-}
-
-impl PartialEq for Language {
-    fn eq(&self, other: &Self) -> bool {
-        if !self.language.eq_ignore_ascii_case(&other.language) {
-            return false;
-        }
-
-        let self_params: HashSet<_> = self.parameters.iter().collect();
-        let other_params: HashSet<_> = other.parameters.iter().collect();
-        self_params == other_params
-    }
-}
-
-impl Hash for Language {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.language.to_ascii_lowercase().hash(state);
-        let mut sorted_params = self.parameters.clone();
-        sorted_params.sort();
-        sorted_params.hash(state);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::AcceptLanguageHeader;
-    use crate::header::tests::{header_equality, header_inequality, valid_header};
+    use crate::header::tests::{header_equality, header_inequality, invalid_header, valid_header};
     use crate::{Header, HeaderAccessor};
-    use claims::{assert_err, assert_ok};
-    use std::str::FromStr;
+    use claims::assert_ok;
 
     valid_header!(AcceptLanguage, AcceptLanguageHeader, "Accept-Language");
     header_equality!(AcceptLanguage, "Accept-Language");
@@ -255,8 +153,7 @@ mod tests {
 
     #[test]
     fn test_invalid_accept_language_header_with_invalid_characters() {
-        let header = Header::from_str("Accept-Language: 😁");
-        assert_err!(header);
+        invalid_header("Accept-Language: 😁");
     }
 
     #[test]
@@ -293,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_accept_language_header_to_string() {
-        let header = Header::from_str("accept-language:  EN   , FR");
+        let header = Header::try_from("accept-language:  EN   , FR");
         if let Header::AcceptLanguage(header) = header.unwrap() {
             assert_eq!(header.to_string(), "accept-language:  EN   , FR");
             assert_eq!(header.to_normalized_string(), "Accept-Language: en, fr");

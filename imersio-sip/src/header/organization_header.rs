@@ -1,3 +1,5 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -10,8 +12,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// The field MAY be used by client software to filter calls.
 ///
 /// [[RFC3261, Section 20.25](https://datatracker.ietf.org/doc/html/rfc3261#section-20.25)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct OrganizationHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     organization: String,
 }
@@ -44,20 +48,10 @@ impl HeaderAccessor for OrganizationHeader {
     }
 }
 
-impl std::fmt::Display for OrganizationHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for OrganizationHeader {
-    fn eq(&self, other: &OrganizationHeader) -> bool {
-        self.organization == other.organization
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::OrganizationHeader;
     use crate::{
         header::{
@@ -66,8 +60,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(Organization, OrganizationHeader, "Organization");
     header_equality!(Organization, "Organization");
@@ -116,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_organization_header_to_string() {
-        let header = Header::from_str("organiZaTioN    :   Boxes by Bob");
+        let header = Header::try_from("organiZaTioN    :   Boxes by Bob");
         if let Header::Organization(header) = header.unwrap() {
             assert_eq!(header.to_string(), "organiZaTioN    :   Boxes by Bob");
             assert_eq!(header.to_normalized_string(), "Organization: Boxes by Bob");

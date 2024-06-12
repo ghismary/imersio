@@ -8,21 +8,22 @@
 //!
 //! ```
 //! use imersio_sip::Method;
-//! use std::str::FromStr;
 //!
 //! assert_eq!(Method::INVITE, Method::from_bytes(b"INVITE").unwrap());
 //! assert_eq!(Method::BYE.as_str(), "BYE");
-//! let method = Method::from_str("CANCEL");
+//! let method = Method::try_from("CANCEL");
 //! assert!(method.is_ok_and(|method| method == Method::CANCEL));
 //! ```
 
-use std::{
-    borrow::Cow,
-    hash::Hash,
-    str::{self, FromStr},
-};
+use crate::common::header_value_collection::HeaderValueCollection;
+use std::{borrow::Cow, hash::Hash, str};
 
 use crate::Error;
+
+/// Representation of the list of methods from an `AllowHeader`.
+///
+/// This is usable as an iterator.
+pub type Methods = HeaderValueCollection<Method>;
 
 /// The Request Method
 ///
@@ -53,11 +54,11 @@ impl Method {
     }
 }
 
-impl FromStr for Method {
-    type Err = Error;
+impl TryFrom<&str> for Method {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Method::from_bytes(s.as_bytes())
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Method::from_bytes(value.as_bytes())
     }
 }
 
@@ -243,7 +244,7 @@ mod test {
 
     #[test]
     fn test_invalid_method() {
-        assert_err!(Method::from_str(""));
+        assert_err!(Method::try_from(""));
         assert_err!(Method::from_bytes(b""));
         assert_err!(Method::from_bytes(&[0xC0])); // Invalid UTF-8
         assert_err!(Method::from_bytes(&[0x10])); // Invalid method characters
@@ -251,7 +252,7 @@ mod test {
 
     #[test]
     fn test_valid_method() {
-        assert!(Method::from_str("INVITE").is_ok_and(|method| method == Method::INVITE));
+        assert!(Method::try_from("INVITE").is_ok_and(|method| method == Method::INVITE));
         assert!(Method::from_bytes(b"CANCEL").is_ok_and(|method| method == Method::CANCEL));
         assert_eq!(Method::INVITE.as_str(), "INVITE");
     }
@@ -263,6 +264,6 @@ mod test {
         assert_err!(Method::from_bytes(b"BAD^EXT"));
 
         let long_method = "This_is_a_very_long_method.It_is_valid_but_unlikely.";
-        assert_eq!(Method::from_str(long_method).unwrap(), long_method);
+        assert_eq!(Method::try_from(long_method).unwrap(), long_method);
     }
 }

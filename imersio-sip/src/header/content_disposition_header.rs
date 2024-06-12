@@ -1,10 +1,13 @@
-use std::{cmp::Ordering, collections::HashSet, hash::Hash};
-
+use derive_more::Display;
+use itertools::join;
 use partial_eq_refs::PartialEqRefs;
-
-use crate::{GenericParameter, HeaderAccessor};
+use std::ops::Deref;
 
 use super::generic_header::GenericHeader;
+use crate::common::disposition_parameter::DispositionParameter;
+use crate::common::disposition_type::DispositionType;
+use crate::utils::compare_vectors;
+use crate::HeaderAccessor;
 
 /// Representation of a Content-Disposition header.
 ///
@@ -13,7 +16,8 @@ use super::generic_header::GenericHeader;
 /// UAC or UAS.
 ///
 /// [[RFC3261, Section 20.11](https://datatracker.ietf.org/doc/html/rfc3261#section-20.11)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct ContentDispositionHeader {
     header: GenericHeader,
     r#type: DispositionType,
@@ -58,269 +62,28 @@ impl HeaderAccessor for ContentDispositionHeader {
             "{}{}{}",
             self.r#type,
             if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
+            join(&self.parameters, ";")
         )
-    }
-}
-
-impl std::fmt::Display for ContentDispositionHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
     }
 }
 
 impl PartialEq for ContentDispositionHeader {
     fn eq(&self, other: &Self) -> bool {
-        if self.r#type != other.r#type {
-            return false;
-        }
-        let self_params: HashSet<_> = self.parameters().iter().collect();
-        let other_params: HashSet<_> = other.parameters().iter().collect();
-        self_params == other_params
-    }
-}
-
-/// Representation of a disposition type from a `Content-Disposition` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub enum DispositionType {
-    /// The value `render` indicates that the body part should be displayed or
-    /// otherwise rendered to the user.
-    Render,
-    /// The value `session` indicates that the body part describes a session,
-    /// for either calls or early (pre-call) media.
-    Session,
-    /// The value `icon` indicates that the body part contains an image
-    /// suitable as an iconic representation of the caller or callee that
-    /// could be rendered informationally by a user agent when a message has
-    /// been received, or persistently while a dialog takes place.
-    Icon,
-    /// The value `alert`` indicates that the body part contains information,
-    /// such as an audio clip, that should be rendered by the user agent in an
-    /// attempt to alert the user to the receipt of a request.
-    Alert,
-    /// Any other extension disposition type.
-    Other(String),
-}
-
-impl DispositionType {
-    pub(crate) fn new<S: Into<String>>(r#type: S) -> DispositionType {
-        let r#type: String = r#type.into();
-        match r#type.to_ascii_lowercase().as_ref() {
-            "render" => Self::Render,
-            "session" => Self::Session,
-            "icon" => Self::Icon,
-            "alert" => Self::Alert,
-            _ => Self::Other(r#type),
-        }
-    }
-}
-
-impl std::fmt::Display for DispositionType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Render => "render",
-                Self::Session => "session",
-                Self::Icon => "icon",
-                Self::Alert => "alert",
-                Self::Other(value) => value,
-            }
-        )
-    }
-}
-
-impl PartialEq for DispositionType {
-    fn eq(&self, other: &DispositionType) -> bool {
-        match (self, other) {
-            (Self::Render, Self::Render)
-            | (Self::Session, Self::Session)
-            | (Self::Icon, Self::Icon)
-            | (Self::Alert, Self::Alert) => true,
-            (Self::Other(svalue), Self::Other(ovalue)) => svalue.eq_ignore_ascii_case(ovalue),
-            _ => false,
-        }
-    }
-}
-
-/// Representation of a parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub enum DispositionParameter {
-    /// The handling parameter describes how the UAS should react if it
-    /// receives a message body whose content type or disposition type it
-    /// does not understand.
-    Handling(HandlingValue),
-    /// Any other parameter.
-    Other(GenericParameter),
-}
-
-impl DispositionParameter {
-    /// Get the key of the parameter.
-    pub fn key(&self) -> &str {
-        match self {
-            Self::Handling(_) => "handling",
-            Self::Other(param) => param.key(),
-        }
-    }
-
-    /// Get the value of the parameter.
-    pub fn value(&self) -> Option<&str> {
-        match self {
-            Self::Handling(value) => Some(value.value()),
-            Self::Other(param) => param.value(),
-        }
-    }
-
-    /// Get the handling value of the parameter if this is a `handling`
-    /// parameter.
-    pub fn handling(&self) -> Option<&HandlingValue> {
-        match self {
-            Self::Handling(value) => Some(value),
-            _ => None,
-        }
-    }
-}
-
-impl std::fmt::Display for DispositionParameter {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.key(),
-            if self.value().is_some() { "=" } else { "" },
-            self.value().unwrap_or_default()
-        )
-    }
-}
-
-impl PartialEq for DispositionParameter {
-    fn eq(&self, other: &DispositionParameter) -> bool {
-        match (self, other) {
-            (Self::Handling(shandling), Self::Handling(ohandling)) => shandling == ohandling,
-            (Self::Other(sparam), Self::Other(oparam)) => sparam == oparam,
-            _ => false,
-        }
-    }
-}
-
-impl PartialOrd for DispositionParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Hash for DispositionParameter {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key().hash(state);
-        self.value().hash(state);
-    }
-}
-
-impl Ord for DispositionParameter {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.key().cmp(other.key()) {
-            Ordering::Equal => {}
-            ord => return ord,
-        }
-        self.value().cmp(&other.value())
-    }
-}
-
-impl From<GenericParameter> for DispositionParameter {
-    fn from(value: GenericParameter) -> Self {
-        Self::Other(value)
-    }
-}
-
-/// Representation of the `handling` parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub enum HandlingValue {
-    /// The handling of the content type is optional.
-    Optional,
-    /// The handling of the content type is required.
-    Required,
-    /// Any extension value.
-    Other(String),
-}
-
-impl HandlingValue {
-    pub(crate) fn new<S: Into<String>>(handling: S) -> HandlingValue {
-        let handling: String = handling.into();
-        match handling.to_ascii_lowercase().as_str() {
-            "optional" => Self::Optional,
-            "required" => Self::Required,
-            _ => Self::Other(handling),
-        }
-    }
-
-    /// Get the value of the `HandlingValue.`
-    pub fn value(&self) -> &str {
-        match self {
-            Self::Optional => "optional",
-            Self::Required => "required",
-            Self::Other(value) => value,
-        }
-    }
-
-    /// Tell whether the parameter has the `optional` value.
-    pub fn is_optional(&self) -> bool {
-        matches!(self, Self::Optional)
-    }
-
-    /// Tell whether the parameter has the `required` value.
-    pub fn is_required(&self) -> bool {
-        matches!(self, Self::Required)
-    }
-}
-
-impl std::fmt::Display for HandlingValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
-    }
-}
-
-impl PartialEq for HandlingValue {
-    fn eq(&self, other: &HandlingValue) -> bool {
-        match (self, other) {
-            (Self::Optional, Self::Optional) | (Self::Required, Self::Required) => true,
-            (Self::Other(svalue), Self::Other(ovalue)) => svalue.eq_ignore_ascii_case(ovalue),
-            _ => false,
-        }
-    }
-}
-
-impl Hash for HandlingValue {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.value().hash(state);
-    }
-}
-
-impl PartialOrd for HandlingValue {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for HandlingValue {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.value().cmp(other.value())
+        self.r#type == other.r#type
+            && compare_vectors(self.parameters().deref(), other.parameters().deref())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ContentDispositionHeader, DispositionType, HandlingValue};
+    use claims::assert_ok;
+
+    use super::{ContentDispositionHeader, DispositionType};
+    use crate::common::handling::Handling;
     use crate::{
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(
         ContentDisposition,
@@ -345,7 +108,7 @@ mod tests {
             assert_eq!(header.parameters().len(), 1);
             assert_eq!(
                 header.parameters().first().unwrap().handling(),
-                Some(&HandlingValue::Optional)
+                Some(&Handling::Optional)
             )
         });
     }
@@ -426,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_content_disposition_header_to_string() {
-        let header = Header::from_str("content-disposition:  Session ; HANDLING=OPTIONAL");
+        let header = Header::try_from("content-disposition:  Session ; HANDLING=OPTIONAL");
         if let Header::ContentDisposition(header) = header.unwrap() {
             assert_eq!(
                 header.to_string(),

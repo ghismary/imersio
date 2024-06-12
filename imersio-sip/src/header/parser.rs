@@ -11,13 +11,31 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, tuple},
 };
 
+use crate::common::accept_encoding::AcceptEncoding;
+use crate::common::accept_language::AcceptLanguage;
+use crate::common::accept_range::AcceptRange;
+use crate::common::alert::Alert;
 use crate::common::auth_parameter::{AuthParameter, AuthParameters};
+use crate::common::authentication_info::AuthenticationInfo;
+use crate::common::call_info::CallInfo;
+use crate::common::call_info_parameter::CallInfoParameter;
 use crate::common::challenge::Challenge;
+use crate::common::contact::{Contact, Contacts};
+use crate::common::contact_parameter::ContactParameter;
+use crate::common::content_language::ContentLanguage;
 use crate::common::credentials::Credentials;
+use crate::common::disposition_parameter::DispositionParameter;
+use crate::common::disposition_type::DispositionType;
 use crate::common::domain_uri::DomainUri;
+use crate::common::error_uri::ErrorUri;
+use crate::common::from_parameter::FromParameter;
+use crate::common::handling::Handling;
+use crate::common::media_parameter::MediaParameter;
+use crate::common::media_type::MediaType;
+use crate::common::priority::Priority;
 use crate::common::stale::Stale;
 use crate::header::date_header::DateHeader;
-use crate::header::from_header::{FromHeader, FromParameter};
+use crate::header::from_header::FromHeader;
 use crate::header::max_forwards_header::MaxForwardsHeader;
 use crate::header::mime_version_header::MimeVersionHeader;
 use crate::parser::sp;
@@ -39,24 +57,16 @@ use crate::{
 };
 
 use super::{
-    accept_encoding_header::{AcceptEncoding, AcceptEncodingHeader},
-    accept_header::{AcceptHeader, AcceptRange},
-    accept_language_header::{AcceptLanguageHeader, Language},
-    alert_info_header::{Alert, AlertInfoHeader},
-    allow_header::AllowHeader,
-    authentication_info_header::{AInfo, AuthenticationInfoHeader},
-    authorization_header::AuthorizationHeader,
-    call_id_header::CallIdHeader,
-    call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter},
-    contact_header::{Contact, ContactHeader, ContactParameter, Contacts},
-    content_disposition_header::{
-        ContentDispositionHeader, DispositionParameter, DispositionType, HandlingValue,
-    },
-    content_encoding_header::ContentEncodingHeader,
-    generic_header::GenericHeader,
-    CSeqHeader, ContentLanguage, ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader,
-    ErrorInfoHeader, ErrorUri, ExpiresHeader, Header, InReplyToHeader, MediaParameter, MediaType,
-    MinExpiresHeader, OrganizationHeader, PriorityHeader, PriorityValue, ProxyAuthenticateHeader,
+    accept_encoding_header::AcceptEncodingHeader, accept_header::AcceptHeader,
+    accept_language_header::AcceptLanguageHeader, alert_info_header::AlertInfoHeader,
+    allow_header::AllowHeader, authentication_info_header::AuthenticationInfoHeader,
+    authorization_header::AuthorizationHeader, call_id_header::CallIdHeader,
+    call_info_header::CallInfoHeader, contact_header::ContactHeader,
+    content_disposition_header::ContentDispositionHeader,
+    content_encoding_header::ContentEncodingHeader, generic_header::GenericHeader, CSeqHeader,
+    ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader, ErrorInfoHeader, ExpiresHeader,
+    Header, InReplyToHeader, MinExpiresHeader, OrganizationHeader, PriorityHeader,
+    ProxyAuthenticateHeader,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -256,12 +266,12 @@ fn language_range(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     )(input)
 }
 
-fn language(input: &[u8]) -> ParserResult<&[u8], Language> {
+fn language(input: &[u8]) -> ParserResult<&[u8], AcceptLanguage> {
     context(
         "language",
         map(
             pair(language_range, many0(preceded(semi, accept_param))),
-            |(language, params)| Language::new(language.into_owned(), params),
+            |(language, params)| AcceptLanguage::new(language.into_owned(), params),
         ),
     )(input)
 }
@@ -351,12 +361,12 @@ fn nonce_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     quoted_string(input)
 }
 
-fn nextnonce(input: &[u8]) -> ParserResult<&[u8], AInfo> {
+fn nextnonce(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     context(
         "nextnonce",
         map(
             separated_pair(tag_no_case("nextnonce"), equal, nonce_value),
-            |(_, value)| AInfo::NextNonce(value),
+            |(_, value)| AuthenticationInfo::NextNonce(value),
         ),
     )(input)
 }
@@ -369,12 +379,12 @@ fn qop_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     ))(input)
 }
 
-fn message_qop(input: &[u8]) -> ParserResult<&[u8], AInfo> {
+fn message_qop(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     context(
         "message_qop",
         map(
             separated_pair(tag_no_case("qop"), equal, qop_value),
-            |(_, value)| AInfo::Qop(MessageQop::new(value)),
+            |(_, value)| AuthenticationInfo::Qop(MessageQop::new(value)),
         ),
     )(input)
 }
@@ -391,12 +401,12 @@ fn response_digest(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     })(input)
 }
 
-fn response_auth(input: &[u8]) -> ParserResult<&[u8], AInfo> {
+fn response_auth(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     context(
         "response_auth",
         map(
             separated_pair(tag_no_case("rspauth"), equal, response_digest),
-            |(_, value)| AInfo::ResponseAuth(value),
+            |(_, value)| AuthenticationInfo::ResponseAuth(value),
         ),
     )(input)
 }
@@ -406,12 +416,12 @@ fn cnonce_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     nonce_value(input)
 }
 
-fn cnonce(input: &[u8]) -> ParserResult<&[u8], AInfo> {
+fn cnonce(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     context(
         "cnonce",
         map(
             separated_pair(tag_no_case("cnonce"), equal, cnonce_value),
-            |(_, value)| AInfo::CNonce(value),
+            |(_, value)| AuthenticationInfo::CNonce(value),
         ),
     )(input)
 }
@@ -428,17 +438,17 @@ fn nc_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
     })(input)
 }
 
-fn nonce_count(input: &[u8]) -> ParserResult<&[u8], AInfo> {
+fn nonce_count(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     context(
         "nonce_count",
         map(
             separated_pair(tag_no_case("nc"), equal, nc_value),
-            |(_, value)| AInfo::NonceCount(value),
+            |(_, value)| AuthenticationInfo::NonceCount(value),
         ),
     )(input)
 }
 
-fn ainfo(input: &[u8]) -> ParserResult<&[u8], AInfo> {
+fn ainfo(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     alt((nextnonce, message_qop, response_auth, cnonce, nonce_count))(input)
 }
 
@@ -875,7 +885,7 @@ fn handling_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
                     map(tag_no_case("required"), String::from_utf8_lossy),
                     other_handling,
                 )),
-                HandlingValue::new,
+                Handling::new,
             ),
         ),
         |(_, value)| DispositionParameter::Handling(value),
@@ -1374,14 +1384,17 @@ fn other_priority(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
 }
 
-fn priority_value(input: &[u8]) -> ParserResult<&[u8], PriorityValue> {
-    alt((
-        map(tag_no_case("emergency"), |_| PriorityValue::Emergency),
-        map(tag_no_case("urgent"), |_| PriorityValue::Urgent),
-        map(tag_no_case("normal"), |_| PriorityValue::Normal),
-        map(tag_no_case("non-urgent"), |_| PriorityValue::NonUrgent),
-        map(other_priority, |value| PriorityValue::Other(value.into())),
-    ))(input)
+fn priority_value(input: &[u8]) -> ParserResult<&[u8], Priority> {
+    map(
+        alt((
+            map(tag_no_case("emergency"), String::from_utf8_lossy),
+            map(tag_no_case("urgent"), String::from_utf8_lossy),
+            map(tag_no_case("normal"), String::from_utf8_lossy),
+            map(tag_no_case("non-urgent"), String::from_utf8_lossy),
+            other_priority,
+        )),
+        Priority::new,
+    )(input)
 }
 
 fn priority(input: &[u8]) -> ParserResult<&[u8], Header> {

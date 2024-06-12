@@ -1,3 +1,5 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -10,8 +12,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// in mid-chain.
 ///
 /// [[RFC3261, Section 20.22](https://datatracker.ietf.org/doc/html/rfc3261#section-20.22)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct MaxForwardsHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     max_forwards: u8,
 }
@@ -44,20 +48,10 @@ impl HeaderAccessor for MaxForwardsHeader {
     }
 }
 
-impl std::fmt::Display for MaxForwardsHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for MaxForwardsHeader {
-    fn eq(&self, other: &MaxForwardsHeader) -> bool {
-        self.max_forwards == other.max_forwards
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::MaxForwardsHeader;
     use crate::{
         header::{
@@ -66,8 +60,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(MaxForwards, MaxForwardsHeader, "Max-Forwards");
     header_equality!(MaxForwards, "Max-Forwards");
@@ -114,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_max_forwards_header_to_string() {
-        let header = Header::from_str("maX-forwardS  :     28");
+        let header = Header::try_from("maX-forwardS  :     28");
         if let Header::MaxForwards(header) = header.unwrap() {
             assert_eq!(header.to_string(), "maX-forwardS  :     28");
             assert_eq!(header.to_normalized_string(), "Max-Forwards: 28");

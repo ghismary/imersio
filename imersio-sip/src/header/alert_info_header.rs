@@ -1,25 +1,24 @@
-use std::{collections::HashSet, hash::Hash};
-
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    common::{accept_parameter::AcceptParameter, header_value_collection::HeaderValueCollection},
-    AbsoluteUri, HeaderAccessor,
-};
-
 use super::generic_header::GenericHeader;
+use crate::common::alert::{Alert, Alerts};
+use crate::HeaderAccessor;
 
 /// Representation of an Alert-Info header.
 ///
 /// When present in an INVITE request, the Alert-Info header field specifies
-/// an alternative ring tone to the UAS. When present in a 180 (Ringing)
+/// an alternative ringtone to the UAS. When present in a 180 (Ringing)
 /// response, the Alert-Info header field specifies an alternative ringback
 /// tone to the UAC. A typical usage is for a proxy to insert this header
 /// field to provide a distinctive ring feature.
 ///
 /// [[RFC3261, Section 20.4](https://datatracker.ietf.org/doc/html/rfc3261#section-20.4)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct AlertInfoHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     alerts: Alerts,
 }
@@ -52,95 +51,6 @@ impl HeaderAccessor for AlertInfoHeader {
     }
 }
 
-impl std::fmt::Display for AlertInfoHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for AlertInfoHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.alerts == other.alerts
-    }
-}
-
-/// Representation of the list of alerts from an `AlertInfoHeader`.
-///
-/// This is usable as an iterator.
-pub type Alerts = HeaderValueCollection<Alert>;
-
-impl Alerts {
-    /// Tell whether `Alerts` contain the given `Uri`.
-    pub fn contains(&self, uri: &AbsoluteUri) -> bool {
-        self.iter().any(|a| a.uri == uri)
-    }
-
-    /// Get the `Alert` corresponding to the given `Uri`.
-    pub fn get(&self, uri: &AbsoluteUri) -> Option<&Alert> {
-        self.iter().find(|a| a.uri == uri)
-    }
-}
-
-/// Representation of an alert contained in an `Alert-Info` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct Alert {
-    uri: AbsoluteUri,
-    parameters: Vec<AcceptParameter>,
-}
-
-impl Alert {
-    pub(crate) fn new(uri: AbsoluteUri, parameters: Vec<AcceptParameter>) -> Self {
-        Alert { uri, parameters }
-    }
-
-    /// Get a reference to the uri contained in the `Alert`.
-    pub fn uri(&self) -> &AbsoluteUri {
-        &self.uri
-    }
-
-    /// Get a reference to the parameters contained in the `Alert`.
-    pub fn parameters(&self) -> &Vec<AcceptParameter> {
-        &self.parameters
-    }
-}
-
-impl std::fmt::Display for Alert {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "<{}>{}{}",
-            self.uri,
-            if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
-        )
-    }
-}
-
-impl PartialEq for Alert {
-    fn eq(&self, other: &Self) -> bool {
-        if self.uri != other.uri {
-            return false;
-        }
-
-        let self_params: HashSet<_> = self.parameters.iter().collect();
-        let other_params: HashSet<_> = other.parameters.iter().collect();
-        self_params == other_params
-    }
-}
-
-impl Hash for Alert {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.uri.hash(state);
-        let mut sorted_params = self.parameters.clone();
-        sorted_params.sort();
-        sorted_params.hash(state);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::AlertInfoHeader;
@@ -149,7 +59,6 @@ mod tests {
         Header, HeaderAccessor, Uri,
     };
     use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(AlertInfo, AlertInfoHeader, "Alert-Info");
     header_equality!(AlertInfo, "Alert-Info");
@@ -162,7 +71,7 @@ mod tests {
             |header| {
                 assert_eq!(header.alerts().len(), 1);
                 assert!(header.alerts().contains(
-                    Uri::from_str("http://www.example.com/sounds/moo.wav")
+                    Uri::try_from("http://www.example.com/sounds/moo.wav")
                         .unwrap()
                         .as_absolute_uri()
                         .unwrap()
@@ -220,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_alert_info_header_to_string() {
-        let header = Header::from_str(
+        let header = Header::try_from(
             "alert-info:   <http://www.example.com/sounds/moo.wav> ;    MyParam = TEST",
         );
         if let Header::AlertInfo(header) = header.unwrap() {

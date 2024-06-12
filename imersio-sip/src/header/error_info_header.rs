@@ -1,20 +1,20 @@
-use std::{collections::HashSet, hash::Hash};
-
+use crate::common::error_uri::{ErrorUri, ErrorUris};
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    common::header_value_collection::HeaderValueCollection, GenericParameter, HeaderAccessor, Uri,
-};
-
 use super::generic_header::GenericHeader;
+use crate::HeaderAccessor;
 
 /// Representation of an Error-Info header.
 ///
 /// The Error-Info header field provides a pointer to additional information about the error status
 /// response.
 /// [[RFC3261, Section 20.18](https://datatracker.ietf.org/doc/html/rfc3261#section-20.18)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct ErrorInfoHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     error_uris: ErrorUris,
 }
@@ -47,104 +47,15 @@ impl HeaderAccessor for ErrorInfoHeader {
     }
 }
 
-impl std::fmt::Display for ErrorInfoHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for ErrorInfoHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.error_uris == other.error_uris
-    }
-}
-
-/// Representation of the list of error uris from an `ErrorInfoHeader`.
-///
-/// This is usable as an iterator.
-pub type ErrorUris = HeaderValueCollection<ErrorUri>;
-
-impl ErrorUris {
-    /// Tell whether `ErrorUris` contain the given `Uri`.
-    pub fn contains(&self, uri: &Uri) -> bool {
-        self.iter().any(|a| a.uri == uri)
-    }
-
-    /// Get the `ErrorUri` corresponding to the given `Uri`.
-    pub fn get(&self, uri: &Uri) -> Option<&ErrorUri> {
-        self.iter().find(|a| a.uri == uri)
-    }
-}
-
-/// Representation of an error uri contained in an `Error-Info` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct ErrorUri {
-    uri: Uri,
-    parameters: Vec<GenericParameter>,
-}
-
-impl ErrorUri {
-    pub(crate) fn new(uri: Uri, parameters: Vec<GenericParameter>) -> Self {
-        ErrorUri { uri, parameters }
-    }
-
-    /// Get a reference to the uri contained in the `ErrorUri`.
-    pub fn uri(&self) -> &Uri {
-        &self.uri
-    }
-
-    /// Get a reference to the parameters contained in the `ErrorUri`.
-    pub fn parameters(&self) -> &Vec<GenericParameter> {
-        &self.parameters
-    }
-}
-
-impl std::fmt::Display for ErrorUri {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "<{}>{}{}",
-            self.uri,
-            if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
-        )
-    }
-}
-
-impl PartialEq for ErrorUri {
-    fn eq(&self, other: &Self) -> bool {
-        if self.uri != other.uri {
-            return false;
-        }
-
-        let self_params: HashSet<_> = self.parameters.iter().collect();
-        let other_params: HashSet<_> = other.parameters.iter().collect();
-        self_params == other_params
-    }
-}
-
-impl Hash for ErrorUri {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.uri.hash(state);
-        let mut sorted_params = self.parameters.clone();
-        sorted_params.sort();
-        sorted_params.hash(state);
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::ErrorInfoHeader;
     use crate::{
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor, Uri,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(ErrorInfo, ErrorInfoHeader, "Error-Info");
     header_equality!(ErrorInfo, "Error-Info");
@@ -158,7 +69,7 @@ mod tests {
                 assert_eq!(header.error_uris().len(), 1);
                 assert!(header
                     .error_uris()
-                    .contains(&Uri::from_str("sip:not-in-service-recording@atlanta.com").unwrap()));
+                    .contains(&Uri::try_from("sip:not-in-service-recording@atlanta.com").unwrap()));
             },
         );
     }
@@ -212,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_error_info_header_to_string() {
-        let header = Header::from_str(
+        let header = Header::try_from(
             "errOr-infO:    <sip:not-in-service-recording@atlanta.com> ; MyparaM = Test",
         );
         if let Header::ErrorInfo(header) = header.unwrap() {

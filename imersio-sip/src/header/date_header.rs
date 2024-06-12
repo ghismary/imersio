@@ -1,4 +1,6 @@
 use chrono::{DateTime, Utc};
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -10,8 +12,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// SIP restricts the time zone in SIP-date to "GMT", while RFC 1123 allows any time zone.
 ///
 /// [[RFC3261, Section 20.17](https://datatracker.ietf.org/doc/html/rfc3261#section-20.17)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct DateHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     datetime: DateTime<Utc>,
 }
@@ -41,20 +45,11 @@ impl HeaderAccessor for DateHeader {
     }
 }
 
-impl std::fmt::Display for DateHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for DateHeader {
-    fn eq(&self, other: &DateHeader) -> bool {
-        self.datetime == other.datetime
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use chrono::prelude::*;
+    use claims::assert_ok;
+
     use super::DateHeader;
     use crate::{
         header::{
@@ -63,9 +58,6 @@ mod tests {
         },
         Header,
     };
-    use chrono::prelude::*;
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(Date, DateHeader, "Date");
     header_equality!(Date, "Date");
@@ -119,7 +111,7 @@ mod tests {
 
     #[test]
     fn test_date_header_to_string() {
-        let header = Header::from_str("date:    Thu, 21 Feb 2002 13:02:03 GMT");
+        let header = Header::try_from("date:    Thu, 21 Feb 2002 13:02:03 GMT");
         if let Header::Date(header) = header.unwrap() {
             assert_eq!(header.to_string(), "date:    Thu, 21 Feb 2002 13:02:03 GMT");
             assert_eq!(

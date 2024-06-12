@@ -14,8 +14,6 @@
 //! println!("{}", Version::SIP_2);
 //! ```
 
-use std::str::FromStr;
-
 use crate::Error;
 
 /// Represents a version of the SIP specification.
@@ -47,11 +45,11 @@ impl Version {
     }
 }
 
-impl FromStr for Version {
-    type Err = Error;
+impl TryFrom<&str> for Version {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Version::from_bytes(s.as_bytes())
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Version::from_bytes(value.as_bytes())
     }
 }
 
@@ -166,14 +164,14 @@ mod test {
 
     #[test]
     fn test_invalid_version() {
-        assert_err!(Version::from_str(""));
+        assert_err!(Version::try_from(""));
         assert_err!(Version::from_bytes(b""));
-        assert_err!(Version::from_str("SIP/1.0"));
+        assert_err!(Version::try_from("SIP/1.0"));
         assert_err!(Version::from_bytes(b"crappy-version"));
     }
 
     #[test]
     fn test_valid_version() {
-        assert_eq!(Version::from_str("SIP/2.0").unwrap(), "SIP/2.0");
+        assert_eq!(Version::try_from("SIP/2.0").unwrap(), "SIP/2.0");
     }
 }

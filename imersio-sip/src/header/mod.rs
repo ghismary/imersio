@@ -34,40 +34,36 @@ pub(crate) mod parser;
 #[cfg(test)]
 mod tests;
 
-use std::str::FromStr;
-
-pub use accept_encoding_header::{AcceptEncoding, AcceptEncodingHeader, AcceptEncodings};
-pub use accept_header::{AcceptHeader, AcceptRange, AcceptRanges};
-pub use accept_language_header::{AcceptLanguageHeader, Language, Languages};
-pub use alert_info_header::{Alert, AlertInfoHeader, Alerts};
-pub use allow_header::{AllowHeader, Methods};
-pub use authentication_info_header::{AInfo, AInfos, AuthenticationInfoHeader};
+pub use accept_encoding_header::AcceptEncodingHeader;
+pub use accept_header::AcceptHeader;
+pub use accept_language_header::AcceptLanguageHeader;
+pub use alert_info_header::AlertInfoHeader;
+pub use allow_header::AllowHeader;
+pub use authentication_info_header::AuthenticationInfoHeader;
 pub use authorization_header::AuthorizationHeader;
 pub use call_id_header::CallIdHeader;
-pub use call_info_header::{CallInfo, CallInfoHeader, CallInfoParameter, CallInfos};
-pub use contact_header::{Contact, ContactHeader, ContactParameter, Contacts};
-pub use content_disposition_header::{
-    ContentDispositionHeader, DispositionParameter, DispositionType, HandlingValue,
-};
-pub use content_encoding_header::{ContentEncodingHeader, ContentEncodings};
-pub use content_language_header::{ContentLanguage, ContentLanguageHeader, ContentLanguages};
+pub use call_info_header::CallInfoHeader;
+pub use contact_header::ContactHeader;
+pub use content_disposition_header::ContentDispositionHeader;
+pub use content_encoding_header::ContentEncodingHeader;
+pub use content_language_header::ContentLanguageHeader;
 pub use content_length_header::ContentLengthHeader;
-pub use content_type_header::{ContentTypeHeader, MediaParameter, MediaType};
+pub use content_type_header::ContentTypeHeader;
 pub use cseq_header::CSeqHeader;
 pub use date_header::DateHeader;
-pub use error_info_header::{ErrorInfoHeader, ErrorUri, ErrorUris};
+pub use error_info_header::ErrorInfoHeader;
 pub use expires_header::ExpiresHeader;
-pub use from_header::{FromHeader, FromParameter, FromParameters};
-use generic_header::GenericHeader;
-pub use in_reply_to_header::{CallIds, InReplyToHeader};
+pub use from_header::FromHeader;
+pub use in_reply_to_header::InReplyToHeader;
 pub use max_forwards_header::MaxForwardsHeader;
 pub use mime_version_header::MimeVersionHeader;
 pub use min_expires_header::MinExpiresHeader;
 pub use organization_header::OrganizationHeader;
-pub use priority_header::{PriorityHeader, PriorityValue};
+pub use priority_header::PriorityHeader;
 pub use proxy_authenticate_header::ProxyAuthenticateHeader;
 
 use crate::Error;
+use generic_header::GenericHeader;
 
 /// A trait defining the common accessors for all SIP message headers.
 pub trait HeaderAccessor {
@@ -232,11 +228,11 @@ impl Header {
     }
 }
 
-impl FromStr for Header {
-    type Err = Error;
+impl TryFrom<&str> for Header {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Header::from_bytes(s.as_bytes())
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Header::from_bytes(value.as_bytes())
     }
 }
 

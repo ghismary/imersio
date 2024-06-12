@@ -46,6 +46,8 @@ impl HeaderAccessor for ProxyAuthenticateHeader {
 
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::ProxyAuthenticateHeader;
     use crate::common::algorithm::Algorithm;
     use crate::common::domain_uri::DomainUri;
@@ -53,8 +55,6 @@ mod tests {
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor, Uri,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(
         ProxyAuthenticate,
@@ -80,7 +80,7 @@ mod tests {
                     challenge.domain(),
                     Some(
                         &vec![DomainUri::Uri(
-                            Uri::from_str("sip:ss1.carrier.com").unwrap()
+                            Uri::try_from("sip:ss1.carrier.com").unwrap()
                         )]
                         .into()
                     )
@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn test_proxy_authenticate_header_to_string() {
-        let header = Header::from_str(
+        let header = Header::try_from(
             r#"ProxY-AuthenticatE  :    Digest   realm="atlanta.com", domain = "sip:ss1.carrier.com", qop="auth", nonce=  "f84f1cec41e6cbe5aea9c8e88d359"  , opaque="", stale  =FALSE, algorithm=MD5"#,
         );
         if let Header::ProxyAuthenticate(header) = header.unwrap() {

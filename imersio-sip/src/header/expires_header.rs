@@ -1,3 +1,5 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -11,8 +13,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// limits on the session duration, however.
 ///
 /// [[RFC3261, Section 20.19](https://datatracker.ietf.org/doc/html/rfc3261#section-20.19)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct ExpiresHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     expires: u32,
 }
@@ -42,20 +46,10 @@ impl HeaderAccessor for ExpiresHeader {
     }
 }
 
-impl std::fmt::Display for ExpiresHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for ExpiresHeader {
-    fn eq(&self, other: &ExpiresHeader) -> bool {
-        self.expires == other.expires
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::ExpiresHeader;
     use crate::{
         header::{
@@ -64,8 +58,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(Expires, ExpiresHeader, "Expires");
     header_equality!(Expires, "Expires");
@@ -112,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_expires_header_to_string() {
-        let header = Header::from_str("eXpires  :     3600");
+        let header = Header::try_from("eXpires  :     3600");
         if let Header::Expires(header) = header.unwrap() {
             assert_eq!(header.to_string(), "eXpires  :     3600");
             assert_eq!(header.to_normalized_string(), "Expires: 3600");

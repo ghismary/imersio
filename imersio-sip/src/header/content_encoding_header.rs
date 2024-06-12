@@ -1,11 +1,10 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    common::{content_encoding::ContentEncoding, header_value_collection::HeaderValueCollection},
-    HeaderAccessor,
-};
-
 use super::generic_header::GenericHeader;
+use crate::common::content_encoding::{ContentEncoding, ContentEncodings};
+use crate::HeaderAccessor;
 
 /// Representation of a Content-Encoding header.
 ///
@@ -21,8 +20,10 @@ use super::generic_header::GenericHeader;
 /// codings MUST be listed in the order in which they were applied.
 ///
 /// [[RFC3261, Section 20.12](https://datatracker.ietf.org/doc/html/rfc3261#section-20.12)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct ContentEncodingHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     encodings: ContentEncodings,
 }
@@ -55,32 +56,15 @@ impl HeaderAccessor for ContentEncodingHeader {
     }
 }
 
-impl std::fmt::Display for ContentEncodingHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for ContentEncodingHeader {
-    fn eq(&self, other: &ContentEncodingHeader) -> bool {
-        self.encodings == other.encodings
-    }
-}
-
-/// Representation of the list of encodings in a `Content-Encoding` header.
-///
-/// This is usable as an iterator.
-pub type ContentEncodings = HeaderValueCollection<ContentEncoding>;
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::ContentEncodingHeader;
     use crate::{
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(ContentEncoding, ContentEncodingHeader, "Content-Encoding");
     header_equality!(ContentEncoding, "Content-Encoding");
@@ -149,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_content_encoding_header_to_string() {
-        let header = Header::from_str("content-enCoding:  tar , GZIP");
+        let header = Header::try_from("content-enCoding:  tar , GZIP");
         if let Header::ContentEncoding(header) = header.unwrap() {
             assert_eq!(header.to_string(), "content-enCoding:  tar , GZIP");
             assert_eq!(header.to_normalized_string(), "Content-Encoding: tar, gzip");

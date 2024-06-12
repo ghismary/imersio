@@ -1,16 +1,20 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
 
-/// Representation of an Min-Expires header.
+/// Representation of a Min-Expires header.
 ///
 /// The Min-Expires header field conveys the minimum refresh interval supported for soft-state
 /// elements managed by that server. This includes Contact header fields that are stored by a
 /// registrar.
 ///
 /// [[RFC3261, Section 20.23](https://datatracker.ietf.org/doc/html/rfc3261#section-20.23)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct MinExpiresHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     min_expires: u32,
 }
@@ -43,20 +47,10 @@ impl HeaderAccessor for MinExpiresHeader {
     }
 }
 
-impl std::fmt::Display for MinExpiresHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for MinExpiresHeader {
-    fn eq(&self, other: &MinExpiresHeader) -> bool {
-        self.min_expires == other.min_expires
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::MinExpiresHeader;
     use crate::{
         header::{
@@ -65,8 +59,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(MinExpires, MinExpiresHeader, "Min-Expires");
     header_equality!(MinExpires, "Min-Expires");
@@ -113,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_min_expires_header_to_string() {
-        let header = Header::from_str("mIn-eXpires  :     3600");
+        let header = Header::try_from("mIn-eXpires  :     3600");
         if let Header::MinExpires(header) = header.unwrap() {
             assert_eq!(header.to_string(), "mIn-eXpires  :     3600");
             assert_eq!(header.to_normalized_string(), "Min-Expires: 3600");

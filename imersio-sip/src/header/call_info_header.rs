@@ -1,12 +1,10 @@
-use std::{cmp::Ordering, collections::HashSet, hash::Hash};
-
+use derive_more::Display;
 use partial_eq_refs::PartialEqRefs;
-
-use crate::{
-    common::header_value_collection::HeaderValueCollection, AbsoluteUri, GenericParameter,
-};
+use std::ops::Deref;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
+use crate::common::call_info::{CallInfo, CallInfos};
+use crate::utils::compare_vectors;
 
 /// Representation of a Call-Info header.
 ///
@@ -15,7 +13,8 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// response.
 ///
 /// [[RFC3261, Section 20.9](https://datatracker.ietf.org/doc/html/rfc3261#section-20.9)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct CallInfoHeader {
     header: GenericHeader,
     infos: CallInfos,
@@ -51,220 +50,25 @@ impl HeaderAccessor for CallInfoHeader {
     }
 }
 
-impl std::fmt::Display for CallInfoHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
 impl PartialEq for CallInfoHeader {
     fn eq(&self, other: &Self) -> bool {
-        let self_call_infos: HashSet<_> = self.infos.iter().collect();
-        let other_call_infos: HashSet<_> = other.infos.iter().collect();
-        self_call_infos == other_call_infos
-    }
-}
-
-/// Representation of the list of call information from a `Call-Info` header.
-///
-/// This is usable as an iterator.
-pub type CallInfos = HeaderValueCollection<CallInfo>;
-
-impl CallInfos {
-    /// Tell whether Call-Info header contains the given `AbsoluteUri`.
-    pub fn contains(&self, uri: &AbsoluteUri) -> bool {
-        self.iter().any(|info| info.uri == uri)
-    }
-
-    /// Get the `CallInfo` corresponding to the given `AbsoluteUri`.
-    pub fn get(&self, uri: &AbsoluteUri) -> Option<&CallInfo> {
-        self.iter().find(|info| info.uri == uri)
-    }
-}
-
-/// Representation of a call info, containing its uri and parameters.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub struct CallInfo {
-    uri: AbsoluteUri,
-    parameters: Vec<CallInfoParameter>,
-}
-
-impl CallInfo {
-    pub(crate) fn new(uri: AbsoluteUri, parameters: Vec<CallInfoParameter>) -> Self {
-        CallInfo { uri, parameters }
-    }
-
-    /// Get a reference to the uri of the `CallInfo`.
-    pub fn uri(&self) -> &AbsoluteUri {
-        &self.uri
-    }
-
-    /// Get a reference to the parameters of the `CallInfo`.
-    pub fn parameters(&self) -> &Vec<CallInfoParameter> {
-        &self.parameters
-    }
-}
-
-impl std::fmt::Display for CallInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "<{}>{}{}",
-            self.uri,
-            if self.parameters.is_empty() { "" } else { ";" },
-            self.parameters
-                .iter()
-                .map(|param| param.to_string())
-                .collect::<Vec<String>>()
-                .join(";")
-        )
-    }
-}
-
-impl PartialEq for CallInfo {
-    fn eq(&self, other: &Self) -> bool {
-        if self.uri != other.uri {
-            return false;
-        }
-
-        let self_params: HashSet<_> = self.parameters.iter().collect();
-        let other_params: HashSet<_> = other.parameters.iter().collect();
-        self_params == other_params
-    }
-}
-
-impl Hash for CallInfo {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.uri.hash(state);
-        let mut sorted_params = self.parameters.clone();
-        sorted_params.sort();
-        sorted_params.hash(state);
-    }
-}
-
-/// Representation of an information about the caller or the callee.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub enum CallInfoParameter {
-    /// The `icon` purpose parameter designates an image suitable as an iconic
-    /// representation of the caller or callee.
-    IconPurpose,
-    /// The `info` purpose parameter describes the caller or callee in general,
-    /// for example, through a web page.
-    InfoPurpose,
-    /// The `card` purpose parameter provides a business card, for example, in
-    /// vCard or LDIF formats.
-    CardPurpose,
-    /// Any other purpose parameter.
-    OtherPurpose(String),
-    /// Any extension parameter.
-    Other(GenericParameter),
-}
-
-impl CallInfoParameter {
-    pub(crate) fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
-        match (
-            key.into().to_ascii_lowercase().as_str(),
-            value.map(|v| v.into().to_ascii_lowercase()).as_deref(),
-        ) {
-            ("purpose", Some("icon")) => Self::IconPurpose,
-            ("purpose", Some("info")) => Self::InfoPurpose,
-            ("purpose", Some("card")) => Self::CardPurpose,
-            ("purpose", Some(value)) => Self::OtherPurpose(value.to_string()),
-            (key, value) => Self::Other(GenericParameter::new(key, value)),
-        }
-    }
-
-    /// Get the key of the parameter.
-    pub fn key(&self) -> &str {
-        match self {
-            Self::IconPurpose | Self::InfoPurpose | Self::CardPurpose | Self::OtherPurpose(_) => {
-                "purpose"
-            }
-            Self::Other(value) => value.key(),
-        }
-    }
-
-    /// Get the value of the parameter.
-    pub fn value(&self) -> Option<&str> {
-        match self {
-            Self::IconPurpose => Some("icon"),
-            Self::InfoPurpose => Some("info"),
-            Self::CardPurpose => Some("card"),
-            Self::OtherPurpose(value) => Some(value),
-            Self::Other(value) => value.value(),
-        }
-    }
-}
-
-impl std::fmt::Display for CallInfoParameter {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.key(),
-            if self.value().is_some() { "=" } else { "" },
-            self.value().unwrap_or_default()
-        )
-    }
-}
-
-impl PartialEq for CallInfoParameter {
-    fn eq(&self, other: &CallInfoParameter) -> bool {
-        match (self, other) {
-            (Self::IconPurpose, Self::IconPurpose)
-            | (Self::InfoPurpose, Self::InfoPurpose)
-            | (Self::CardPurpose, Self::CardPurpose) => true,
-            (Self::OtherPurpose(svalue), Self::OtherPurpose(ovalue)) => {
-                svalue.eq_ignore_ascii_case(ovalue)
-            }
-            (Self::Other(a), Self::Other(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
-impl Hash for CallInfoParameter {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key().hash(state);
-        self.value().hash(state);
-    }
-}
-
-impl PartialOrd for CallInfoParameter {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for CallInfoParameter {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.key().cmp(other.key()) {
-            Ordering::Equal => {}
-            ord => return ord,
-        }
-        self.value().cmp(&other.value())
-    }
-}
-
-impl From<GenericParameter> for CallInfoParameter {
-    fn from(value: GenericParameter) -> Self {
-        CallInfoParameter::new(value.key(), value.value())
+        compare_vectors(self.infos().deref(), other.infos().deref())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::CallInfoHeader;
+    use crate::common::call_info_parameter::CallInfoParameter;
     use crate::{
         header::{
-            call_info_header::CallInfoParameter,
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
         GenericParameter, Header, Uri,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(CallInfo, CallInfoHeader, "Call-Info");
     header_equality!(CallInfo, "Call-Info");
@@ -274,7 +78,7 @@ mod tests {
     fn test_valid_call_info_header_with_icon_and_info() {
         valid_header("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info", |header| {
             assert_eq!(header.infos().len(), 2);
-            let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+            let first_uri = Uri::try_from("http://wwww.example.com/alice/photo.jpg").unwrap();
             let first_uri = first_uri.as_absolute_uri().unwrap();
             assert!(header.infos().contains(first_uri));
             let first_call_info = header.infos().get(first_uri);
@@ -285,7 +89,7 @@ mod tests {
                 first_call_info.parameters().first().unwrap(),
                 CallInfoParameter::IconPurpose
             );
-            let second_uri = Uri::from_str("http://www.example.com/alice/").unwrap();
+            let second_uri = Uri::try_from("http://www.example.com/alice/").unwrap();
             let second_uri = second_uri.as_absolute_uri().unwrap();
             assert!(header.infos().contains(second_uri));
             let second_call_info = header.infos().get(second_uri);
@@ -296,7 +100,7 @@ mod tests {
                 second_call_info.parameters().first().unwrap(),
                 CallInfoParameter::InfoPurpose
             );
-            let third_uri = Uri::from_str("http://www.example.com/bob/").unwrap();
+            let third_uri = Uri::try_from("http://www.example.com/bob/").unwrap();
             let third_uri = third_uri.as_absolute_uri().unwrap();
             assert!(!header.infos().contains(third_uri));
         });
@@ -308,7 +112,7 @@ mod tests {
             "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=photo",
             |header| {
                 assert_eq!(header.infos().len(), 1);
-                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = Uri::try_from("http://wwww.example.com/alice/photo.jpg").unwrap();
                 let first_uri = first_uri.as_absolute_uri().unwrap();
                 assert!(header.infos().contains(first_uri));
                 let first_call_info = header.infos().get(first_uri);
@@ -329,7 +133,7 @@ mod tests {
             "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;info=photo",
             |header| {
                 assert_eq!(header.infos().len(), 1);
-                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = Uri::try_from("http://wwww.example.com/alice/photo.jpg").unwrap();
                 let first_uri = first_uri.as_absolute_uri().unwrap();
                 assert!(header.infos().contains(first_uri));
                 let first_call_info = header.infos().get(first_uri);
@@ -350,7 +154,7 @@ mod tests {
             "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;info",
             |header| {
                 assert_eq!(header.infos().len(), 1);
-                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = Uri::try_from("http://wwww.example.com/alice/photo.jpg").unwrap();
                 let first_uri = first_uri.as_absolute_uri().unwrap();
                 assert!(header.infos().contains(first_uri));
                 let first_call_info = header.infos().get(first_uri);
@@ -371,7 +175,7 @@ mod tests {
             "Call-Info: <http://wwww.example.com/alice/photo.jpg>",
             |header| {
                 assert_eq!(header.infos().len(), 1);
-                let first_uri = Uri::from_str("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = Uri::try_from("http://wwww.example.com/alice/photo.jpg").unwrap();
                 let first_uri = first_uri.as_absolute_uri().unwrap();
                 assert!(header.infos().contains(first_uri));
                 let first_call_info = header.infos().get(first_uri);
@@ -438,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_call_info_header_to_string() {
-        let header = Header::from_str(
+        let header = Header::try_from(
             "call-info:   <http://wwww.example.com/alice/photo.jpg> ;puRpoSe=Icon",
         );
         if let Header::CallInfo(header) = header.unwrap() {

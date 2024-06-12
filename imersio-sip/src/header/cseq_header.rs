@@ -1,8 +1,9 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::Method;
-
 use super::{generic_header::GenericHeader, HeaderAccessor};
+use crate::Method;
 
 /// Representation of a CSeq header.
 ///
@@ -14,8 +15,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// new requests and request retransmissions.
 ///
 /// [[RFC3261, Section 20.16](https://datatracker.ietf.org/doc/html/rfc3261#section-20.16)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct CSeqHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     cseq: u32,
     method: Method,
@@ -55,20 +58,10 @@ impl HeaderAccessor for CSeqHeader {
     }
 }
 
-impl std::fmt::Display for CSeqHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for CSeqHeader {
-    fn eq(&self, other: &CSeqHeader) -> bool {
-        self.cseq == other.cseq && self.method == other.method
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::CSeqHeader;
     use crate::{
         header::{
@@ -77,8 +70,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(CSeq, CSeqHeader, "CSeq");
     header_equality!(CSeq, "CSeq");
@@ -147,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_cseq_header_to_string() {
-        let header = Header::from_str("cseq  : 4711     INVITE");
+        let header = Header::try_from("cseq  : 4711     INVITE");
         if let Header::CSeq(header) = header.unwrap() {
             assert_eq!(header.to_string(), "cseq  : 4711     INVITE");
             assert_eq!(header.to_normalized_string(), "CSeq: 4711 INVITE");

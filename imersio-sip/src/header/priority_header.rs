@@ -1,8 +1,10 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::HeaderAccessor;
-
 use super::generic_header::GenericHeader;
+use crate::common::priority::Priority;
+use crate::HeaderAccessor;
 
 /// Representation of a Priority header.
 ///
@@ -18,19 +20,21 @@ use super::generic_header::GenericHeader;
 /// Otherwise, there are no semantics defined for this header field.
 ///
 /// [[RFC3261, Section 20.26](https://datatracker.ietf.org/doc/html/rfc3261#section-20.26)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct PriorityHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
-    priority: PriorityValue,
+    priority: Priority,
 }
 
 impl PriorityHeader {
-    pub(crate) fn new(header: GenericHeader, priority: PriorityValue) -> Self {
+    pub(crate) fn new(header: GenericHeader, priority: Priority) -> Self {
         Self { header, priority }
     }
 
     /// Get a reference to the `Priority` of the Priority header.
-    pub fn priority(&self) -> &PriorityValue {
+    pub fn priority(&self) -> &Priority {
         &self.priority
     }
 }
@@ -49,72 +53,16 @@ impl HeaderAccessor for PriorityHeader {
     }
 }
 
-impl std::fmt::Display for PriorityHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for PriorityHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.priority == other.priority
-    }
-}
-
-/// Representation of the priority from a `PriorityHeader`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
-pub enum PriorityValue {
-    /// The `emergency` priority.
-    Emergency,
-    /// The `urgent` priority.
-    Urgent,
-    /// The `normal` priority.
-    Normal,
-    /// The `non-urgent` priority.
-    NonUrgent,
-    /// Any other extension priority.
-    Other(String),
-}
-
-impl std::fmt::Display for PriorityValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Emergency => "emergency",
-                Self::Urgent => "urgent",
-                Self::Normal => "normal",
-                Self::NonUrgent => "non-urgent",
-                Self::Other(value) => &value,
-            }
-        )
-    }
-}
-
-impl PartialEq for PriorityValue {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Emergency, Self::Emergency)
-            | (Self::Urgent, Self::Urgent)
-            | (Self::Normal, Self::Normal)
-            | (Self::NonUrgent, Self::NonUrgent) => true,
-            (Self::Other(a), Self::Other(b)) => a.eq_ignore_ascii_case(b),
-            _ => false,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::PriorityHeader;
-    use crate::header::PriorityValue;
+    use crate::common::priority::Priority;
     use crate::{
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(Priority, PriorityHeader, "Priority");
     header_equality!(Priority, "Priority");
@@ -123,14 +71,14 @@ mod tests {
     #[test]
     fn test_valid_priority_header_1() {
         valid_header("Priority: emergency", |header| {
-            assert_eq!(header.priority(), PriorityValue::Emergency);
+            assert_eq!(header.priority(), Priority::Emergency);
         });
     }
 
     #[test]
     fn test_valid_priority_header_2() {
         valid_header("Priority: non-urgent", |header| {
-            assert_eq!(header.priority(), PriorityValue::NonUrgent);
+            assert_eq!(header.priority(), Priority::NonUrgent);
         });
     }
 
@@ -139,7 +87,7 @@ mod tests {
         valid_header("Priority: my-own-priority", |header| {
             assert_eq!(
                 header.priority(),
-                PriorityValue::Other("my-own-priority".to_string())
+                Priority::Other("my-own-priority".to_string())
             );
         });
     }
@@ -186,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_priority_header_to_string() {
-        let header = Header::from_str("prIOrItY  :  EMERGENCY");
+        let header = Header::try_from("prIOrItY  :  EMERGENCY");
         if let Header::Priority(header) = header.unwrap() {
             assert_eq!(header.to_string(), "prIOrItY  :  EMERGENCY");
             assert_eq!(header.to_normalized_string(), "Priority: emergency");

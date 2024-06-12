@@ -17,7 +17,7 @@ pub use uri_parameters::UriParameters;
 pub use uri_scheme::UriScheme;
 pub use user_info::UserInfo;
 
-use std::{hash::Hash, num::NonZeroU16, str::FromStr};
+use std::{hash::Hash, num::NonZeroU16};
 
 use crate::Error;
 
@@ -156,11 +156,11 @@ impl std::fmt::Display for Uri {
     }
 }
 
-impl FromStr for Uri {
-    type Err = Error;
+impl TryFrom<&str> for Uri {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Uri::from_bytes(s.as_bytes())
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Uri::from_bytes(value.as_bytes())
     }
 }
 
@@ -202,7 +202,7 @@ mod test {
 
     #[test]
     fn test_valid_uri_parsing() {
-        let uri = Uri::from_str("sip:alice@atlanta.com");
+        let uri = Uri::try_from("sip:alice@atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -216,7 +216,7 @@ mod test {
         assert!(uri.get_headers().is_empty());
         assert_eq!(uri.to_string(), "sip:alice@atlanta.com");
 
-        let uri = Uri::from_str("sip:alice:secretword@atlanta.com;transport=tcp");
+        let uri = Uri::try_from("sip:alice:secretword@atlanta.com;transport=tcp");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -234,7 +234,7 @@ mod test {
             "sip:alice:secretword@atlanta.com;transport=tcp"
         );
 
-        let uri = Uri::from_str("sips:alice@atlanta.com?subject=project%20x&priority=urgent");
+        let uri = Uri::try_from("sips:alice@atlanta.com?subject=project%20x&priority=urgent");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -253,7 +253,7 @@ mod test {
             "sips:alice@atlanta.com?subject=project%20x&priority=urgent"
         );
 
-        let uri = Uri::from_str("sip:+1-212-555-1212:1234@gateway.com;user=phone");
+        let uri = Uri::try_from("sip:+1-212-555-1212:1234@gateway.com;user=phone");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -271,7 +271,7 @@ mod test {
             "sip:+1-212-555-1212:1234@gateway.com;user=phone"
         );
 
-        let uri = Uri::from_str("sips:1212@gateway.com");
+        let uri = Uri::try_from("sips:1212@gateway.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -285,7 +285,7 @@ mod test {
         assert!(uri.get_headers().is_empty());
         assert_eq!(uri.to_string(), "sips:1212@gateway.com");
 
-        let uri = Uri::from_str("sip:alice@192.0.2.4");
+        let uri = Uri::try_from("sip:alice@192.0.2.4");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -299,7 +299,7 @@ mod test {
         assert!(uri.get_headers().is_empty());
         assert_eq!(uri.to_string(), "sip:alice@192.0.2.4");
 
-        let uri = Uri::from_str("sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com");
+        let uri = Uri::try_from("sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -318,7 +318,7 @@ mod test {
             "sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com"
         );
 
-        let uri = Uri::from_str("sip:alice;day=tuesday@atlanta.com");
+        let uri = Uri::try_from("sip:alice;day=tuesday@atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -333,7 +333,7 @@ mod test {
         assert_eq!(uri.to_string(), "sip:alice;day=tuesday@atlanta.com");
 
         // Check escaped char in password.
-        let uri = Uri::from_str("sip:alice:secret%77ord@atlanta.com");
+        let uri = Uri::try_from("sip:alice:secret%77ord@atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -348,7 +348,7 @@ mod test {
         assert_eq!(uri.to_string(), "sip:alice:secretword@atlanta.com");
 
         // Check escaped chars in parameters.
-        let uri = Uri::from_str("sip:alice:secretword@atlanta.com;%74ransport=t%63p");
+        let uri = Uri::try_from("sip:alice:secretword@atlanta.com;%74ransport=t%63p");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -367,7 +367,7 @@ mod test {
         );
 
         // Check escaped chars in headers.
-        let uri = Uri::from_str("sip:atlanta.com;method=REGISTER?t%6f=al%69ce%40atlant%61.com");
+        let uri = Uri::try_from("sip:atlanta.com;method=REGISTER?t%6f=al%69ce%40atlant%61.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
@@ -390,99 +390,99 @@ mod test {
     #[test]
     fn test_invalid_uri_parsing() {
         // Multiple parameters with the same name are not allowed.
-        let uri = Uri::from_str("sip:alice@atlanta.com;transport=tcp;transport=udp");
+        let uri = Uri::try_from("sip:alice@atlanta.com;transport=tcp;transport=udp");
         assert_err!(uri);
 
         // Invalid IPv4 address.
-        let uri = Uri::from_str("sip:alice@1923.0.2.4");
+        let uri = Uri::try_from("sip:alice@1923.0.2.4");
         assert_err!(uri);
-        let uri = Uri::from_str("sip:alice@192.0.329.18");
+        let uri = Uri::try_from("sip:alice@192.0.329.18");
         assert_err!(uri);
 
         // Invalid multiple `@` characters.
-        let uri = Uri::from_str("sip:alice@atlanta.com@gateway.com");
+        let uri = Uri::try_from("sip:alice@atlanta.com@gateway.com");
         assert_err!(uri);
     }
 
     #[test]
     fn test_uris_equal() {
         assert_eq!(
-            Uri::from_str("sip:%61lice@atlanta.com;transport=TCP").unwrap(),
-            Uri::from_str("sip:alice@AtLanTa.CoM;Transport=tcp").unwrap()
+            Uri::try_from("sip:%61lice@atlanta.com;transport=TCP").unwrap(),
+            Uri::try_from("sip:alice@AtLanTa.CoM;Transport=tcp").unwrap()
         );
 
         assert_eq!(
-            Uri::from_str("sip:carol@chicago.com").unwrap(),
-            Uri::from_str("sip:carol@chicago.com;newparam=5").unwrap()
+            Uri::try_from("sip:carol@chicago.com").unwrap(),
+            Uri::try_from("sip:carol@chicago.com;newparam=5").unwrap()
         );
         assert_eq!(
-            Uri::from_str("sip:carol@chicago.com").unwrap(),
-            Uri::from_str("sip:carol@chicago.com;security=on").unwrap()
+            Uri::try_from("sip:carol@chicago.com").unwrap(),
+            Uri::try_from("sip:carol@chicago.com;security=on").unwrap()
         );
         assert_eq!(
-            Uri::from_str("sip:carol@chicago.com;newparam=5").unwrap(),
-            Uri::from_str("sip:carol@chicago.com;security=on").unwrap()
+            Uri::try_from("sip:carol@chicago.com;newparam=5").unwrap(),
+            Uri::try_from("sip:carol@chicago.com;security=on").unwrap()
         );
 
         assert_eq!(
-            Uri::from_str("sip:biloxi.com;transport=tcp;method=REGISTER?to=sip:bob%40biloxi.com")
+            Uri::try_from("sip:biloxi.com;transport=tcp;method=REGISTER?to=sip:bob%40biloxi.com")
                 .unwrap(),
-            Uri::from_str("sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com")
+            Uri::try_from("sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com")
                 .unwrap()
         );
 
         assert_eq!(
-            Uri::from_str("sip:alice@atlanta.com?subject=project%20x&priority=urgent").unwrap(),
-            Uri::from_str("sip:alice@atlanta.com?priority=urgent&subject=project%20x").unwrap()
+            Uri::try_from("sip:alice@atlanta.com?subject=project%20x&priority=urgent").unwrap(),
+            Uri::try_from("sip:alice@atlanta.com?priority=urgent&subject=project%20x").unwrap()
         );
     }
 
     #[test]
     fn test_uris_not_equal() {
         assert_ne!(
-            Uri::from_str("SIP:ALICE@AtLanTa.CoM;Transport=udp").unwrap(),
-            Uri::from_str("sip:alice@AtLanTa.CoM;Transport=UDP").unwrap()
+            Uri::try_from("SIP:ALICE@AtLanTa.CoM;Transport=udp").unwrap(),
+            Uri::try_from("sip:alice@AtLanTa.CoM;Transport=UDP").unwrap()
         );
 
         assert_ne!(
-            Uri::from_str("sip:bob@biloxi.com").unwrap(),
-            Uri::from_str("sip:bob@biloxi.com:5060").unwrap()
+            Uri::try_from("sip:bob@biloxi.com").unwrap(),
+            Uri::try_from("sip:bob@biloxi.com:5060").unwrap()
         );
 
         assert_ne!(
-            Uri::from_str("sip:bob@biloxi.com").unwrap(),
-            Uri::from_str("sip:bob@biloxi.com;transport=udp").unwrap()
+            Uri::try_from("sip:bob@biloxi.com").unwrap(),
+            Uri::try_from("sip:bob@biloxi.com;transport=udp").unwrap()
         );
 
         assert_ne!(
-            Uri::from_str("sip:bob@biloxi.com").unwrap(),
-            Uri::from_str("sip:bob@biloxi.com:6000;transport=tcp").unwrap()
+            Uri::try_from("sip:bob@biloxi.com").unwrap(),
+            Uri::try_from("sip:bob@biloxi.com:6000;transport=tcp").unwrap()
         );
 
         assert_ne!(
-            Uri::from_str("sip:carol@chicago.com").unwrap(),
-            Uri::from_str("sip:carol@chicago.com?Subject=next%20meeting").unwrap()
+            Uri::try_from("sip:carol@chicago.com").unwrap(),
+            Uri::try_from("sip:carol@chicago.com?Subject=next%20meeting").unwrap()
         );
 
         assert_ne!(
-            Uri::from_str("sip:bob@phone21.boxesbybob.com").unwrap(),
-            Uri::from_str("sip:bob@192.0.2.4").unwrap()
+            Uri::try_from("sip:bob@phone21.boxesbybob.com").unwrap(),
+            Uri::try_from("sip:bob@192.0.2.4").unwrap()
         );
     }
 
     #[test]
     fn test_uris_intransitivity() {
         assert_eq!(
-            Uri::from_str("sip:carol@chicago.com").unwrap(),
-            Uri::from_str("sip:carol@chicago.com;security=on").unwrap()
+            Uri::try_from("sip:carol@chicago.com").unwrap(),
+            Uri::try_from("sip:carol@chicago.com;security=on").unwrap()
         );
         assert_eq!(
-            Uri::from_str("sip:carol@chicago.com").unwrap(),
-            Uri::from_str("sip:carol@chicago.com;security=off").unwrap()
+            Uri::try_from("sip:carol@chicago.com").unwrap(),
+            Uri::try_from("sip:carol@chicago.com;security=off").unwrap()
         );
         assert_ne!(
-            Uri::from_str("sip:carol@chicago.com;security=on").unwrap(),
-            Uri::from_str("sip:carol@chicago.com;security=off").unwrap()
+            Uri::try_from("sip:carol@chicago.com;security=on").unwrap(),
+            Uri::try_from("sip:carol@chicago.com;security=off").unwrap()
         );
     }
 }

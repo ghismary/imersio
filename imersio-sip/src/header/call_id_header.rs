@@ -1,3 +1,5 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
 use super::{generic_header::GenericHeader, HeaderAccessor};
@@ -8,8 +10,10 @@ use super::{generic_header::GenericHeader, HeaderAccessor};
 /// all registrations of a particular client.
 ///
 /// [[RFC3261, Section 20.8](https://datatracker.ietf.org/doc/html/rfc3261#section-20.8)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct CallIdHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     call_id: String,
 }
@@ -42,20 +46,10 @@ impl HeaderAccessor for CallIdHeader {
     }
 }
 
-impl std::fmt::Display for CallIdHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for CallIdHeader {
-    fn eq(&self, other: &CallIdHeader) -> bool {
-        self.call_id == other.call_id
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::CallIdHeader;
     use crate::{
         header::{
@@ -64,8 +58,6 @@ mod tests {
         },
         Header,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(CallId, CallIdHeader, "Call-ID");
     header_equality!(CallId, "Call-ID");
@@ -135,7 +127,7 @@ mod tests {
     #[test]
     fn test_call_id_header_to_string() {
         let header =
-            Header::from_str("CalL-iD  :     f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com");
+            Header::try_from("CalL-iD  :     f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com");
         if let Header::CallId(header) = header.unwrap() {
             assert_eq!(
                 header.to_string(),

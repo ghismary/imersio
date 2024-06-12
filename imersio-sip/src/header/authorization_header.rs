@@ -1,17 +1,20 @@
+use derive_more::Display;
+use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
+use super::generic_header::GenericHeader;
 use crate::common::credentials::Credentials;
 use crate::HeaderAccessor;
-
-use super::generic_header::GenericHeader;
 
 /// Representation of an Authorization header.
 ///
 /// The Authorization header field contains authentication credentials of a UA.
 ///
 /// [[RFC3261, Section 20.7](https://datatracker.ietf.org/doc/html/rfc3261#section-20.7)]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[display(fmt = "{}", header)]
 pub struct AuthorizationHeader {
+    #[partial_eq_ignore]
     header: GenericHeader,
     credentials: Credentials,
 }
@@ -44,20 +47,10 @@ impl HeaderAccessor for AuthorizationHeader {
     }
 }
 
-impl std::fmt::Display for AuthorizationHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.header.fmt(f)
-    }
-}
-
-impl PartialEq for AuthorizationHeader {
-    fn eq(&self, other: &Self) -> bool {
-        self.credentials == other.credentials
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use claims::assert_ok;
+
     use super::AuthorizationHeader;
     use crate::common::auth_parameter::AuthParameter;
     use crate::{
@@ -65,8 +58,6 @@ mod tests {
         header::tests::{header_equality, header_inequality, invalid_header, valid_header},
         Header, HeaderAccessor, Uri,
     };
-    use claims::assert_ok;
-    use std::str::FromStr;
 
     valid_header!(Authorization, AuthorizationHeader, "Authorization");
     header_equality!(Authorization, "Authorization");
@@ -123,7 +114,7 @@ mod tests {
                 assert!(credentials.has_digest_uri());
                 assert_eq!(
                     credentials.digest_uri().unwrap(),
-                    Uri::from_str("sip:bob@biloxi.com").unwrap()
+                    Uri::try_from("sip:bob@biloxi.com").unwrap()
                 );
                 assert!(credentials.has_qop());
                 assert_eq!(credentials.qop(), Some(&MessageQop::Auth));
@@ -262,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_authorization_header_to_string_with_username_and_qop_parameter() {
-        let header = Header::from_str(r#"authorization:  diGest username ="Alice" ,   qop= AUTH"#);
+        let header = Header::try_from(r#"authorization:  diGest username ="Alice" ,   qop= AUTH"#);
         if let Header::Authorization(header) = header.unwrap() {
             assert_eq!(
                 header.to_string(),
@@ -281,7 +272,7 @@ mod tests {
 
     #[test]
     fn test_authorization_header_to_string_with_extension_parameter() {
-        let header = Header::from_str(
+        let header = Header::try_from(
             r#"authorization:  diGest username ="Alice" ,   nextnonce= "47364c23432d2e131a5fb210812c""#,
         );
         if let Header::Authorization(header) = header.unwrap() {
