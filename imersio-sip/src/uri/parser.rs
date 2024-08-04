@@ -386,25 +386,27 @@ fn headers(input: &[u8]) -> ParserResult<&[u8], UriHeaders> {
 pub(crate) fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
     context(
         "sip",
-        map(
-            tuple((
-                tag_no_case("sip:"),
-                opt(userinfo),
-                hostport,
-                cut(verify(uri_parameters, |params| {
-                    has_unique_elements(params.iter().map(|p| &p.0))
-                })),
-                opt(headers),
-            )),
-            |(_, userinfo, hostport, parameters, headers)| {
-                Uri::Sip(SipUri::new(
-                    UriScheme::SIP,
-                    userinfo,
+        preceded(
+            tag_no_case("sip:"),
+            cut(map(
+                tuple((
+                    opt(userinfo),
                     hostport,
-                    parameters,
-                    headers.unwrap_or_default(),
-                ))
-            },
+                    cut(verify(uri_parameters, |params| {
+                        has_unique_elements(params.iter().map(|p| &p.0))
+                    })),
+                    opt(headers),
+                )),
+                |(userinfo, hostport, parameters, headers)| {
+                    Uri::Sip(SipUri::new(
+                        UriScheme::SIP,
+                        userinfo,
+                        hostport,
+                        parameters,
+                        headers.unwrap_or_default(),
+                    ))
+                },
+            )),
         ),
     )(input)
 }
@@ -412,23 +414,27 @@ pub(crate) fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
 pub(crate) fn sips_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
     context(
         "sips_uri",
-        map(
-            tuple((
-                tag_no_case("sips:"),
-                opt(userinfo),
-                hostport,
-                uri_parameters,
-                opt(headers),
-            )),
-            |(_, userinfo, hostport, parameters, headers)| {
-                Uri::Sip(SipUri::new(
-                    UriScheme::SIPS,
-                    userinfo,
+        preceded(
+            tag_no_case("sips:"),
+            cut(map(
+                tuple((
+                    opt(userinfo),
                     hostport,
-                    parameters,
-                    headers.unwrap_or_default(),
-                ))
-            },
+                    cut(verify(uri_parameters, |params| {
+                        has_unique_elements(params.iter().map(|p| &p.0))
+                    })),
+                    opt(headers),
+                )),
+                |(userinfo, hostport, parameters, headers)| {
+                    Uri::Sip(SipUri::new(
+                        UriScheme::SIPS,
+                        userinfo,
+                        hostport,
+                        parameters,
+                        headers.unwrap_or_default(),
+                    ))
+                },
+            )),
         ),
     )(input)
 }
@@ -468,13 +474,7 @@ pub(crate) fn absolute_uri(input: &[u8]) -> ParserResult<&[u8], AbsoluteUri> {
     context(
         "absolute_uri",
         map(
-            separated_pair(
-                verify(scheme, |s: &str| {
-                    !(s.eq_ignore_ascii_case("sip") || s.eq_ignore_ascii_case("sips"))
-                }),
-                tag(":"),
-                opaque_part,
-            ),
+            separated_pair(scheme, tag(":"), opaque_part),
             |(scheme, opaque_part)| {
                 AbsoluteUri::new(
                     UriScheme::Other(scheme.into_owned()),
