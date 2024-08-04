@@ -65,7 +65,7 @@ use super::{
     content_encoding_header::ContentEncodingHeader, generic_header::GenericHeader, CSeqHeader,
     ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader, ErrorInfoHeader, ExpiresHeader,
     Header, InReplyToHeader, MinExpiresHeader, OrganizationHeader, PriorityHeader,
-    ProxyAuthenticateHeader,
+    ProxyAuthenticateHeader, ProxyAuthorizationHeader,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -453,9 +453,12 @@ fn username_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
 }
 
 fn username(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(tag_no_case("username"), equal, cut(username_value)),
-        |(_, value)| AuthParameter::Username(value),
+    context(
+        "username",
+        map(
+            separated_pair(tag_no_case("username"), equal, cut(username_value)),
+            |(_, value)| AuthParameter::Username(value),
+        ),
     )(input)
 }
 
@@ -465,16 +468,22 @@ fn realm_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
 }
 
 fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(tag_no_case("realm"), equal, cut(realm_value)),
-        |(_, value)| AuthParameter::Realm(value),
+    context(
+        "realm",
+        map(
+            separated_pair(tag_no_case("realm"), equal, cut(realm_value)),
+            |(_, value)| AuthParameter::Realm(value),
+        ),
     )(input)
 }
 
 fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(tag_no_case("nonce"), equal, cut(nonce_value)),
-        |(_, value)| AuthParameter::Nonce(value),
+    context(
+        "nonce",
+        map(
+            separated_pair(tag_no_case("nonce"), equal, cut(nonce_value)),
+            |(_, value)| AuthParameter::Nonce(value),
+        ),
     )(input)
 }
 
@@ -483,45 +492,60 @@ fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Uri> {
 }
 
 fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(tag_no_case("uri"), equal, cut(digest_uri_value)),
-        |(_, value)| AuthParameter::DigestUri(value),
+    context(
+        "digest_uri",
+        map(
+            separated_pair(tag_no_case("uri"), equal, cut(digest_uri_value)),
+            |(_, value)| AuthParameter::DigestUri(value),
+        ),
     )(input)
 }
 
 fn request_digest(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
-    map(
-        delimited(ldquot, recognize(many_m_n(32, 32, lhex)), rdquot),
-        |v| WrappedString::new_quoted(String::from_utf8_lossy(v)),
+    context(
+        "request_digest",
+        map(
+            delimited(ldquot, recognize(many_m_n(32, 32, lhex)), rdquot),
+            |v| WrappedString::new_quoted(String::from_utf8_lossy(v)),
+        ),
     )(input)
 }
 
 fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(tag_no_case("response"), equal, cut(request_digest)),
-        |(_, value)| AuthParameter::DResponse(value),
+    context(
+        "dresponse",
+        map(
+            separated_pair(tag_no_case("response"), equal, cut(request_digest)),
+            |(_, value)| AuthParameter::DResponse(value),
+        ),
     )(input)
 }
 
 fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(
-            tag_no_case("algorithm"),
-            equal,
-            cut(alt((
-                map(tag_no_case("MD5"), String::from_utf8_lossy),
-                map(tag_no_case("MD5-sess"), String::from_utf8_lossy),
-                token,
-            ))),
+    context(
+        "algorithm",
+        map(
+            separated_pair(
+                tag_no_case("algorithm"),
+                equal,
+                cut(alt((
+                    map(tag_no_case("MD5"), String::from_utf8_lossy),
+                    map(tag_no_case("MD5-sess"), String::from_utf8_lossy),
+                    token,
+                ))),
+            ),
+            |(_, value)| AuthParameter::Algorithm(Algorithm::new(value)),
         ),
-        |(_, value)| AuthParameter::Algorithm(Algorithm::new(value)),
     )(input)
 }
 
 fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(tag_no_case("opaque"), equal, cut(quoted_string)),
-        |(_, value)| AuthParameter::Opaque(value),
+    context(
+        "opaque",
+        map(
+            separated_pair(tag_no_case("opaque"), equal, cut(quoted_string)),
+            |(_, value)| AuthParameter::Opaque(value),
+        ),
     )(input)
 }
 
@@ -531,34 +555,43 @@ fn auth_param_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
 }
 
 fn auth_param(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(
-            auth_param_name,
-            equal,
-            alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
+    context(
+        "auth_param",
+        map(
+            separated_pair(
+                auth_param_name,
+                equal,
+                alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
+            ),
+            |(key, value)| AuthParameter::Other(key.to_string(), value),
         ),
-        |(key, value)| AuthParameter::Other(key.to_string(), value),
     )(input)
 }
 
 fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    alt((
-        username,
-        realm,
-        nonce,
-        digest_uri,
-        dresponse,
-        algorithm,
-        map(cnonce, |ainfo| ainfo.try_into().unwrap()),
-        opaque,
-        map(message_qop, |ainfo| ainfo.try_into().unwrap()),
-        map(nonce_count, |ainfo| ainfo.try_into().unwrap()),
-        auth_param,
-    ))(input)
+    context(
+        "dig_resp",
+        alt((
+            username,
+            realm,
+            nonce,
+            digest_uri,
+            dresponse,
+            algorithm,
+            map(cnonce, |ainfo| ainfo.try_into().unwrap()),
+            opaque,
+            map(message_qop, |ainfo| ainfo.try_into().unwrap()),
+            map(nonce_count, |ainfo| ainfo.try_into().unwrap()),
+            auth_param,
+        )),
+    )(input)
 }
 
 fn digest_response(input: &[u8]) -> ParserResult<&[u8], AuthParameters> {
-    map(separated_list1(comma, dig_resp), Into::into)(input)
+    context(
+        "digest_response",
+        map(separated_list1(comma, dig_resp), Into::into),
+    )(input)
 }
 
 #[inline]
@@ -571,25 +604,31 @@ fn auth_params(input: &[u8]) -> ParserResult<&[u8], AuthParameters> {
 }
 
 fn digest_credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
-    map(
-        separated_pair(
-            map(tag_no_case("Digest"), String::from_utf8_lossy),
-            lws,
-            cut(digest_response),
+    context(
+        "digest_credentials",
+        map(
+            separated_pair(
+                map(tag_no_case("Digest"), String::from_utf8_lossy),
+                lws,
+                cut(digest_response),
+            ),
+            |(_, params)| Credentials::Digest(params),
         ),
-        |(_, params)| Credentials::Digest(params),
     )(input)
 }
 
 fn other_response(input: &[u8]) -> ParserResult<&[u8], Credentials> {
-    map(
-        separated_pair(auth_scheme, lws, auth_params),
-        |(scheme, params)| Credentials::Other(scheme.to_string(), params),
+    context(
+        "other_response",
+        map(
+            separated_pair(auth_scheme, lws, auth_params),
+            |(scheme, params)| Credentials::Other(scheme.to_string(), params),
+        ),
     )(input)
 }
 
 fn credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
-    alt((digest_credentials, other_response))(input)
+    context("credentials", alt((digest_credentials, other_response)))(input)
 }
 
 fn authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
@@ -1497,6 +1536,28 @@ fn proxy_authenticate(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
+fn proxy_authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "Proxy-Authorization header",
+        map(
+            tuple((
+                context(
+                    "Header name",
+                    map(tag_no_case("Proxy-Authorization"), String::from_utf8_lossy),
+                ),
+                map(hcolon, String::from_utf8_lossy),
+                cut(consumed(credentials)),
+            )),
+            |(name, separator, (value, credentials))| {
+                Header::ProxyAuthorization(ProxyAuthorizationHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    credentials,
+                ))
+            },
+        ),
+    )(input)
+}
+
 #[inline]
 fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
     token(input)
@@ -1556,6 +1617,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 organization,
                 priority,
                 proxy_authenticate,
+                proxy_authorization,
                 extension_header,
             )),
         )),
