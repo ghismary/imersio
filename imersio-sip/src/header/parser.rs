@@ -51,7 +51,7 @@ use crate::{
         raquot, rdquot, semi, slash, star, text_utf8_trim, text_utf8char, token, utf8_cont, word,
         ParserResult,
     },
-    uri::parser::{absolute_uri, host, request_uri, sip_uri, sips_uri},
+    uri::parser::{absolute_uri, host, request_uri, sip_uri},
     GenericParameter, Uri,
 };
 
@@ -697,7 +697,7 @@ fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 fn addr_spec(input: &[u8]) -> ParserResult<&[u8], Uri> {
-    alt((sip_uri, sips_uri, map(absolute_uri, Uri::Absolute)))(input)
+    alt((sip_uri, map(absolute_uri, Uri::Absolute)))(input)
 }
 
 fn display_name(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
