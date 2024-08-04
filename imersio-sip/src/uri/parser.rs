@@ -5,7 +5,7 @@ use crate::{
         alpha, digit, escaped, hex_digit, is_reserved, is_unreserved, reserved, take1, token, ttl,
         unreserved, ParserResult,
     },
-    utils::{extend_vec, has_unique_elements},
+    utils::has_unique_elements,
     AbsoluteUri, HostPort, Uri, UriHeaders, UriParameters, UserInfo,
 };
 
@@ -15,7 +15,7 @@ use nom::{
     character::complete::digit1,
     combinator::{cut, map, map_opt, opt, recognize, verify},
     error::context,
-    multi::{many0, many1, many_m_n},
+    multi::{many0, many1, many_m_n, separated_list1},
     sequence::{pair, preceded, separated_pair, tuple},
     ParseTo,
 };
@@ -372,13 +372,8 @@ fn headers(input: &[u8]) -> ParserResult<&[u8], UriHeaders> {
     context(
         "headers",
         map(
-            pair(
-                preceded(tag("?"), header),
-                many0(preceded(tag("&"), header)),
-            ),
-            |(first_header, other_headers)| {
-                UriHeaders::new(extend_vec(first_header, other_headers))
-            },
+            preceded(tag("?"), separated_list1(tag("&"), header)),
+            UriHeaders::new,
         ),
     )(input)
 }

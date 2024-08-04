@@ -27,12 +27,6 @@ where
         .collect::<String>()
 }
 
-pub(crate) fn extend_vec<T>(first: T, others: Vec<T>) -> Vec<T> {
-    let mut res = vec![first];
-    res.extend(others);
-    res
-}
-
 pub(crate) fn compare_vectors<I>(first: I, second: I) -> bool
 where
     I: IntoIterator,
