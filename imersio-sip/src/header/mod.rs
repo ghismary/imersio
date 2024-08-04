@@ -29,6 +29,7 @@ mod organization_header;
 mod priority_header;
 mod proxy_authenticate_header;
 mod proxy_authorization_header;
+mod proxy_require_header;
 
 pub(crate) mod parser;
 
@@ -63,6 +64,7 @@ pub use organization_header::OrganizationHeader;
 pub use priority_header::PriorityHeader;
 pub use proxy_authenticate_header::ProxyAuthenticateHeader;
 pub use proxy_authorization_header::ProxyAuthorizationHeader;
+pub use proxy_require_header::ProxyRequireHeader;
 
 use crate::Error;
 use generic_header::GenericHeader;
@@ -220,6 +222,8 @@ headers! {
     (ProxyAuthenticate, ProxyAuthenticateHeader),
     /// A Proxy-Authorization header.
     (ProxyAuthorization, ProxyAuthorizationHeader),
+    /// A Proxy-Require header.
+    (ProxyRequire, ProxyRequireHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }

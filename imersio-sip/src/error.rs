@@ -18,6 +18,9 @@ pub enum Error {
     /// Invalid method.
     #[error("invalid method")]
     InvalidMethod(String),
+    /// Invalid option tag.
+    #[error("invalid option tag")]
+    InvalidOptionTag(String),
     /// Invalid response reason.
     #[error("invalid reason")]
     InvalidReason(String),

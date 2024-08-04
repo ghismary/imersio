@@ -31,6 +31,7 @@ pub mod media_range;
 pub mod media_type;
 pub mod message_qop;
 pub mod name_address;
+pub mod option_tag;
 pub mod priority;
 pub mod stale;
 pub mod wrapped_string;

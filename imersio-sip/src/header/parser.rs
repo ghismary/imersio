@@ -43,7 +43,7 @@ use crate::{
     common::{
         accept_parameter::AcceptParameter, algorithm::Algorithm, content_encoding::ContentEncoding,
         media_range::MediaRange, message_qop::MessageQop, name_address::NameAddress,
-        wrapped_string::WrappedString,
+        option_tag::OptionTag, wrapped_string::WrappedString,
     },
     method::parser::method,
     parser::{
@@ -65,7 +65,7 @@ use super::{
     content_encoding_header::ContentEncodingHeader, generic_header::GenericHeader, CSeqHeader,
     ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader, ErrorInfoHeader, ExpiresHeader,
     Header, InReplyToHeader, MinExpiresHeader, OrganizationHeader, PriorityHeader,
-    ProxyAuthenticateHeader, ProxyAuthorizationHeader,
+    ProxyAuthenticateHeader, ProxyAuthorizationHeader, ProxyRequireHeader,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -1541,10 +1541,7 @@ fn proxy_authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
         "Proxy-Authorization header",
         map(
             tuple((
-                context(
-                    "Header name",
-                    map(tag_no_case("Proxy-Authorization"), String::from_utf8_lossy),
-                ),
+                map(tag_no_case("Proxy-Authorization"), String::from_utf8_lossy),
                 map(hcolon, String::from_utf8_lossy),
                 cut(consumed(credentials)),
             )),
@@ -1552,6 +1549,29 @@ fn proxy_authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
                 Header::ProxyAuthorization(ProxyAuthorizationHeader::new(
                     GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
                     credentials,
+                ))
+            },
+        ),
+    )(input)
+}
+
+pub(crate) fn option_tag(input: &[u8]) -> ParserResult<&[u8], OptionTag> {
+    context("option_tag", map(token, OptionTag::new))(input)
+}
+
+fn proxy_require(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "Proxy-Require",
+        map(
+            tuple((
+                map(tag_no_case("Proxy-Require"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                cut(consumed(separated_list1(comma, option_tag))),
+            )),
+            |(name, separator, (value, tags))| {
+                Header::ProxyRequire(ProxyRequireHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    tags,
                 ))
             },
         ),
@@ -1618,6 +1638,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 priority,
                 proxy_authenticate,
                 proxy_authorization,
+                proxy_require,
                 extension_header,
             )),
         )),
