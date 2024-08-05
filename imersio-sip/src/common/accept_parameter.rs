@@ -1,12 +1,17 @@
+#![allow(missing_docs)]
+
 use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
 use std::{cmp::Ordering, hash::Hash};
 
 use crate::GenericParameter;
 
+/// Representation of a parameter for a contact contained in a `Accept` header.
 #[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
 pub enum AcceptParameter {
+    /// q parameter
     Q(String),
+    /// Any other parameter
     Other(GenericParameter),
 }
 
@@ -20,6 +25,7 @@ impl AcceptParameter {
         }
     }
 
+    /// Get the value of the q parameter if it is one.
     pub fn q(&self) -> Option<f32> {
         match self {
             Self::Q(value) => value.parse().ok(),
@@ -27,6 +33,7 @@ impl AcceptParameter {
         }
     }
 
+    /// Get the key of the parameter.
     pub fn key(&self) -> &str {
         match self {
             Self::Q(_) => "q",
@@ -34,6 +41,7 @@ impl AcceptParameter {
         }
     }
 
+    /// Get the value of the parameter.
     pub fn value(&self) -> Option<&str> {
         match self {
             Self::Q(value) => Some(value),

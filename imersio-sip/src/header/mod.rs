@@ -1,70 +1,72 @@
 //! TODO
 
-mod accept_encoding_header;
-mod accept_header;
-mod accept_language_header;
-mod alert_info_header;
-mod allow_header;
-mod authentication_info_header;
-mod authorization_header;
-mod call_id_header;
-mod call_info_header;
-mod contact_header;
-mod content_disposition_header;
-mod content_encoding_header;
-mod content_language_header;
-mod content_length_header;
-mod content_type_header;
-mod cseq_header;
-mod date_header;
-mod error_info_header;
-mod expires_header;
-mod from_header;
+pub mod accept_encoding_header;
+pub mod accept_header;
+pub mod accept_language_header;
+pub mod alert_info_header;
+pub mod allow_header;
+pub mod authentication_info_header;
+pub mod authorization_header;
+pub mod call_id_header;
+pub mod call_info_header;
+pub mod contact_header;
+pub mod content_disposition_header;
+pub mod content_encoding_header;
+pub mod content_language_header;
+pub mod content_length_header;
+pub mod content_type_header;
+pub mod cseq_header;
+pub mod date_header;
+pub mod error_info_header;
+pub mod expires_header;
+pub mod from_header;
 mod generic_header;
-mod in_reply_to_header;
-mod max_forwards_header;
-mod mime_version_header;
-mod min_expires_header;
-mod organization_header;
-mod priority_header;
-mod proxy_authenticate_header;
-mod proxy_authorization_header;
-mod proxy_require_header;
+pub mod in_reply_to_header;
+pub mod max_forwards_header;
+pub mod mime_version_header;
+pub mod min_expires_header;
+pub mod organization_header;
+pub mod priority_header;
+pub mod proxy_authenticate_header;
+pub mod proxy_authorization_header;
+pub mod proxy_require_header;
+pub mod record_route_header;
 
 pub(crate) mod parser;
 
 #[cfg(test)]
 mod tests;
 
-pub use accept_encoding_header::AcceptEncodingHeader;
-pub use accept_header::AcceptHeader;
-pub use accept_language_header::AcceptLanguageHeader;
-pub use alert_info_header::AlertInfoHeader;
-pub use allow_header::AllowHeader;
-pub use authentication_info_header::AuthenticationInfoHeader;
-pub use authorization_header::AuthorizationHeader;
-pub use call_id_header::CallIdHeader;
-pub use call_info_header::CallInfoHeader;
-pub use contact_header::ContactHeader;
-pub use content_disposition_header::ContentDispositionHeader;
-pub use content_encoding_header::ContentEncodingHeader;
-pub use content_language_header::ContentLanguageHeader;
-pub use content_length_header::ContentLengthHeader;
-pub use content_type_header::ContentTypeHeader;
-pub use cseq_header::CSeqHeader;
-pub use date_header::DateHeader;
-pub use error_info_header::ErrorInfoHeader;
-pub use expires_header::ExpiresHeader;
-pub use from_header::FromHeader;
-pub use in_reply_to_header::InReplyToHeader;
-pub use max_forwards_header::MaxForwardsHeader;
-pub use mime_version_header::MimeVersionHeader;
-pub use min_expires_header::MinExpiresHeader;
-pub use organization_header::OrganizationHeader;
-pub use priority_header::PriorityHeader;
-pub use proxy_authenticate_header::ProxyAuthenticateHeader;
-pub use proxy_authorization_header::ProxyAuthorizationHeader;
-pub use proxy_require_header::ProxyRequireHeader;
+use accept_encoding_header::AcceptEncodingHeader;
+use accept_header::AcceptHeader;
+use accept_language_header::AcceptLanguageHeader;
+use alert_info_header::AlertInfoHeader;
+use allow_header::AllowHeader;
+use authentication_info_header::AuthenticationInfoHeader;
+use authorization_header::AuthorizationHeader;
+use call_id_header::CallIdHeader;
+use call_info_header::CallInfoHeader;
+use contact_header::ContactHeader;
+use content_disposition_header::ContentDispositionHeader;
+use content_encoding_header::ContentEncodingHeader;
+use content_language_header::ContentLanguageHeader;
+use content_length_header::ContentLengthHeader;
+use content_type_header::ContentTypeHeader;
+use cseq_header::CSeqHeader;
+use date_header::DateHeader;
+use error_info_header::ErrorInfoHeader;
+use expires_header::ExpiresHeader;
+use from_header::FromHeader;
+use in_reply_to_header::InReplyToHeader;
+use max_forwards_header::MaxForwardsHeader;
+use mime_version_header::MimeVersionHeader;
+use min_expires_header::MinExpiresHeader;
+use organization_header::OrganizationHeader;
+use priority_header::PriorityHeader;
+use proxy_authenticate_header::ProxyAuthenticateHeader;
+use proxy_authorization_header::ProxyAuthorizationHeader;
+use proxy_require_header::ProxyRequireHeader;
+use record_route_header::RecordRouteHeader;
 
 use crate::Error;
 use generic_header::GenericHeader;
@@ -224,6 +226,8 @@ headers! {
     (ProxyAuthorization, ProxyAuthorizationHeader),
     /// A Proxy-Require header.
     (ProxyRequire, ProxyRequireHeader),
+    /// A Record-Route header.
+    (RecordRoute, RecordRouteHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }

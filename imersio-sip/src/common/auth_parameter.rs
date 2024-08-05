@@ -1,17 +1,19 @@
+#![allow(missing_docs)]
+
 use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::hash::Hash;
 
-use crate::common::algorithm::Algorithm;
-use crate::common::authentication_info::AuthenticationInfo;
-use crate::common::domain_uri::DomainUris;
 use crate::common::header_value_collection::HeaderValueCollection;
-use crate::common::message_qop::{MessageQop, MessageQops};
-use crate::common::stale::Stale;
 use crate::common::wrapped_string::WrappedString;
+use crate::Algorithm;
+use crate::AuthenticationInfo;
+use crate::DomainUris;
+use crate::Stale;
 use crate::{Error, Uri};
+use crate::{MessageQop, MessageQops};
 
 /// Representation of a list of authentication parameters from an `AuthorizationHeader` or a
 /// `ProxyAuthenticateHeader`.

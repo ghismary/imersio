@@ -5,6 +5,7 @@ use std::hash::Hash;
 use super::wrapped_string::WrappedString;
 use crate::Uri;
 
+/// Representation of name address, that is the conjunction of a display name and an uri.
 #[derive(Clone, Debug, Eq, PartialEqExtras, PartialEqRefs)]
 pub struct NameAddress {
     #[partial_eq_ignore]
@@ -18,10 +19,12 @@ impl NameAddress {
         Self { display_name, uri }
     }
 
+    /// Get the display name of the name address.
     pub fn display_name(&self) -> Option<&str> {
         self.display_name.as_deref()
     }
 
+    /// Get the uri of the name address.
     pub fn uri(&self) -> &Uri {
         &self.uri
     }

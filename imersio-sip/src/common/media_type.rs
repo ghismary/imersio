@@ -3,9 +3,9 @@ use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 use std::ops::Deref;
 
-use crate::common::media_parameter::MediaParameter;
-use crate::common::media_range::MediaRange;
 use crate::utils::compare_vectors;
+use crate::MediaParameter;
+use crate::MediaRange;
 
 /// Representation of a media type contained in a `ContentTypeHeader`.
 #[derive(Clone, Debug, Eq, PartialEqRefs)]

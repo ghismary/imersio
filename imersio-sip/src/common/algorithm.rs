@@ -1,13 +1,19 @@
+#![allow(missing_docs)]
+
 use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
 use partial_eq_refs::PartialEqRefs;
 
+/// Representation of an algorithm parameter.
 #[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
 pub enum Algorithm {
+    /// MD5 algorithm.
     Md5,
+    /// MD5-sess algorithm.
     Md5Sess,
+    /// Any other algorithm.
     Other(String),
 }
 
@@ -21,6 +27,7 @@ impl Algorithm {
         }
     }
 
+    /// Get the value of the algorithm.
     pub fn value(&self) -> &str {
         match self {
             Self::Md5 => "MD5",

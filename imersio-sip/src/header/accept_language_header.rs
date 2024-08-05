@@ -1,10 +1,12 @@
-use crate::common::accept_language::{AcceptLanguage, AcceptLanguages};
+//! SIP Accept-Language header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::generic_header::GenericHeader;
+use crate::header::GenericHeader;
 use crate::HeaderAccessor;
+use crate::{AcceptLanguage, AcceptLanguages};
 
 /// Representation of an Accept-Language header.
 ///

@@ -67,13 +67,16 @@ fn password(input: &[u8]) -> ParserResult<&[u8], String> {
 }
 
 fn userinfo(input: &[u8]) -> ParserResult<&[u8], UserInfo> {
-    map(
-        tuple((
-            user, // TODO: alt((user, telephone_subscriber)),
-            opt(preceded(tag(":"), password)),
-            tag("@"),
-        )),
-        |(user, password, _)| UserInfo::new(user, password),
+    context(
+        "userinfo",
+        map(
+            tuple((
+                user, // TODO: alt((user, telephone_subscriber)),
+                opt(preceded(tag(":"), password)),
+                tag("@"),
+            )),
+            |(user, password, _)| UserInfo::new(user, password),
+        ),
     )(input)
 }
 
@@ -190,9 +193,12 @@ fn port(input: &[u8]) -> ParserResult<&[u8], NonZeroU16> {
 }
 
 fn hostport(input: &[u8]) -> ParserResult<&[u8], HostPort> {
-    map(pair(host, opt(preceded(tag(":"), port))), |(host, port)| {
-        HostPort::new(host, port)
-    })(input)
+    context(
+        "hostport",
+        map(pair(host, opt(preceded(tag(":"), port))), |(host, port)| {
+            HostPort::new(host, port)
+        }),
+    )(input)
 }
 
 fn transport_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
@@ -307,15 +313,18 @@ fn other_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)
 }
 
 fn uri_parameter(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
-    alt((
-        transport_param,
-        user_param,
-        method_param,
-        ttl_param,
-        maddr_param,
-        lr_param,
-        other_param,
-    ))(input)
+    context(
+        "uri_parameter",
+        alt((
+            transport_param,
+            user_param,
+            method_param,
+            ttl_param,
+            maddr_param,
+            lr_param,
+            other_param,
+        )),
+    )(input)
 }
 
 fn uri_parameters(input: &[u8]) -> ParserResult<&[u8], UriParameters> {
@@ -365,7 +374,7 @@ fn hvalue(input: &[u8]) -> ParserResult<&[u8], String> {
 }
 
 fn header(input: &[u8]) -> ParserResult<&[u8], (String, String)> {
-    separated_pair(hname, tag("="), hvalue)(input)
+    context("header", separated_pair(hname, tag("="), hvalue))(input)
 }
 
 fn headers(input: &[u8]) -> ParserResult<&[u8], UriHeaders> {
@@ -380,7 +389,7 @@ fn headers(input: &[u8]) -> ParserResult<&[u8], UriHeaders> {
 
 pub(crate) fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
     context(
-        "sip",
+        "sip_uri",
         map(
             pair(
                 alt((

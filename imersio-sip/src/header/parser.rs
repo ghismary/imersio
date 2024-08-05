@@ -11,61 +11,30 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, tuple},
 };
 
-use crate::common::accept_encoding::AcceptEncoding;
-use crate::common::accept_language::AcceptLanguage;
-use crate::common::accept_range::AcceptRange;
-use crate::common::alert::Alert;
-use crate::common::auth_parameter::{AuthParameter, AuthParameters};
-use crate::common::authentication_info::AuthenticationInfo;
-use crate::common::call_info::CallInfo;
-use crate::common::call_info_parameter::CallInfoParameter;
-use crate::common::challenge::Challenge;
-use crate::common::contact::{Contact, Contacts};
-use crate::common::contact_parameter::ContactParameter;
-use crate::common::content_language::ContentLanguage;
-use crate::common::credentials::Credentials;
-use crate::common::disposition_parameter::DispositionParameter;
-use crate::common::disposition_type::DispositionType;
-use crate::common::domain_uri::DomainUri;
-use crate::common::error_uri::ErrorUri;
-use crate::common::from_parameter::FromParameter;
-use crate::common::handling::Handling;
-use crate::common::media_parameter::MediaParameter;
-use crate::common::media_type::MediaType;
-use crate::common::priority::Priority;
-use crate::common::stale::Stale;
-use crate::header::date_header::DateHeader;
-use crate::header::from_header::FromHeader;
-use crate::header::max_forwards_header::MaxForwardsHeader;
-use crate::header::mime_version_header::MimeVersionHeader;
-use crate::parser::sp;
 use crate::{
-    common::{
-        accept_parameter::AcceptParameter, algorithm::Algorithm, content_encoding::ContentEncoding,
-        media_range::MediaRange, message_qop::MessageQop, name_address::NameAddress,
-        option_tag::OptionTag, wrapped_string::WrappedString,
+    common::wrapped_string::WrappedString,
+    header::{
+        AcceptEncodingHeader, AcceptHeader, AcceptLanguageHeader, AlertInfoHeader, AllowHeader,
+        AuthenticationInfoHeader, AuthorizationHeader, CSeqHeader, CallIdHeader, CallInfoHeader,
+        ContactHeader, ContentDispositionHeader, ContentEncodingHeader, ContentLanguageHeader,
+        ContentLengthHeader, ContentTypeHeader, DateHeader, ErrorInfoHeader, ExpiresHeader,
+        FromHeader, GenericHeader, Header, InReplyToHeader, MaxForwardsHeader, MimeVersionHeader,
+        MinExpiresHeader, OrganizationHeader, PriorityHeader, ProxyAuthenticateHeader,
+        ProxyAuthorizationHeader, ProxyRequireHeader, RecordRouteHeader,
     },
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, param, pchar, quoted_string,
-        raquot, rdquot, semi, slash, star, text_utf8_trim, text_utf8char, token, utf8_cont, word,
-        ParserResult,
+        raquot, rdquot, semi, slash, sp, star, text_utf8_trim, text_utf8char, token, utf8_cont,
+        word, ParserResult,
     },
     uri::parser::{absolute_uri, host, request_uri, sip_uri},
-    GenericParameter, Uri,
-};
-
-use super::{
-    accept_encoding_header::AcceptEncodingHeader, accept_header::AcceptHeader,
-    accept_language_header::AcceptLanguageHeader, alert_info_header::AlertInfoHeader,
-    allow_header::AllowHeader, authentication_info_header::AuthenticationInfoHeader,
-    authorization_header::AuthorizationHeader, call_id_header::CallIdHeader,
-    call_info_header::CallInfoHeader, contact_header::ContactHeader,
-    content_disposition_header::ContentDispositionHeader,
-    content_encoding_header::ContentEncodingHeader, generic_header::GenericHeader, CSeqHeader,
-    ContentLanguageHeader, ContentLengthHeader, ContentTypeHeader, ErrorInfoHeader, ExpiresHeader,
-    Header, InReplyToHeader, MinExpiresHeader, OrganizationHeader, PriorityHeader,
-    ProxyAuthenticateHeader, ProxyAuthorizationHeader, ProxyRequireHeader,
+    AcceptEncoding, AcceptLanguage, AcceptParameter, AcceptRange, Alert, Algorithm, AuthParameter,
+    AuthParameters, AuthenticationInfo, CallInfo, CallInfoParameter, Challenge, Contact,
+    ContactParameter, Contacts, ContentEncoding, ContentLanguage, Credentials,
+    DispositionParameter, DispositionType, DomainUri, ErrorUri, FromParameter, GenericParameter,
+    Handling, MediaParameter, MediaRange, MediaType, MessageQop, NameAddress, OptionTag, Priority,
+    Route, Stale, Uri,
 };
 
 fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
@@ -736,22 +705,31 @@ fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 fn addr_spec(input: &[u8]) -> ParserResult<&[u8], Uri> {
-    alt((sip_uri, map(absolute_uri, Uri::Absolute)))(input)
+    context(
+        "addr_spec",
+        alt((sip_uri, map(absolute_uri, Uri::Absolute))),
+    )(input)
 }
 
 fn display_name(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
-    alt((
-        quoted_string,
-        map(recognize(many0(pair(token, lws))), |v| {
-            WrappedString::new_not_wrapped(String::from_utf8_lossy(v).trim_end())
-        }),
-    ))(input)
+    context(
+        "display_name",
+        alt((
+            quoted_string,
+            map(recognize(many0(pair(token, lws))), |v| {
+                WrappedString::new_not_wrapped(String::from_utf8_lossy(v).trim_end())
+            }),
+        )),
+    )(input)
 }
 
 fn name_addr(input: &[u8]) -> ParserResult<&[u8], NameAddress> {
-    map(
-        pair(opt(display_name), delimited(laquot, addr_spec, raquot)),
-        |(display_name, uri)| NameAddress::new(uri, display_name),
+    context(
+        "name_addr",
+        map(
+            pair(opt(display_name), delimited(laquot, addr_spec, raquot)),
+            |(display_name, uri)| NameAddress::new(uri, display_name),
+        ),
     )(input)
 }
 
@@ -1561,7 +1539,7 @@ pub(crate) fn option_tag(input: &[u8]) -> ParserResult<&[u8], OptionTag> {
 
 fn proxy_require(input: &[u8]) -> ParserResult<&[u8], Header> {
     context(
-        "Proxy-Require",
+        "Proxy-Require header",
         map(
             tuple((
                 map(tag_no_case("Proxy-Require"), String::from_utf8_lossy),
@@ -1572,6 +1550,40 @@ fn proxy_require(input: &[u8]) -> ParserResult<&[u8], Header> {
                 Header::ProxyRequire(ProxyRequireHeader::new(
                     GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
                     tags,
+                ))
+            },
+        ),
+    )(input)
+}
+
+#[inline]
+fn route_param(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
+    generic_param(input)
+}
+
+fn route(input: &[u8]) -> ParserResult<&[u8], Route> {
+    context(
+        "route",
+        map(
+            pair(name_addr, many0(route_param)),
+            |(name_addr, params)| Route::new(name_addr, params),
+        ),
+    )(input)
+}
+
+fn record_route(input: &[u8]) -> ParserResult<&[u8], Header> {
+    context(
+        "Record-Route header",
+        map(
+            tuple((
+                map(tag_no_case("Record-Route"), String::from_utf8_lossy),
+                map(hcolon, String::from_utf8_lossy),
+                cut(consumed(separated_list1(comma, route))),
+            )),
+            |(name, separator, (value, routes))| {
+                Header::RecordRoute(RecordRouteHeader::new(
+                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    routes,
                 ))
             },
         ),
@@ -1639,6 +1651,7 @@ pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
                 proxy_authenticate,
                 proxy_authorization,
                 proxy_require,
+                record_route,
                 extension_header,
             )),
         )),

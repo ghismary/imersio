@@ -1,10 +1,12 @@
+//! SIP Priority header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::generic_header::GenericHeader;
-use crate::common::priority::Priority;
+use crate::header::GenericHeader;
 use crate::HeaderAccessor;
+use crate::Priority;
 
 /// Representation of a Priority header.
 ///

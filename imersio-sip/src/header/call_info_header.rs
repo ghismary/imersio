@@ -1,10 +1,12 @@
+//! SIP Call-Info header parsing and generation.
+
 use derive_more::Display;
 use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
-use super::{generic_header::GenericHeader, HeaderAccessor};
-use crate::common::call_info::{CallInfo, CallInfos};
 use crate::utils::compare_vectors;
+use crate::{header::GenericHeader, HeaderAccessor};
+use crate::{CallInfo, CallInfos};
 
 /// Representation of a Call-Info header.
 ///

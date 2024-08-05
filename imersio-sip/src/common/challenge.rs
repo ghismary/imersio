@@ -1,13 +1,15 @@
+#![allow(missing_docs)]
+
 use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
-use crate::common::algorithm::Algorithm;
-use crate::common::auth_parameter::{AuthParameter, AuthParameters};
-use crate::common::domain_uri::DomainUris;
-use crate::common::message_qop::MessageQops;
-use crate::common::stale::Stale;
 use crate::utils::compare_vectors;
+use crate::Algorithm;
+use crate::DomainUris;
+use crate::MessageQops;
+use crate::Stale;
+use crate::{AuthParameter, AuthParameters};
 
 /// Representation of the challenge from an `ProxyAuthenticateHeader`.
 #[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]

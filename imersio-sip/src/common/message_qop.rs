@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use derive_more::{Deref, From, IsVariant};
 use itertools::{join, Itertools};
 use partial_eq_refs::PartialEqRefs;
@@ -31,10 +33,14 @@ impl Hash for MessageQops {
     }
 }
 
+/// Representation of a Qop parameter value.
 #[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
 pub enum MessageQop {
+    /// auth qop.
     Auth,
+    /// auth-int qop.
     AuthInt,
+    /// Any other qop value.
     Other(String),
 }
 
@@ -48,6 +54,7 @@ impl MessageQop {
         }
     }
 
+    /// Get the value of the qop.
     pub fn value(&self) -> &str {
         match self {
             Self::Auth => "auth",

@@ -2,10 +2,10 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::call_info_parameter::CallInfoParameter;
 use crate::common::header_value_collection::HeaderValueCollection;
 use crate::utils::compare_vectors;
 use crate::AbsoluteUri;
+use crate::CallInfoParameter;
 
 /// Representation of the list of call information from a `Call-Info` header.
 ///

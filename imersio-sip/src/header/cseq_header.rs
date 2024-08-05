@@ -1,9 +1,11 @@
+//! SIP CSeq header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::{generic_header::GenericHeader, HeaderAccessor};
 use crate::Method;
+use crate::{header::GenericHeader, HeaderAccessor};
 
 /// Representation of a CSeq header.
 ///

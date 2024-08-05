@@ -1,10 +1,12 @@
+//! SIP Accept-Encoding header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::generic_header::GenericHeader;
-use crate::common::accept_encoding::{AcceptEncoding, AcceptEncodings};
+use crate::header::GenericHeader;
 use crate::HeaderAccessor;
+use crate::{AcceptEncoding, AcceptEncodings};
 
 /// Representation of an Accept-Encoding header.
 ///

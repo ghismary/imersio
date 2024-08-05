@@ -1,12 +1,14 @@
-use crate::common::contact_parameter::ContactParameter;
+#![allow(missing_docs)]
+
 use derive_more::IsVariant;
 use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 use std::ops::Deref;
 
-use crate::common::name_address::NameAddress;
 use crate::utils::compare_vectors;
+use crate::ContactParameter;
+use crate::NameAddress;
 
 static EMPTY_CONTACTS: Vec<Contact> = vec![];
 

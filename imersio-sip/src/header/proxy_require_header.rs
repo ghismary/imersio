@@ -1,9 +1,11 @@
+//! SIP Proxy-Require header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::{generic_header::GenericHeader, HeaderAccessor};
-use crate::common::option_tag::{OptionTag, OptionTags};
+use crate::{header::GenericHeader, HeaderAccessor};
+use crate::{OptionTag, OptionTags};
 
 /// Representation of a Proxy-Require header.
 ///

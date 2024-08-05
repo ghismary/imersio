@@ -1,10 +1,13 @@
+//! SIP From header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::generic_header::GenericHeader;
-use crate::common::from_parameter::{FromParameter, FromParameters};
-use crate::{common::name_address::NameAddress, HeaderAccessor};
+use crate::header::GenericHeader;
+use crate::HeaderAccessor;
+use crate::NameAddress;
+use crate::{FromParameter, FromParameters};
 
 /// Representation of a From header.
 ///

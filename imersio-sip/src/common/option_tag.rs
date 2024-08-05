@@ -1,9 +1,9 @@
-use crate::common::header_value_collection::HeaderValueCollection;
 use derive_more::Display;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
+use crate::common::header_value_collection::HeaderValueCollection;
 use crate::Error;
 
 /// Representation of the list of option tags in a `Proxy-Require` header.
@@ -11,6 +11,7 @@ use crate::Error;
 /// This is usable as an iterator.
 pub type OptionTags = HeaderValueCollection<OptionTag>;
 
+/// Representation of an option tag contained in a `Proxy-Require` header.
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
 #[display(fmt = "{}", "self.0.to_ascii_lowercase()")]
 pub struct OptionTag(String);

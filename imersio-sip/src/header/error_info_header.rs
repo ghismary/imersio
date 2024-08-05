@@ -1,10 +1,12 @@
-use crate::common::error_uri::{ErrorUri, ErrorUris};
+//! SIP Error-Info header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::generic_header::GenericHeader;
+use crate::header::GenericHeader;
 use crate::HeaderAccessor;
+use crate::{ErrorUri, ErrorUris};
 
 /// Representation of an Error-Info header.
 ///

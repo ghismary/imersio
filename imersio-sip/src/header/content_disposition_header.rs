@@ -1,12 +1,14 @@
+//! SIP Content-Disposition header parsing and generation.
+
 use derive_more::Display;
 use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
-use super::generic_header::GenericHeader;
-use crate::common::disposition_parameter::DispositionParameter;
-use crate::common::disposition_type::DispositionType;
+use crate::header::GenericHeader;
 use crate::utils::compare_vectors;
+use crate::DispositionParameter;
+use crate::DispositionType;
 use crate::HeaderAccessor;
 
 /// Representation of a Content-Disposition header.

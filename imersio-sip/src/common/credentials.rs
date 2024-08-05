@@ -1,12 +1,14 @@
+#![allow(missing_docs)]
+
 use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
-use crate::common::algorithm::Algorithm;
-use crate::common::auth_parameter::{AuthParameter, AuthParameters};
-use crate::common::message_qop::MessageQop;
 use crate::utils::compare_vectors;
+use crate::Algorithm;
+use crate::MessageQop;
 use crate::Uri;
+use crate::{AuthParameter, AuthParameters};
 
 /// Representation of the credentials from an `AuthorizationHeader` or a `ProxyAuthorizationHeader`.
 #[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]

@@ -33,6 +33,7 @@ pub mod message_qop;
 pub mod name_address;
 pub mod option_tag;
 pub mod priority;
+pub mod route;
 pub mod stale;
 pub mod wrapped_string;
 

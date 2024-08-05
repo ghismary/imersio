@@ -1,10 +1,12 @@
+#![allow(missing_docs)]
+
 use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::header_value_collection::HeaderValueCollection;
-use crate::common::message_qop::MessageQop;
 use crate::common::wrapped_string::WrappedString;
+use crate::MessageQop;
 
 /// Representation of the list of authentication infos from an
 /// `AuthenticationInfoHeader`.

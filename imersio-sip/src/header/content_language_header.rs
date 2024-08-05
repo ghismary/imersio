@@ -1,10 +1,12 @@
+//! SIP Content-Language header parsing and generation.
+
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use super::generic_header::GenericHeader;
-use crate::common::content_language::{ContentLanguage, ContentLanguages};
+use crate::header::GenericHeader;
 use crate::HeaderAccessor;
+use crate::{ContentLanguage, ContentLanguages};
 
 /// Representation of a Content-Language header.
 ///

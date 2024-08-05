@@ -2,10 +2,10 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::accept_parameter::AcceptParameter;
 use crate::common::header_value_collection::HeaderValueCollection;
-use crate::common::media_range::MediaRange;
 use crate::utils::compare_vectors;
+use crate::AcceptParameter;
+use crate::MediaRange;
 
 /// Representation of the list of range from an `AcceptHeader`.
 ///

@@ -3,6 +3,7 @@ use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::{Hash, Hasher};
 
+/// Representation of a stale parameter.
 #[derive(Debug, Clone, Deref, Display, Eq, PartialEqExtras, PartialEqRefs)]
 #[display(fmt = "{}", str_value)]
 pub struct Stale {

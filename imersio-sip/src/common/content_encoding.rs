@@ -1,9 +1,9 @@
-use crate::common::header_value_collection::HeaderValueCollection;
 use derive_more::Display;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
+use crate::common::header_value_collection::HeaderValueCollection;
 use crate::Error;
 
 /// Representation of the list of encodings in a `Content-Encoding` header.
@@ -11,6 +11,7 @@ use crate::Error;
 /// This is usable as an iterator.
 pub type ContentEncodings = HeaderValueCollection<ContentEncoding>;
 
+/// Representation of an encoding in a `Content-Encoding` header.
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
 #[display(fmt = "{}", "self.0.to_ascii_lowercase()")]
 pub struct ContentEncoding(String);
