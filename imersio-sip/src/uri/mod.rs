@@ -31,12 +31,6 @@ pub enum Uri {
 }
 
 impl Uri {
-    /// Try to create a `Uri` from a slice of bytes.
-    #[inline]
-    pub fn from_bytes(input: &[u8]) -> Result<Uri, Error> {
-        parse_uri(input)
-    }
-
     /// Get the `Uri` as an `AbsoluteUri`.
     ///
     /// It returns None if the uri is not an `AbsoluteUri`.
@@ -160,7 +154,7 @@ impl TryFrom<&str> for Uri {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Uri::from_bytes(value.as_bytes())
+        parse_uri(value)
     }
 }
 
@@ -182,7 +176,7 @@ impl PartialEq<Uri> for &Uri {
     }
 }
 
-fn parse_uri(input: &[u8]) -> Result<Uri, Error> {
+fn parse_uri(input: &str) -> Result<Uri, Error> {
     match parser::request_uri(input) {
         Ok((rest, uri)) => {
             if !rest.is_empty() {

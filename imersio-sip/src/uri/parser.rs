@@ -1,4 +1,4 @@
-use std::{borrow::Cow, num::NonZeroU16};
+use std::num::NonZeroU16;
 
 use crate::{
     parser::{
@@ -23,50 +23,43 @@ use nom::{
 use super::{sip_uri::SipUri, uri_scheme::UriScheme};
 
 #[inline]
-pub(crate) fn is_user_unreserved(b: u8) -> bool {
-    b"&=+$,;?/".contains(&b)
+pub(crate) fn is_user_unreserved(c: char) -> bool {
+    "&=+$,;?/".contains(c)
 }
 
-fn user_unreserved(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_user_unreserved(*b)))(input)
+fn user_unreserved(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_user_unreserved(*c))(input)
 }
 
-fn user(input: &[u8]) -> ParserResult<&[u8], String> {
+fn user(input: &str) -> ParserResult<&str, String> {
     context(
         "user",
         map(many1(alt((unreserved, escaped, user_unreserved))), |user| {
-            user.iter()
-                .map(|b| String::from_utf8_lossy(b))
-                .collect::<String>()
+            user.iter().collect::<String>()
         }),
     )(input)
 }
 
 #[inline]
-pub(crate) fn is_password_special_char(b: u8) -> bool {
-    b"&=+$,".contains(&b)
+pub(crate) fn is_password_special_char(c: char) -> bool {
+    "&=+$,".contains(c)
 }
 
-fn password_special_char(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_password_special_char(*b)))(input)
+fn password_special_char(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_password_special_char(*c))(input)
 }
 
-fn password(input: &[u8]) -> ParserResult<&[u8], String> {
+fn password(input: &str) -> ParserResult<&str, String> {
     context(
         "password",
         map(
             many0(alt((unreserved, escaped, password_special_char))),
-            |password| {
-                password
-                    .iter()
-                    .map(|b| String::from_utf8_lossy(b))
-                    .collect::<String>()
-            },
+            |password| password.iter().collect::<String>(),
         ),
     )(input)
 }
 
-fn userinfo(input: &[u8]) -> ParserResult<&[u8], UserInfo> {
+fn userinfo(input: &str) -> ParserResult<&str, UserInfo> {
     context(
         "userinfo",
         map(
@@ -108,16 +101,13 @@ fn is_valid_hostname(input: &str) -> bool {
         .is_some_and(|label| label.as_bytes()[0].is_ascii_alphabetic())
 }
 
-fn hostname(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn hostname(input: &str) -> ParserResult<&str, &str> {
     context(
         "hostname",
         verify(
-            map(
-                recognize(many1(verify(take1, |b| {
-                    b.is_ascii_alphanumeric() || b"-.".contains(b)
-                }))),
-                String::from_utf8_lossy,
-            ),
+            recognize(many1(verify(take1, |c| {
+                c.is_ascii_alphanumeric() || "-.".contains(*c)
+            }))),
             is_valid_hostname,
         ),
     )(input)
@@ -128,37 +118,34 @@ fn is_valid_ipv4_address_number(input: &str) -> bool {
     input.parse::<u8>().is_ok()
 }
 
-fn ipv4_address_number(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(recognize(many_m_n(1, 3, digit)), String::from_utf8_lossy)(input)
+fn ipv4_address_number(input: &str) -> ParserResult<&str, &str> {
+    recognize(many_m_n(1, 3, digit))(input)
 }
 
-fn ipv4_address(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn ipv4_address(input: &str) -> ParserResult<&str, &str> {
     context(
         "ipv4_address",
-        map(
-            recognize(tuple((
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-                tag("."),
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-                tag("."),
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-                tag("."),
-                verify(ipv4_address_number, is_valid_ipv4_address_number),
-            ))),
-            String::from_utf8_lossy,
-        ),
+        recognize(tuple((
+            verify(ipv4_address_number, is_valid_ipv4_address_number),
+            tag("."),
+            verify(ipv4_address_number, is_valid_ipv4_address_number),
+            tag("."),
+            verify(ipv4_address_number, is_valid_ipv4_address_number),
+            tag("."),
+            verify(ipv4_address_number, is_valid_ipv4_address_number),
+        ))),
     )(input)
 }
 
-fn hex4(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn hex4(input: &str) -> ParserResult<&str, &str> {
     recognize(many_m_n(1, 4, hex_digit))(input)
 }
 
-fn hexseq(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn hexseq(input: &str) -> ParserResult<&str, &str> {
     recognize(pair(hex4, many0(pair(tag(":"), hex4))))(input)
 }
 
-fn hexpart(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn hexpart(input: &str) -> ParserResult<&str, &str> {
     recognize(alt((
         hexseq,
         recognize(tuple((hexseq, tag("::"), hexseq))),
@@ -166,33 +153,30 @@ fn hexpart(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
     )))(input)
 }
 
-fn ipv6_address(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn ipv6_address(input: &str) -> ParserResult<&str, &str> {
     context(
         "ipv6_address",
         recognize(pair(hexpart, opt(pair(tag(":"), ipv4_address)))),
     )(input)
 }
 
-fn ipv6_reference(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn ipv6_reference(input: &str) -> ParserResult<&str, &str> {
     context(
         "ipv6_reference",
-        map(
-            recognize(tuple((tag("["), ipv6_address, tag("]")))),
-            String::from_utf8_lossy,
-        ),
+        recognize(tuple((tag("["), ipv6_address, tag("]")))),
     )(input)
 }
 
-pub(crate) fn host(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+pub(crate) fn host(input: &str) -> ParserResult<&str, &str> {
     context("host", alt((hostname, ipv4_address, ipv6_reference)))(input)
 }
 
-fn port(input: &[u8]) -> ParserResult<&[u8], NonZeroU16> {
-    let mut port_u16 = map_opt(digit1, |s: &[u8]| s.parse_to());
+fn port(input: &str) -> ParserResult<&str, NonZeroU16> {
+    let mut port_u16 = map_opt(digit1, |s: &str| s.as_bytes().parse_to());
     port_u16(input)
 }
 
-fn hostport(input: &[u8]) -> ParserResult<&[u8], HostPort> {
+fn hostport(input: &str) -> ParserResult<&str, HostPort> {
     context(
         "hostport",
         map(pair(host, opt(preceded(tag(":"), port))), |(host, port)| {
@@ -201,108 +185,92 @@ fn hostport(input: &[u8]) -> ParserResult<&[u8], HostPort> {
     )(input)
 }
 
-fn transport_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
+fn transport_param(input: &str) -> ParserResult<&str, (String, String)> {
     context(
         "transport_param",
         map(
             separated_pair(tag("transport"), tag("="), token),
-            |(name, value)| (String::from_utf8_lossy(name), value),
+            |(name, value)| (name.to_string(), value.to_string()),
         ),
     )(input)
 }
 
-fn user_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
+fn user_param(input: &str) -> ParserResult<&str, (String, String)> {
     context(
         "user_param",
         map(
             separated_pair(tag("user"), tag("="), token),
-            |(name, value)| (String::from_utf8_lossy(name), value),
+            |(name, value)| (name.to_string(), value.to_string()),
         ),
     )(input)
 }
 
-fn method_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
+fn method_param(input: &str) -> ParserResult<&str, (String, String)> {
     context(
         "method_param",
         map(
             separated_pair(tag("method"), tag("="), token),
-            |(name, value)| (String::from_utf8_lossy(name), value),
+            |(name, value)| (name.to_string(), value.to_string()),
         ),
     )(input)
 }
 
-fn ttl_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
+fn ttl_param(input: &str) -> ParserResult<&str, (String, String)> {
     context(
         "ttl_param",
         map(
             separated_pair(tag("ttl"), tag("="), ttl),
-            |(name, value)| {
-                (
-                    String::from_utf8_lossy(name),
-                    String::from_utf8_lossy(value),
-                )
-            },
+            |(name, value)| (name.to_string(), value.to_string()),
         ),
     )(input)
 }
 
-fn maddr_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
+fn maddr_param(input: &str) -> ParserResult<&str, (String, String)> {
     context(
         "maddr_param",
         map(
             separated_pair(tag("maddr"), tag("="), host),
-            |(name, value)| (String::from_utf8_lossy(name), value),
+            |(name, value)| (name.to_string(), value.to_string()),
         ),
     )(input)
 }
 
 #[inline]
-fn lr_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
-    map(context("lr_param", tag("lr")), |name| {
-        (String::from_utf8_lossy(name), Cow::from(""))
-    })(input)
+fn lr_param(input: &str) -> ParserResult<&str, (String, String)> {
+    context(
+        "lr_param",
+        map(tag("lr"), |name: &str| (name.to_string(), "".to_string())),
+    )(input)
 }
 
 #[inline]
-pub(crate) fn is_param_unreserved(b: u8) -> bool {
-    b"[]/:&+$".contains(&b)
+pub(crate) fn is_param_unreserved(c: char) -> bool {
+    "[]/:&+$".contains(c)
 }
 
-fn param_unreserved(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_param_unreserved(*b)))(input)
+fn param_unreserved(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_param_unreserved(*c))(input)
 }
 
-fn paramchar(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn paramchar(input: &str) -> ParserResult<&str, char> {
     alt((param_unreserved, unreserved, escaped))(input)
 }
 
-fn pname(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn pname(input: &str) -> ParserResult<&str, String> {
     context(
         "pname",
-        map(many1(paramchar), |pname| {
-            pname
-                .iter()
-                .map(|b| String::from_utf8_lossy(b))
-                .collect::<String>()
-                .into()
-        }),
+        map(many1(paramchar), |pname| pname.iter().collect::<String>()),
     )(input)
 }
 
-fn pvalue(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn pvalue(input: &str) -> ParserResult<&str, String> {
     context(
         "pvalue",
-        map(many1(paramchar), |pvalue| {
-            pvalue
-                .iter()
-                .map(|b| String::from_utf8_lossy(b))
-                .collect::<String>()
-                .into()
-        }),
+        map(many1(paramchar), |pvalue| pvalue.iter().collect::<String>()),
     )(input)
 }
 
-fn other_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
+fn other_param(input: &str) -> ParserResult<&str, (String, String)> {
     context(
         "other_param",
         map(
@@ -312,7 +280,7 @@ fn other_param(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)
     )(input)
 }
 
-fn uri_parameter(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str>)> {
+fn uri_parameter(input: &str) -> ParserResult<&str, (String, String)> {
     context(
         "uri_parameter",
         alt((
@@ -327,7 +295,7 @@ fn uri_parameter(input: &[u8]) -> ParserResult<&[u8], (Cow<'_, str>, Cow<'_, str
     )(input)
 }
 
-fn uri_parameters(input: &[u8]) -> ParserResult<&[u8], UriParameters> {
+fn uri_parameters(input: &str) -> ParserResult<&str, UriParameters> {
     context(
         "uri_parameters",
         map(many0(preceded(tag(";"), uri_parameter)), |parameters| {
@@ -342,42 +310,37 @@ fn uri_parameters(input: &[u8]) -> ParserResult<&[u8], UriParameters> {
 }
 
 #[inline]
-pub(crate) fn is_hnv_unreserved(b: u8) -> bool {
-    b"[]/?:+$".contains(&b)
+pub(crate) fn is_hnv_unreserved(c: char) -> bool {
+    "[]/?:+$".contains(c)
 }
 
-fn hnv_unreserved(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_hnv_unreserved(*b)))(input)
+fn hnv_unreserved(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_hnv_unreserved(*c))(input)
 }
 
-fn hname(input: &[u8]) -> ParserResult<&[u8], String> {
+fn hname(input: &str) -> ParserResult<&str, String> {
     context(
         "hname",
         map(many1(alt((hnv_unreserved, unreserved, escaped))), |name| {
-            name.iter()
-                .map(|b| String::from_utf8_lossy(b))
-                .collect::<String>()
+            name.iter().collect::<String>()
         }),
     )(input)
 }
 
-fn hvalue(input: &[u8]) -> ParserResult<&[u8], String> {
+fn hvalue(input: &str) -> ParserResult<&str, String> {
     context(
         "hvalue",
         map(many0(alt((hnv_unreserved, unreserved, escaped))), |value| {
-            value
-                .iter()
-                .map(|b| String::from_utf8_lossy(b))
-                .collect::<String>()
+            value.iter().collect::<String>()
         }),
     )(input)
 }
 
-fn header(input: &[u8]) -> ParserResult<&[u8], (String, String)> {
+fn header(input: &str) -> ParserResult<&str, (String, String)> {
     context("header", separated_pair(hname, tag("="), hvalue))(input)
 }
 
-fn headers(input: &[u8]) -> ParserResult<&[u8], UriHeaders> {
+fn headers(input: &str) -> ParserResult<&str, UriHeaders> {
     context(
         "headers",
         map(
@@ -387,7 +350,7 @@ fn headers(input: &[u8]) -> ParserResult<&[u8], UriHeaders> {
     )(input)
 }
 
-pub(crate) fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
+pub(crate) fn sip_uri(input: &str) -> ParserResult<&str, Uri> {
     context(
         "sip_uri",
         map(
@@ -418,45 +381,39 @@ pub(crate) fn sip_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
     )(input)
 }
 
-fn uric(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn uric(input: &str) -> ParserResult<&str, char> {
     alt((reserved, unreserved, escaped))(input)
 }
 
-fn uric_no_slash(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| {
-        is_reserved(*b) || is_unreserved(*b) || b";?:@&=+$,".contains(b)
-    }))(input)
+fn uric_no_slash(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| {
+        is_reserved(*c) || is_unreserved(*c) || ";?:@&=+$,".contains(*c)
+    })(input)
 }
 
-fn scheme_special_char(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| b"+-.".contains(b)))(input)
+fn scheme_special_char(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| "+-.".contains(*c))(input)
 }
 
-fn scheme(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn scheme(input: &str) -> ParserResult<&str, &str> {
     context(
         "scheme",
-        map(
-            recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
-            String::from_utf8_lossy,
-        ),
+        recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
     )(input)
 }
 
-fn opaque_part(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
-        recognize(pair(uric_no_slash, many0(uric))),
-        String::from_utf8_lossy,
-    )(input)
+fn opaque_part(input: &str) -> ParserResult<&str, &str> {
+    recognize(pair(uric_no_slash, many0(uric)))(input)
 }
 
-pub(crate) fn absolute_uri(input: &[u8]) -> ParserResult<&[u8], AbsoluteUri> {
+pub(crate) fn absolute_uri(input: &str) -> ParserResult<&str, AbsoluteUri> {
     context(
         "absolute_uri",
         map(
             separated_pair(scheme, tag(":"), opaque_part),
             |(scheme, opaque_part)| {
                 AbsoluteUri::new(
-                    UriScheme::Other(scheme.into_owned()),
+                    UriScheme::Other(scheme.to_string()),
                     opaque_part,
                     UriParameters::default(),
                     UriHeaders::default(),
@@ -466,6 +423,6 @@ pub(crate) fn absolute_uri(input: &[u8]) -> ParserResult<&[u8], AbsoluteUri> {
     )(input)
 }
 
-pub(crate) fn request_uri(input: &[u8]) -> ParserResult<&[u8], Uri> {
+pub(crate) fn request_uri(input: &str) -> ParserResult<&str, Uri> {
     context("uri", alt((sip_uri, map(absolute_uri, Uri::Absolute))))(input)
 }

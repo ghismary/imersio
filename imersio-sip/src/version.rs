@@ -37,19 +37,13 @@ impl Version {
             Sip::Sip2 => "SIP/2.0",
         }
     }
-
-    /// Try to create a `Version` from a slice of bytes.
-    #[inline]
-    pub fn from_bytes(input: &[u8]) -> Result<Version, Error> {
-        parse(input)
-    }
 }
 
 impl TryFrom<&str> for Version {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Version::from_bytes(value.as_bytes())
+        parse(value)
     }
 }
 
@@ -121,7 +115,7 @@ impl<'a> PartialEq<Version> for &'a str {
     }
 }
 
-fn parse(input: &[u8]) -> Result<Version, Error> {
+fn parse(input: &str) -> Result<Version, Error> {
     match parser::sip_version(input) {
         Ok((rest, version)) => {
             if !rest.is_empty() {
@@ -136,10 +130,10 @@ fn parse(input: &[u8]) -> Result<Version, Error> {
 
 pub(crate) mod parser {
     use crate::{parser::ParserResult, Version};
-    use nom::{bytes::complete::tag, error::context};
+    use nom::{bytes::complete::tag, combinator::value, error::context};
 
-    pub(crate) fn sip_version(input: &[u8]) -> ParserResult<&[u8], Version> {
-        context("sip_version", tag("SIP/2.0"))(input).map(|(rest, _)| (rest, Version::SIP_2))
+    pub(crate) fn sip_version(input: &str) -> ParserResult<&str, Version> {
+        context("sip_version", value(Version::SIP_2, tag("SIP/2.0")))(input)
     }
 }
 
@@ -165,9 +159,8 @@ mod test {
     #[test]
     fn test_invalid_version() {
         assert_err!(Version::try_from(""));
-        assert_err!(Version::from_bytes(b""));
         assert_err!(Version::try_from("SIP/1.0"));
-        assert_err!(Version::from_bytes(b"crappy-version"));
+        assert_err!(Version::try_from("crappy-version"));
     }
 
     #[test]

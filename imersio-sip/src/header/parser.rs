@@ -1,12 +1,9 @@
 use chrono::{DateTime, Utc};
-use std::borrow::Cow;
-
-use nom::error::{ErrorKind, ParseError, VerboseError};
 use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case},
-    combinator::{consumed, cut, map, opt, recognize},
-    error::context,
+    combinator::{consumed, cut, map, opt, recognize, value},
+    error::{context, ErrorKind, ParseError, VerboseError},
     multi::{count, many0, many1, many_m_n, separated_list0, separated_list1},
     sequence::{delimited, pair, preceded, separated_pair, tuple},
 };
@@ -25,8 +22,8 @@ use crate::{
     method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, param, pchar, quoted_string,
-        raquot, rdquot, semi, slash, sp, star, text_utf8_trim, text_utf8char, token, utf8_cont,
-        word, ParserResult,
+        raquot, rdquot, semi, slash, sp, star, text_utf8_trim, text_utf8char, token, word,
+        ParserResult,
     },
     uri::parser::{absolute_uri, host, request_uri, sip_uri},
     AcceptEncoding, AcceptLanguage, AcceptParameter, AcceptRange, Alert, Algorithm, AuthParameter,
@@ -37,124 +34,129 @@ use crate::{
     Route, Stale, Uri,
 };
 
-fn discrete_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
-        alt((
-            tag("text"),
-            tag("image"),
-            tag("audio"),
-            tag("video"),
-            tag("application"),
-        )),
-        String::from_utf8_lossy,
-    )(input)
+fn discrete_type(input: &str) -> ParserResult<&str, &str> {
+    alt((
+        tag("text"),
+        tag("image"),
+        tag("audio"),
+        tag("video"),
+        tag("application"),
+    ))(input)
 }
 
-fn composite_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
-        alt((tag("message"), tag("multipart"))),
-        String::from_utf8_lossy,
-    )(input)
+fn composite_type(input: &str) -> ParserResult<&str, &str> {
+    alt((tag("message"), tag("multipart")))(input)
 }
 
 #[inline]
-fn ietf_token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn ietf_token(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn x_token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(recognize(pair(tag("x-"), token)), String::from_utf8_lossy)(input)
+fn x_token(input: &str) -> ParserResult<&str, &str> {
+    recognize(pair(tag("x-"), token))(input)
 }
 
-fn extension_token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn extension_token(input: &str) -> ParserResult<&str, &str> {
     alt((ietf_token, x_token))(input)
 }
 
-fn m_type(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn m_type(input: &str) -> ParserResult<&str, &str> {
     alt((discrete_type, composite_type, extension_token))(input)
 }
 
 #[inline]
-fn iana_token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn iana_token(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn m_subtype(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn m_subtype(input: &str) -> ParserResult<&str, &str> {
     alt((extension_token, iana_token))(input)
 }
 
-fn media_range(input: &[u8]) -> ParserResult<&[u8], MediaRange> {
+fn media_range(input: &str) -> ParserResult<&str, MediaRange> {
     map(
         alt((
-            separated_pair(
-                map(tag("*"), String::from_utf8_lossy),
-                tag("/"),
-                map(tag("*"), String::from_utf8_lossy),
-            ),
-            separated_pair(m_type, slash, map(tag("*"), String::from_utf8_lossy)),
+            separated_pair(tag("*"), slash, tag("*")),
+            separated_pair(m_type, slash, tag("*")),
             separated_pair(m_type, slash, m_subtype),
         )),
         |(r#type, subtype)| MediaRange::new(r#type, subtype),
     )(input)
 }
 
-fn qvalue(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
+fn qvalue(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "qvalue",
         recognize(alt((
-            pair(tag("0"), opt(pair(tag("."), many_m_n(0, 3, digit)))),
+            pair(
+                tag("0"),
+                opt(pair(tag("."), many_m_n(0, 3, recognize(digit)))),
+            ),
             pair(tag("1"), opt(pair(tag("."), many_m_n(0, 3, tag("0"))))),
         ))),
-        String::from_utf8_lossy,
     )(input)
 }
 
-fn q_param(input: &[u8]) -> ParserResult<&[u8], AcceptParameter> {
-    map(separated_pair(tag("q"), equal, qvalue), |(key, value)| {
-        AcceptParameter::new(String::from_utf8_lossy(key), Some(value))
-    })(input)
-}
-
-fn gen_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
-    alt((
-        map(token, WrappedString::new_not_wrapped),
-        map(host, WrappedString::new_not_wrapped),
-        quoted_string,
-    ))(input)
-}
-
-fn generic_param(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
-    map(
-        pair(token, opt(preceded(equal, gen_value))),
-        |(key, value)| GenericParameter::new(key.to_string(), value.map(|v| v.to_string())),
+fn q_param(input: &str) -> ParserResult<&str, AcceptParameter> {
+    context(
+        "q_param",
+        map(separated_pair(tag("q"), equal, qvalue), |(key, value)| {
+            AcceptParameter::new(key, Some(value))
+        }),
     )(input)
 }
 
-fn accept_param(input: &[u8]) -> ParserResult<&[u8], AcceptParameter> {
+fn gen_value(input: &str) -> ParserResult<&str, WrappedString> {
+    context(
+        "gen_value",
+        alt((
+            map(token, WrappedString::new_not_wrapped),
+            map(host, WrappedString::new_not_wrapped),
+            quoted_string,
+        )),
+    )(input)
+}
+
+fn generic_param(input: &str) -> ParserResult<&str, GenericParameter> {
+    context(
+        "generic_param",
+        map(
+            pair(token, opt(preceded(equal, gen_value))),
+            |(key, value)| GenericParameter::new(key.to_string(), value.map(|v| v.to_string())),
+        ),
+    )(input)
+}
+
+fn accept_param(input: &str) -> ParserResult<&str, AcceptParameter> {
     context(
         "accept_param",
         alt((q_param, map(generic_param, Into::into))),
     )(input)
 }
 
-fn accept_range(input: &[u8]) -> ParserResult<&[u8], AcceptRange> {
-    map(
-        pair(media_range, many0(preceded(semi, accept_param))),
-        |(media_range, accept_params)| AcceptRange::new(media_range, accept_params),
+fn accept_range(input: &str) -> ParserResult<&str, AcceptRange> {
+    context(
+        "accept_range",
+        map(
+            pair(media_range, many0(preceded(semi, accept_param))),
+            |(media_range, accept_params)| AcceptRange::new(media_range, accept_params),
+        ),
     )(input)
 }
 
-fn accept(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn accept(input: &str) -> ParserResult<&str, Header> {
     context(
-        "accept",
+        "Accept header",
         map(
             tuple((
-                map(tag_no_case("Accept"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Accept"),
+                hcolon,
                 cut(consumed(separated_list0(comma, accept_range))),
             )),
             |(name, separator, (value, ranges))| {
                 Header::Accept(AcceptHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     ranges,
                 ))
             },
@@ -163,20 +165,18 @@ fn accept(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-pub(crate) fn content_coding(input: &[u8]) -> ParserResult<&[u8], ContentEncoding> {
-    map(token, ContentEncoding::new)(input)
+pub(crate) fn content_coding(input: &str) -> ParserResult<&str, ContentEncoding> {
+    context("content_coding", map(token, ContentEncoding::new))(input)
 }
 
-fn codings(input: &[u8]) -> ParserResult<&[u8], ContentEncoding> {
-    alt((
-        content_coding,
-        map(tag("*"), |v| {
-            ContentEncoding::new(String::from_utf8_lossy(v))
-        }),
-    ))(input)
+fn codings(input: &str) -> ParserResult<&str, ContentEncoding> {
+    context(
+        "codings",
+        alt((content_coding, map(tag("*"), ContentEncoding::new))),
+    )(input)
 }
 
-fn encoding(input: &[u8]) -> ParserResult<&[u8], AcceptEncoding> {
+fn encoding(input: &str) -> ParserResult<&str, AcceptEncoding> {
     context(
         "encoding",
         map(
@@ -186,18 +186,18 @@ fn encoding(input: &[u8]) -> ParserResult<&[u8], AcceptEncoding> {
     )(input)
 }
 
-fn accept_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn accept_encoding(input: &str) -> ParserResult<&str, Header> {
     context(
-        "accept_encoding",
+        "Accept-Encoding header",
         map(
             tuple((
-                map(tag_no_case("Accept-Encoding"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Accept-Encoding"),
+                hcolon,
                 cut(consumed(separated_list0(comma, encoding))),
             )),
             |(name, separator, (value, encodings))| {
                 Header::AcceptEncoding(AcceptEncodingHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     encodings,
                 ))
             },
@@ -205,44 +205,41 @@ fn accept_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn language_range(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn language_range(input: &str) -> ParserResult<&str, &str> {
     context(
         "language_range",
-        map(
-            alt((
-                recognize(pair(
-                    many_m_n(1, 8, alpha),
-                    opt(many0(pair(tag("-"), many_m_n(1, 8, alpha)))),
-                )),
-                tag("*"),
+        alt((
+            recognize(pair(
+                many_m_n(1, 8, alpha),
+                opt(many0(pair(tag("-"), many_m_n(1, 8, alpha)))),
             )),
-            String::from_utf8_lossy,
-        ),
+            tag("*"),
+        )),
     )(input)
 }
 
-fn language(input: &[u8]) -> ParserResult<&[u8], AcceptLanguage> {
+fn language(input: &str) -> ParserResult<&str, AcceptLanguage> {
     context(
         "language",
         map(
             pair(language_range, many0(preceded(semi, accept_param))),
-            |(language, params)| AcceptLanguage::new(language.into_owned(), params),
+            |(language, params)| AcceptLanguage::new(language, params),
         ),
     )(input)
 }
 
-fn accept_language(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn accept_language(input: &str) -> ParserResult<&str, Header> {
     context(
-        "accept_language",
+        "Accept-Language header",
         map(
             tuple((
-                map(tag_no_case("Accept-Language"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Accept-Language"),
+                hcolon,
                 cut(consumed(separated_list0(comma, language))),
             )),
             |(name, separator, (value, languages))| {
                 Header::AcceptLanguage(AcceptLanguageHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     languages,
                 ))
             },
@@ -250,7 +247,7 @@ fn accept_language(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn alert_param(input: &[u8]) -> ParserResult<&[u8], Alert> {
+fn alert_param(input: &str) -> ParserResult<&str, Alert> {
     context(
         "alert_param",
         map(
@@ -263,18 +260,18 @@ fn alert_param(input: &[u8]) -> ParserResult<&[u8], Alert> {
     )(input)
 }
 
-fn alert_info(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn alert_info(input: &str) -> ParserResult<&str, Header> {
     context(
-        "alert_info",
+        "Alert-Info header",
         map(
             tuple((
-                map(tag_no_case("Alert-Info"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Alert-Info"),
+                hcolon,
                 cut(consumed(separated_list1(comma, alert_param))),
             )),
             |(name, separator, (value, alerts))| {
                 Header::AlertInfo(AlertInfoHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     alerts,
                 ))
             },
@@ -282,18 +279,18 @@ fn alert_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn allow(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn allow(input: &str) -> ParserResult<&str, Header> {
     context(
-        "allow",
+        "Allow header",
         map(
             tuple((
-                map(tag_no_case("Allow"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Allow"),
+                hcolon,
                 cut(consumed(separated_list0(comma, method))),
             )),
             |(name, separator, (value, methods))| {
                 Header::Allow(AllowHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     methods,
                 ))
             },
@@ -302,11 +299,11 @@ fn allow(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn nonce_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn nonce_value(input: &str) -> ParserResult<&str, WrappedString> {
     quoted_string(input)
 }
 
-fn nextnonce(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
+fn nextnonce(input: &str) -> ParserResult<&str, AuthenticationInfo> {
     context(
         "nextnonce",
         map(
@@ -316,15 +313,11 @@ fn nextnonce(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     )(input)
 }
 
-fn qop_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    alt((
-        map(tag_no_case("auth-int"), String::from_utf8_lossy),
-        map(tag_no_case("auth"), String::from_utf8_lossy),
-        token,
-    ))(input)
+fn qop_value(input: &str) -> ParserResult<&str, &str> {
+    alt((tag_no_case("auth-int"), tag_no_case("auth"), token))(input)
 }
 
-fn message_qop(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
+fn message_qop(input: &str) -> ParserResult<&str, AuthenticationInfo> {
     context(
         "message_qop",
         map(
@@ -334,19 +327,19 @@ fn message_qop(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     )(input)
 }
 
-fn response_digest(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn response_digest(input: &str) -> ParserResult<&str, WrappedString> {
     map(delimited(ldquot, many0(lhex), rdquot), |digits| {
         WrappedString::new_quoted(
             digits
-                .iter()
-                .map(|digit| String::from_utf8_lossy(digit).into_owned())
+                .into_iter()
+                .map(Into::into)
                 .collect::<Vec<String>>()
                 .join(""),
         )
     })(input)
 }
 
-fn response_auth(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
+fn response_auth(input: &str) -> ParserResult<&str, AuthenticationInfo> {
     context(
         "response_auth",
         map(
@@ -357,11 +350,11 @@ fn response_auth(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
 }
 
 #[inline]
-fn cnonce_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn cnonce_value(input: &str) -> ParserResult<&str, WrappedString> {
     nonce_value(input)
 }
 
-fn cnonce(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
+fn cnonce(input: &str) -> ParserResult<&str, AuthenticationInfo> {
     context(
         "cnonce",
         map(
@@ -371,19 +364,19 @@ fn cnonce(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     )(input)
 }
 
-fn nc_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn nc_value(input: &str) -> ParserResult<&str, WrappedString> {
     map(count(lhex, 8), |digits| {
         WrappedString::new_not_wrapped(
             digits
-                .iter()
-                .map(|digit| String::from_utf8_lossy(digit).into_owned())
+                .into_iter()
+                .map(Into::into)
                 .collect::<Vec<String>>()
                 .join(""),
         )
     })(input)
 }
 
-fn nonce_count(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
+fn nonce_count(input: &str) -> ParserResult<&str, AuthenticationInfo> {
     context(
         "nonce_count",
         map(
@@ -393,22 +386,22 @@ fn nonce_count(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
     )(input)
 }
 
-fn ainfo(input: &[u8]) -> ParserResult<&[u8], AuthenticationInfo> {
+fn ainfo(input: &str) -> ParserResult<&str, AuthenticationInfo> {
     alt((nextnonce, message_qop, response_auth, cnonce, nonce_count))(input)
 }
 
-fn authentication_info(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn authentication_info(input: &str) -> ParserResult<&str, Header> {
     context(
-        "authentication_info",
+        "Authentication-Info header",
         map(
             tuple((
-                map(tag_no_case("Authentication-Info"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Authentication-Info"),
+                hcolon,
                 cut(consumed(separated_list1(comma, ainfo))),
             )),
             |(name, separator, (value, ainfos))| {
                 Header::AuthenticationInfo(AuthenticationInfoHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     ainfos,
                 ))
             },
@@ -417,11 +410,11 @@ fn authentication_info(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn username_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn username_value(input: &str) -> ParserResult<&str, WrappedString> {
     quoted_string(input)
 }
 
-fn username(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn username(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "username",
         map(
@@ -432,11 +425,11 @@ fn username(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
 }
 
 #[inline]
-fn realm_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn realm_value(input: &str) -> ParserResult<&str, WrappedString> {
     quoted_string(input)
 }
 
-fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn realm(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "realm",
         map(
@@ -446,7 +439,7 @@ fn realm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     )(input)
 }
 
-fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn nonce(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "nonce",
         map(
@@ -456,11 +449,11 @@ fn nonce(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     )(input)
 }
 
-fn digest_uri_value(input: &[u8]) -> ParserResult<&[u8], Uri> {
+fn digest_uri_value(input: &str) -> ParserResult<&str, Uri> {
     delimited(ldquot, request_uri, rdquot)(input)
 }
 
-fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn digest_uri(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "digest_uri",
         map(
@@ -470,17 +463,17 @@ fn digest_uri(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     )(input)
 }
 
-fn request_digest(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn request_digest(input: &str) -> ParserResult<&str, WrappedString> {
     context(
         "request_digest",
         map(
             delimited(ldquot, recognize(many_m_n(32, 32, lhex)), rdquot),
-            |v| WrappedString::new_quoted(String::from_utf8_lossy(v)),
+            WrappedString::new_quoted,
         ),
     )(input)
 }
 
-fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn dresponse(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "dresponse",
         map(
@@ -490,25 +483,21 @@ fn dresponse(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     )(input)
 }
 
-fn algorithm(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn algorithm(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "algorithm",
         map(
             separated_pair(
                 tag_no_case("algorithm"),
                 equal,
-                cut(alt((
-                    map(tag_no_case("MD5"), String::from_utf8_lossy),
-                    map(tag_no_case("MD5-sess"), String::from_utf8_lossy),
-                    token,
-                ))),
+                cut(alt((tag_no_case("MD5"), tag_no_case("MD5-sess"), token))),
             ),
             |(_, value)| AuthParameter::Algorithm(Algorithm::new(value)),
         ),
     )(input)
 }
 
-fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn opaque(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "opaque",
         map(
@@ -519,11 +508,11 @@ fn opaque(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
 }
 
 #[inline]
-fn auth_param_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn auth_param_name(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn auth_param(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn auth_param(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "auth_param",
         map(
@@ -537,7 +526,7 @@ fn auth_param(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     )(input)
 }
 
-fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn dig_resp(input: &str) -> ParserResult<&str, AuthParameter> {
     context(
         "dig_resp",
         alt((
@@ -556,7 +545,7 @@ fn dig_resp(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     )(input)
 }
 
-fn digest_response(input: &[u8]) -> ParserResult<&[u8], AuthParameters> {
+fn digest_response(input: &str) -> ParserResult<&str, AuthParameters> {
     context(
         "digest_response",
         map(separated_list1(comma, dig_resp), Into::into),
@@ -564,29 +553,28 @@ fn digest_response(input: &[u8]) -> ParserResult<&[u8], AuthParameters> {
 }
 
 #[inline]
-fn auth_scheme(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn auth_scheme(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn auth_params(input: &[u8]) -> ParserResult<&[u8], AuthParameters> {
-    map(separated_list1(comma, auth_param), Into::into)(input)
+fn auth_params(input: &str) -> ParserResult<&str, AuthParameters> {
+    context(
+        "auth_params",
+        map(separated_list1(comma, auth_param), Into::into),
+    )(input)
 }
 
-fn digest_credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
+fn digest_credentials(input: &str) -> ParserResult<&str, Credentials> {
     context(
         "digest_credentials",
         map(
-            separated_pair(
-                map(tag_no_case("Digest"), String::from_utf8_lossy),
-                lws,
-                cut(digest_response),
-            ),
+            separated_pair(tag_no_case("Digest"), lws, cut(digest_response)),
             |(_, params)| Credentials::Digest(params),
         ),
     )(input)
 }
 
-fn other_response(input: &[u8]) -> ParserResult<&[u8], Credentials> {
+fn other_response(input: &str) -> ParserResult<&str, Credentials> {
     context(
         "other_response",
         map(
@@ -596,22 +584,22 @@ fn other_response(input: &[u8]) -> ParserResult<&[u8], Credentials> {
     )(input)
 }
 
-fn credentials(input: &[u8]) -> ParserResult<&[u8], Credentials> {
+fn credentials(input: &str) -> ParserResult<&str, Credentials> {
     context("credentials", alt((digest_credentials, other_response)))(input)
 }
 
-fn authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn authorization(input: &str) -> ParserResult<&str, Header> {
     context(
-        "authorization",
+        "Authorization header",
         map(
             tuple((
-                map(tag_no_case("Authorization"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Authorization"),
+                hcolon,
                 cut(consumed(credentials)),
             )),
             |(name, separator, (value, credentials))| {
                 Header::Authorization(AuthorizationHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     credentials,
                 ))
             },
@@ -619,28 +607,22 @@ fn authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn callid(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
-        recognize(pair(word, opt(pair(tag("@"), word)))),
-        String::from_utf8_lossy,
-    )(input)
+fn callid(input: &str) -> ParserResult<&str, &str> {
+    context("callid", recognize(pair(word, opt(pair(tag("@"), word)))))(input)
 }
 
-fn call_id(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn call_id(input: &str) -> ParserResult<&str, Header> {
     context(
-        "call_id",
+        "Call-ID header",
         map(
             tuple((
-                map(
-                    alt((tag_no_case("Call-ID"), tag_no_case("i"))),
-                    String::from_utf8_lossy,
-                ),
-                map(hcolon, String::from_utf8_lossy),
+                alt((tag_no_case("Call-ID"), tag_no_case("i"))),
+                hcolon,
                 cut(consumed(callid)),
             )),
             |(name, separator, (value, call_id))| {
                 Header::CallId(CallIdHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     call_id,
                 ))
             },
@@ -648,55 +630,61 @@ fn call_id(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn info_param(input: &[u8]) -> ParserResult<&[u8], CallInfoParameter> {
-    map(
-        alt((
-            map(
-                separated_pair(
-                    map(tag_no_case("purpose"), String::from_utf8_lossy),
-                    equal,
-                    map(
-                        alt((
-                            map(tag_no_case("icon"), String::from_utf8_lossy),
-                            map(tag_no_case("info"), String::from_utf8_lossy),
-                            map(tag_no_case("card"), String::from_utf8_lossy),
-                            token,
-                        )),
-                        Some,
-                    ),
-                ),
-                |(key, value)| GenericParameter::new(key.to_string(), value.map(Into::into)),
-            ),
-            generic_param,
-        )),
-        Into::into,
-    )(input)
-}
-
-fn info(input: &[u8]) -> ParserResult<&[u8], CallInfo> {
-    map(
-        tuple((
-            laquot,
-            absolute_uri,
-            raquot,
-            many0(preceded(semi, info_param)),
-        )),
-        |(_, uri, _, params)| CallInfo::new(uri, params),
-    )(input)
-}
-
-fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn info_param(input: &str) -> ParserResult<&str, CallInfoParameter> {
     context(
-        "call_info",
+        "info_param",
+        map(
+            alt((
+                map(
+                    separated_pair(
+                        tag_no_case("purpose"),
+                        equal,
+                        map(
+                            alt((
+                                tag_no_case("icon"),
+                                tag_no_case("info"),
+                                tag_no_case("card"),
+                                token,
+                            )),
+                            Some,
+                        ),
+                    ),
+                    |(key, value)| GenericParameter::new(key.to_string(), value.map(Into::into)),
+                ),
+                generic_param,
+            )),
+            Into::into,
+        ),
+    )(input)
+}
+
+fn info(input: &str) -> ParserResult<&str, CallInfo> {
+    context(
+        "info",
         map(
             tuple((
-                map(tag_no_case("Call-Info"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                laquot,
+                absolute_uri,
+                raquot,
+                many0(preceded(semi, info_param)),
+            )),
+            |(_, uri, _, params)| CallInfo::new(uri, params),
+        ),
+    )(input)
+}
+
+fn call_info(input: &str) -> ParserResult<&str, Header> {
+    context(
+        "Call-Info header",
+        map(
+            tuple((
+                tag_no_case("Call-Info"),
+                hcolon,
                 cut(consumed(separated_list1(comma, info))),
             )),
             |(name, separator, (value, infos))| {
                 Header::CallInfo(CallInfoHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     infos,
                 ))
             },
@@ -704,26 +692,26 @@ fn call_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn addr_spec(input: &[u8]) -> ParserResult<&[u8], Uri> {
+fn addr_spec(input: &str) -> ParserResult<&str, Uri> {
     context(
         "addr_spec",
         alt((sip_uri, map(absolute_uri, Uri::Absolute))),
     )(input)
 }
 
-fn display_name(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
+fn display_name(input: &str) -> ParserResult<&str, WrappedString> {
     context(
         "display_name",
         alt((
             quoted_string,
             map(recognize(many0(pair(token, lws))), |v| {
-                WrappedString::new_not_wrapped(String::from_utf8_lossy(v).trim_end())
+                WrappedString::new_not_wrapped(v.to_string().trim_end())
             }),
         )),
     )(input)
 }
 
-fn name_addr(input: &[u8]) -> ParserResult<&[u8], NameAddress> {
+fn name_addr(input: &str) -> ParserResult<&str, NameAddress> {
     context(
         "name_addr",
         map(
@@ -733,27 +721,21 @@ fn name_addr(input: &[u8]) -> ParserResult<&[u8], NameAddress> {
     )(input)
 }
 
-fn c_p_q(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
+fn c_p_q(input: &str) -> ParserResult<&str, ContactParameter> {
     map(
-        separated_pair(
-            map(tag_no_case("q"), String::from_utf8_lossy),
-            equal,
-            qvalue,
-        ),
+        separated_pair(tag_no_case("q"), equal, qvalue),
         |(_, value)| ContactParameter::Q(value.to_string()),
     )(input)
 }
 
 #[inline]
-fn delta_seconds(input: &[u8]) -> ParserResult<&[u8], u32> {
+fn delta_seconds(input: &str) -> ParserResult<&str, u32> {
     map(recognize(many1(digit)), |digits| {
-        String::from_utf8_lossy(digits)
-            .parse::<u32>()
-            .unwrap_or(u32::MAX)
+        digits.parse::<u32>().unwrap_or(u32::MAX)
     })(input)
 }
 
-fn c_p_expires(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
+fn c_p_expires(input: &str) -> ParserResult<&str, ContactParameter> {
     map(
         separated_pair(
             tag_no_case("expires"),
@@ -765,34 +747,34 @@ fn c_p_expires(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
 }
 
 #[inline]
-fn contact_extension(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
+fn contact_extension(input: &str) -> ParserResult<&str, GenericParameter> {
     generic_param(input)
 }
 
-fn contact_params(input: &[u8]) -> ParserResult<&[u8], ContactParameter> {
+fn contact_params(input: &str) -> ParserResult<&str, ContactParameter> {
     alt((c_p_q, c_p_expires, map(contact_extension, Into::into)))(input)
 }
 
-fn contact_param(input: &[u8]) -> ParserResult<&[u8], Contact> {
-    map(
-        pair(
-            alt((name_addr, map(addr_spec, |uri| NameAddress::new(uri, None)))),
-            many0(preceded(semi, contact_params)),
+fn contact_param(input: &str) -> ParserResult<&str, Contact> {
+    context(
+        "contact_param",
+        map(
+            pair(
+                alt((name_addr, map(addr_spec, |uri| NameAddress::new(uri, None)))),
+                many0(preceded(semi, contact_params)),
+            ),
+            |(address, params)| Contact::new(address, params),
         ),
-        |(address, params)| Contact::new(address, params),
     )(input)
 }
 
-fn contact(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn contact(input: &str) -> ParserResult<&str, Header> {
     context(
-        "contact",
+        "Contact header",
         map(
             tuple((
-                map(
-                    alt((tag_no_case("Contact"), tag_no_case("m"))),
-                    String::from_utf8_lossy,
-                ),
-                map(hcolon, String::from_utf8_lossy),
+                alt((tag_no_case("Contact"), tag_no_case("m"))),
+                hcolon,
                 cut(consumed(alt((
                     map(star, |_| Contacts::Any),
                     map(separated_list1(comma, contact_param), Contacts::Contacts),
@@ -800,7 +782,7 @@ fn contact(input: &[u8]) -> ParserResult<&[u8], Header> {
             )),
             |(name, separator, (value, contacts))| {
                 Header::Contact(ContactHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     contacts,
                 ))
             },
@@ -809,22 +791,17 @@ fn contact(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn disp_extension_token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn disp_extension_token(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn disp_type(input: &[u8]) -> ParserResult<&[u8], DispositionType> {
+fn disp_type(input: &str) -> ParserResult<&str, DispositionType> {
     map(
         alt((
-            map(
-                alt((
-                    tag_no_case("render"),
-                    tag_no_case("session"),
-                    tag_no_case("icon"),
-                    tag_no_case("alert"),
-                )),
-                String::from_utf8_lossy,
-            ),
+            tag_no_case("render"),
+            tag_no_case("session"),
+            tag_no_case("icon"),
+            tag_no_case("alert"),
             disp_extension_token,
         )),
         DispositionType::new,
@@ -832,19 +809,19 @@ fn disp_type(input: &[u8]) -> ParserResult<&[u8], DispositionType> {
 }
 
 #[inline]
-fn other_handling(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn other_handling(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn handling_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
+fn handling_param(input: &str) -> ParserResult<&str, DispositionParameter> {
     map(
         separated_pair(
             tag_no_case("handling"),
             equal,
             map(
                 alt((
-                    map(tag_no_case("optional"), String::from_utf8_lossy),
-                    map(tag_no_case("required"), String::from_utf8_lossy),
+                    tag_no_case("optional"),
+                    tag_no_case("required"),
                     other_handling,
                 )),
                 Handling::new,
@@ -854,22 +831,22 @@ fn handling_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
     )(input)
 }
 
-fn disp_param(input: &[u8]) -> ParserResult<&[u8], DispositionParameter> {
+fn disp_param(input: &str) -> ParserResult<&str, DispositionParameter> {
     alt((handling_param, map(generic_param, Into::into)))(input)
 }
 
-fn content_disposition(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn content_disposition(input: &str) -> ParserResult<&str, Header> {
     context(
-        "content_disposition",
+        "Content-Disposition header",
         map(
             tuple((
-                map(tag_no_case("Content-Disposition"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Content-Disposition"),
+                hcolon,
                 cut(consumed(pair(disp_type, many0(preceded(semi, disp_param))))),
             )),
             |(name, separator, (value, (r#type, params)))| {
                 Header::ContentDisposition(ContentDispositionHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     r#type,
                     params,
                 ))
@@ -878,21 +855,18 @@ fn content_disposition(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn content_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn content_encoding(input: &str) -> ParserResult<&str, Header> {
     context(
-        "content_encoding",
+        "Content-Encoding header",
         map(
             tuple((
-                map(
-                    alt((tag_no_case("Content-Encoding"), tag("e"))),
-                    String::from_utf8_lossy,
-                ),
-                map(hcolon, String::from_utf8_lossy),
+                alt((tag_no_case("Content-Encoding"), tag("e"))),
+                hcolon,
                 cut(consumed(separated_list1(comma, content_coding))),
             )),
             |(name, separator, (value, encodings))| {
                 Header::ContentEncoding(ContentEncodingHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     encodings,
                 ))
             },
@@ -901,34 +875,34 @@ fn content_encoding(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn primary_tag(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn primary_tag(input: &str) -> ParserResult<&str, &str> {
     recognize(many_m_n(1, 8, alpha))(input)
 }
 
 #[inline]
-fn subtag(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+fn subtag(input: &str) -> ParserResult<&str, &str> {
     primary_tag(input)
 }
 
-pub(crate) fn language_tag(input: &[u8]) -> ParserResult<&[u8], ContentLanguage> {
+pub(crate) fn language_tag(input: &str) -> ParserResult<&str, ContentLanguage> {
     map(
         recognize(pair(primary_tag, many0(preceded(tag("-"), subtag)))),
-        |value| ContentLanguage::new(String::from_utf8_lossy(value)),
+        ContentLanguage::new,
     )(input)
 }
 
-fn content_language(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn content_language(input: &str) -> ParserResult<&str, Header> {
     context(
-        "content_language",
+        "Content-Language header",
         map(
             tuple((
-                map(tag_no_case("Content-Language"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Content-Language"),
+                hcolon,
                 cut(consumed(separated_list1(comma, language_tag))),
             )),
             |(name, separator, (value, languages))| {
                 Header::ContentLanguage(ContentLanguageHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     languages,
                 ))
             },
@@ -936,23 +910,20 @@ fn content_language(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn content_length(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn content_length(input: &str) -> ParserResult<&str, Header> {
     context(
-        "content_length",
+        "Content-Length header",
         map(
             tuple((
-                map(
-                    alt((tag_no_case("Content-Length"), tag_no_case("l"))),
-                    String::from_utf8_lossy,
-                ),
-                map(hcolon, String::from_utf8_lossy),
+                alt((tag_no_case("Content-Length"), tag_no_case("l"))),
+                hcolon,
                 cut(consumed(map(recognize(many1(digit)), |l| {
-                    String::from_utf8_lossy(l).parse::<u32>().unwrap()
+                    l.parse::<u32>().unwrap()
                 }))),
             )),
             |(name, separator, (value, content_length))| {
                 Header::ContentLength(ContentLengthHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     content_length,
                 ))
             },
@@ -961,45 +932,51 @@ fn content_length(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn m_attribute(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn m_attribute(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn m_value(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
-    alt((map(token, WrappedString::new_not_wrapped), quoted_string))(input)
-}
-
-fn m_parameter(input: &[u8]) -> ParserResult<&[u8], MediaParameter> {
-    map(
-        separated_pair(m_attribute, equal, m_value),
-        |(key, value)| MediaParameter::new(key, value),
-    )(input)
-}
-
-fn media_type(input: &[u8]) -> ParserResult<&[u8], MediaType> {
-    map(
-        tuple((m_type, slash, m_subtype, many0(preceded(semi, m_parameter)))),
-        |(r#type, _, subtype, parameters)| {
-            MediaType::new(MediaRange::new(r#type, subtype), parameters)
-        },
-    )(input)
-}
-
-fn content_type(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn m_value(input: &str) -> ParserResult<&str, WrappedString> {
     context(
-        "content_type",
+        "m_value",
+        alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
+    )(input)
+}
+
+fn m_parameter(input: &str) -> ParserResult<&str, MediaParameter> {
+    context(
+        "m_parameter",
+        map(
+            separated_pair(m_attribute, equal, m_value),
+            |(key, value)| MediaParameter::new(key, value),
+        ),
+    )(input)
+}
+
+fn media_type(input: &str) -> ParserResult<&str, MediaType> {
+    context(
+        "media_type",
+        map(
+            tuple((m_type, slash, m_subtype, many0(preceded(semi, m_parameter)))),
+            |(r#type, _, subtype, parameters)| {
+                MediaType::new(MediaRange::new(r#type, subtype), parameters)
+            },
+        ),
+    )(input)
+}
+
+fn content_type(input: &str) -> ParserResult<&str, Header> {
+    context(
+        "Content-Type header",
         map(
             tuple((
-                map(
-                    alt((tag_no_case("Content-Type"), tag_no_case("c"))),
-                    String::from_utf8_lossy,
-                ),
-                map(hcolon, String::from_utf8_lossy),
+                alt((tag_no_case("Content-Type"), tag_no_case("c"))),
+                hcolon,
                 cut(consumed(media_type)),
             )),
             |(name, separator, (value, media_type))| {
                 Header::ContentType(ContentTypeHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     media_type,
                 ))
             },
@@ -1007,24 +984,22 @@ fn content_type(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn cseq(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn cseq(input: &str) -> ParserResult<&str, Header> {
     context(
-        "cseq",
+        "CSeq header",
         map(
             tuple((
-                map(tag_no_case("CSeq"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("CSeq"),
+                hcolon,
                 cut(consumed(separated_pair(
-                    map(recognize(many1(digit)), |cseq| {
-                        String::from_utf8_lossy(cseq).parse::<u32>().unwrap()
-                    }),
+                    map(recognize(many1(digit)), |cseq| cseq.parse::<u32>().unwrap()),
                     lws,
                     method,
                 ))),
             )),
             |(name, separator, (value, (cseq, method)))| {
                 Header::CSeq(CSeqHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     cseq,
                     method,
                 ))
@@ -1033,8 +1008,9 @@ fn cseq(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn wkday(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
+fn wkday(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "wkday",
         alt((
             tag("Mon"),
             tag("Tue"),
@@ -1044,12 +1020,12 @@ fn wkday(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
             tag("Sat"),
             tag("Sun"),
         )),
-        String::from_utf8_lossy,
     )(input)
 }
 
-fn month(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
+fn month(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "month",
         alt((
             tag("Jan"),
             tag("Feb"),
@@ -1064,19 +1040,19 @@ fn month(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
             tag("Nov"),
             tag("Dec"),
         )),
-        String::from_utf8_lossy,
     )(input)
 }
 
-fn date1(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
+fn date1(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "date1",
         recognize(tuple((count(digit, 2), sp, month, sp, count(digit, 4)))),
-        String::from_utf8_lossy,
     )(input)
 }
 
-fn time(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
+fn time(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "time",
         recognize(tuple((
             count(digit, 2),
             tag(":"),
@@ -1084,28 +1060,24 @@ fn time(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
             tag(":"),
             count(digit, 2),
         ))),
-        String::from_utf8_lossy,
     )(input)
 }
 
-fn rfc1123_date(input: &[u8]) -> ParserResult<&[u8], DateTime<Utc>> {
-    let result = map(
-        recognize(tuple((
-            wkday,
-            tag(","),
-            sp,
-            date1,
-            sp,
-            time,
-            sp,
-            tag("GMT"),
-        ))),
-        String::from_utf8_lossy,
-    )(input);
+fn rfc1123_date(input: &str) -> ParserResult<&str, DateTime<Utc>> {
+    let result = recognize(tuple((
+        wkday,
+        tag(","),
+        sp,
+        date1,
+        sp,
+        time,
+        sp,
+        tag("GMT"),
+    )))(input);
     match result {
         Err(e) => Err(e),
         Ok((rest, date)) => {
-            let result = DateTime::parse_from_rfc2822(date.as_ref());
+            let result = DateTime::parse_from_rfc2822(date);
             match result {
                 Ok(date) => Ok((rest, date.to_utc())),
                 Err(_) => Err(nom::Err::Error(VerboseError::from_error_kind(
@@ -1118,22 +1090,18 @@ fn rfc1123_date(input: &[u8]) -> ParserResult<&[u8], DateTime<Utc>> {
 }
 
 #[inline]
-fn sip_date(input: &[u8]) -> ParserResult<&[u8], DateTime<Utc>> {
+fn sip_date(input: &str) -> ParserResult<&str, DateTime<Utc>> {
     rfc1123_date(input)
 }
 
-fn date(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn date(input: &str) -> ParserResult<&str, Header> {
     context(
-        "date",
+        "Date header",
         map(
-            tuple((
-                map(tag_no_case("Date"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
-                cut(consumed(sip_date)),
-            )),
+            tuple((tag_no_case("Date"), hcolon, cut(consumed(sip_date)))),
             |(name, separator, (value, date))| {
                 Header::Date(DateHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     date,
                 ))
             },
@@ -1141,7 +1109,7 @@ fn date(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn error_uri(input: &[u8]) -> ParserResult<&[u8], ErrorUri> {
+fn error_uri(input: &str) -> ParserResult<&str, ErrorUri> {
     map(
         tuple((
             laquot,
@@ -1153,18 +1121,18 @@ fn error_uri(input: &[u8]) -> ParserResult<&[u8], ErrorUri> {
     )(input)
 }
 
-fn error_info(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn error_info(input: &str) -> ParserResult<&str, Header> {
     context(
-        "error_info",
+        "Error-Info header",
         map(
             tuple((
-                map(tag_no_case("Error-Info"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Error-Info"),
+                hcolon,
                 cut(consumed(separated_list1(comma, error_uri))),
             )),
             |(name, separator, (value, uris))| {
                 Header::ErrorInfo(ErrorInfoHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     uris,
                 ))
             },
@@ -1172,18 +1140,14 @@ fn error_info(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn expires(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn expires(input: &str) -> ParserResult<&str, Header> {
     context(
-        "expires",
+        "Expires header",
         map(
-            tuple((
-                map(tag_no_case("Expires"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
-                cut(consumed(delta_seconds)),
-            )),
+            tuple((tag_no_case("Expires"), hcolon, cut(consumed(delta_seconds)))),
             |(name, separator, (value, expires))| {
                 Header::Expires(ExpiresHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     expires,
                 ))
             },
@@ -1191,43 +1155,45 @@ fn expires(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn tag_param(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
-    map(
-        separated_pair(
-            map(tag_no_case("tag"), String::from_utf8_lossy),
-            equal,
-            token,
-        ),
-        |(key, value)| GenericParameter::new(key, Some(value)),
-    )(input)
-}
-
-fn from_param(input: &[u8]) -> ParserResult<&[u8], FromParameter> {
-    map(alt((tag_param, generic_param)), Into::into)(input)
-}
-
-fn from_spec(input: &[u8]) -> ParserResult<&[u8], (NameAddress, Vec<FromParameter>)> {
-    pair(
-        alt((map(addr_spec, |uri| NameAddress::new(uri, None)), name_addr)),
-        many0(preceded(semi, from_param)),
-    )(input)
-}
-
-fn from(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn tag_param(input: &str) -> ParserResult<&str, GenericParameter> {
     context(
-        "from",
+        "tag_param",
+        map(
+            separated_pair(tag_no_case("tag"), equal, token),
+            |(key, value)| GenericParameter::new(key, Some(value)),
+        ),
+    )(input)
+}
+
+fn from_param(input: &str) -> ParserResult<&str, FromParameter> {
+    context(
+        "from_param",
+        map(alt((tag_param, generic_param)), Into::into),
+    )(input)
+}
+
+fn from_spec(input: &str) -> ParserResult<&str, (NameAddress, Vec<FromParameter>)> {
+    context(
+        "from_spec",
+        pair(
+            alt((map(addr_spec, |uri| NameAddress::new(uri, None)), name_addr)),
+            many0(preceded(semi, from_param)),
+        ),
+    )(input)
+}
+
+fn from(input: &str) -> ParserResult<&str, Header> {
+    context(
+        "From header",
         map(
             tuple((
-                map(
-                    alt((tag_no_case("From"), tag_no_case("f"))),
-                    String::from_utf8_lossy,
-                ),
-                map(hcolon, String::from_utf8_lossy),
+                alt((tag_no_case("From"), tag_no_case("f"))),
+                hcolon,
                 cut(consumed(from_spec)),
             )),
             |(name, separator, (value, (address, parameters)))| {
                 Header::From(FromHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     address,
                     parameters,
                 ))
@@ -1236,18 +1202,18 @@ fn from(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn in_reply_to(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn in_reply_to(input: &str) -> ParserResult<&str, Header> {
     context(
-        "in_reply_to",
+        "In-Reply-To header",
         map(
             tuple((
-                map(tag_no_case("In-Reply-To"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("In-Reply-To"),
+                hcolon,
                 cut(consumed(separated_list1(comma, callid))),
             )),
             |(name, separator, (value, call_ids))| {
                 Header::InReplyTo(InReplyToHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     call_ids,
                 ))
             },
@@ -1255,22 +1221,20 @@ fn in_reply_to(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn max_forwards(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn max_forwards(input: &str) -> ParserResult<&str, Header> {
     context(
-        "max_forwards",
+        "Max-Forwards header",
         map(
             tuple((
-                map(tag_no_case("Max-Forwards"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Max-Forwards"),
+                hcolon,
                 cut(consumed(map(recognize(many1(digit)), |value| {
-                    String::from_utf8_lossy(value)
-                        .parse::<u8>()
-                        .unwrap_or(u8::MAX)
+                    value.parse::<u8>().unwrap_or(u8::MAX)
                 }))),
             )),
             |(name, separator, (value, max_forwards))| {
                 Header::MaxForwards(MaxForwardsHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     max_forwards,
                 ))
             },
@@ -1278,21 +1242,22 @@ fn max_forwards(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn mime_version(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn mime_version(input: &str) -> ParserResult<&str, Header> {
     context(
-        "mime_version",
+        "MIME-Version header",
         map(
             tuple((
-                map(tag_no_case("MIME-Version"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
-                cut(consumed(map(
-                    recognize(tuple((many1(digit), tag("."), many1(digit)))),
-                    String::from_utf8_lossy,
-                ))),
+                tag_no_case("MIME-Version"),
+                hcolon,
+                cut(consumed(recognize(tuple((
+                    many1(digit),
+                    tag("."),
+                    many1(digit),
+                ))))),
             )),
             |(name, separator, (value, version))| {
                 Header::MimeVersion(MimeVersionHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     version,
                 ))
             },
@@ -1300,18 +1265,18 @@ fn mime_version(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn min_expires(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn min_expires(input: &str) -> ParserResult<&str, Header> {
     context(
-        "min_expires",
+        "Min-Expires header",
         map(
             tuple((
-                map(tag_no_case("Min-Expires"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Min-Expires"),
+                hcolon,
                 cut(consumed(delta_seconds)),
             )),
             |(name, separator, (value, min_expires))| {
                 Header::MinExpires(MinExpiresHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     min_expires,
                 ))
             },
@@ -1319,18 +1284,18 @@ fn min_expires(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn organization(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn organization(input: &str) -> ParserResult<&str, Header> {
     context(
-        "organization",
+        "Organization header",
         map(
             tuple((
-                map(tag_no_case("Organization"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Organization"),
+                hcolon,
                 cut(consumed(opt(text_utf8_trim))),
             )),
             |(name, separator, (value, organization))| {
                 Header::Organization(OrganizationHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     organization.unwrap_or_default(),
                 ))
             },
@@ -1339,35 +1304,38 @@ fn organization(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn other_priority(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn other_priority(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn priority_value(input: &[u8]) -> ParserResult<&[u8], Priority> {
-    map(
-        alt((
-            map(tag_no_case("emergency"), String::from_utf8_lossy),
-            map(tag_no_case("urgent"), String::from_utf8_lossy),
-            map(tag_no_case("normal"), String::from_utf8_lossy),
-            map(tag_no_case("non-urgent"), String::from_utf8_lossy),
-            other_priority,
-        )),
-        Priority::new,
+fn priority_value(input: &str) -> ParserResult<&str, Priority> {
+    context(
+        "priority_value",
+        map(
+            alt((
+                tag_no_case("emergency"),
+                tag_no_case("urgent"),
+                tag_no_case("normal"),
+                tag_no_case("non-urgent"),
+                other_priority,
+            )),
+            Priority::new,
+        ),
     )(input)
 }
 
-fn priority(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn priority(input: &str) -> ParserResult<&str, Header> {
     context(
-        "priority",
+        "Priority header",
         map(
             tuple((
-                map(tag_no_case("Priority"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Priority"),
+                hcolon,
                 cut(consumed(priority_value)),
             )),
             |(name, separator, (value, priority))| {
                 Header::Priority(PriorityHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     priority,
                 ))
             },
@@ -1375,100 +1343,111 @@ fn priority(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn other_challenge(input: &[u8]) -> ParserResult<&[u8], Challenge> {
-    map(
-        separated_pair(auth_scheme, lws, separated_list1(comma, auth_param)),
-        |(scheme, auth_params)| Challenge::Other(scheme.to_string(), auth_params.into()),
+fn other_challenge(input: &str) -> ParserResult<&str, Challenge> {
+    context(
+        "other_challenge",
+        map(
+            separated_pair(auth_scheme, lws, separated_list1(comma, auth_param)),
+            |(scheme, auth_params)| Challenge::Other(scheme.to_string(), auth_params.into()),
+        ),
     )(input)
 }
 
-fn segment(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
+fn segment(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "segment",
         recognize(pair(many0(pchar), many0(preceded(tag(";"), param)))),
-        String::from_utf8_lossy,
     )(input)
 }
 
-fn path_segments(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
+fn path_segments(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "path_segments",
         recognize(pair(segment, many0(preceded(tag("/"), segment)))),
-        String::from_utf8_lossy,
     )(input)
 }
 
-fn abs_path(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
-        recognize(pair(tag("/"), path_segments)),
-        String::from_utf8_lossy,
+fn abs_path(input: &str) -> ParserResult<&str, &str> {
+    context("abs_path", recognize(pair(tag("/"), path_segments)))(input)
+}
+
+fn uri(input: &str) -> ParserResult<&str, DomainUri> {
+    context(
+        "uri",
+        alt((
+            map(request_uri, DomainUri::Uri),
+            map(abs_path, |path| DomainUri::AbsPath(path.to_string())),
+        )),
     )(input)
 }
 
-fn uri(input: &[u8]) -> ParserResult<&[u8], DomainUri> {
-    alt((
-        map(request_uri, DomainUri::Uri),
-        map(abs_path, |path| DomainUri::AbsPath(path.to_string())),
-    ))(input)
-}
-
-fn domain_value(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    delimited(
-        ldquot,
-        map(separated_list1(many1(sp), uri), |uris| {
-            AuthParameter::Domain(uris.into())
-        }),
-        rdquot,
+fn domain_value(input: &str) -> ParserResult<&str, AuthParameter> {
+    context(
+        "domain_value",
+        delimited(
+            ldquot,
+            map(separated_list1(many1(sp), uri), |uris| {
+                AuthParameter::Domain(uris.into())
+            }),
+            rdquot,
+        ),
     )(input)
 }
 
-fn domain(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn domain(input: &str) -> ParserResult<&str, AuthParameter> {
     map(
         tuple((tag_no_case("domain"), equal, cut(domain_value))),
         |(_, _, domain)| domain,
     )(input)
 }
 
-fn stale(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(
-            tag_no_case("stale"),
-            equal,
-            cut(alt((
-                map(tag_no_case("true"), |v| {
-                    AuthParameter::Stale(Stale::new(String::from_utf8_lossy(v), true))
-                }),
-                map(tag_no_case("false"), |v| {
-                    AuthParameter::Stale(Stale::new(String::from_utf8_lossy(v), false))
-                }),
-            ))),
+fn stale(input: &str) -> ParserResult<&str, AuthParameter> {
+    context(
+        "stale",
+        map(
+            separated_pair(
+                tag_no_case("stale"),
+                equal,
+                cut(map(
+                    consumed(alt((
+                        value(true, tag_no_case("true")),
+                        value(false, tag_no_case("false")),
+                    ))),
+                    |(s, v)| AuthParameter::Stale(Stale::new(s, v)),
+                )),
+            ),
+            |(_, stale)| stale,
         ),
-        |(_, stale)| stale,
     )(input)
 }
 
-fn qop_options(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
-    map(
-        separated_pair(
-            tag_no_case("qop"),
-            equal,
-            cut(delimited(
-                ldquot,
-                separated_list1(tag(","), qop_value),
-                rdquot,
-            )),
+fn qop_options(input: &str) -> ParserResult<&str, AuthParameter> {
+    context(
+        "qop_options",
+        map(
+            separated_pair(
+                tag_no_case("qop"),
+                equal,
+                cut(delimited(
+                    ldquot,
+                    separated_list1(tag(","), qop_value),
+                    rdquot,
+                )),
+            ),
+            |(_, values)| {
+                AuthParameter::QopOptions(
+                    values
+                        .iter()
+                        .map(|v| MessageQop::new(v.to_string()))
+                        .collect::<Vec<MessageQop>>()
+                        .into(),
+                )
+            },
         ),
-        |(_, values)| {
-            AuthParameter::QopOptions(
-                values
-                    .iter()
-                    .map(|v| MessageQop::new(v.to_string()))
-                    .collect::<Vec<MessageQop>>()
-                    .into(),
-            )
-        },
     )(input)
 }
 
-fn digest_cln(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
+fn digest_cln(input: &str) -> ParserResult<&str, AuthParameter> {
     alt((
         realm,
         domain,
@@ -1481,7 +1460,7 @@ fn digest_cln(input: &[u8]) -> ParserResult<&[u8], AuthParameter> {
     ))(input)
 }
 
-fn challenge(input: &[u8]) -> ParserResult<&[u8], Challenge> {
+fn challenge(input: &str) -> ParserResult<&str, Challenge> {
     alt((
         map(
             separated_pair(
@@ -1495,18 +1474,18 @@ fn challenge(input: &[u8]) -> ParserResult<&[u8], Challenge> {
     ))(input)
 }
 
-fn proxy_authenticate(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn proxy_authenticate(input: &str) -> ParserResult<&str, Header> {
     context(
-        "proxy_authenticate",
+        "Proxy-Authenticate header",
         map(
             tuple((
-                map(tag_no_case("Proxy-Authenticate"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Proxy-Authenticate"),
+                hcolon,
                 cut(consumed(challenge)),
             )),
             |(name, separator, (value, challenge))| {
                 Header::ProxyAuthenticate(ProxyAuthenticateHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     challenge,
                 ))
             },
@@ -1514,18 +1493,18 @@ fn proxy_authenticate(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-fn proxy_authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn proxy_authorization(input: &str) -> ParserResult<&str, Header> {
     context(
         "Proxy-Authorization header",
         map(
             tuple((
-                map(tag_no_case("Proxy-Authorization"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Proxy-Authorization"),
+                hcolon,
                 cut(consumed(credentials)),
             )),
             |(name, separator, (value, credentials))| {
                 Header::ProxyAuthorization(ProxyAuthorizationHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     credentials,
                 ))
             },
@@ -1533,22 +1512,22 @@ fn proxy_authorization(input: &[u8]) -> ParserResult<&[u8], Header> {
     )(input)
 }
 
-pub(crate) fn option_tag(input: &[u8]) -> ParserResult<&[u8], OptionTag> {
+pub(crate) fn option_tag(input: &str) -> ParserResult<&str, OptionTag> {
     context("option_tag", map(token, OptionTag::new))(input)
 }
 
-fn proxy_require(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn proxy_require(input: &str) -> ParserResult<&str, Header> {
     context(
         "Proxy-Require header",
         map(
             tuple((
-                map(tag_no_case("Proxy-Require"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Proxy-Require"),
+                hcolon,
                 cut(consumed(separated_list1(comma, option_tag))),
             )),
             |(name, separator, (value, tags))| {
                 Header::ProxyRequire(ProxyRequireHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     tags,
                 ))
             },
@@ -1557,11 +1536,11 @@ fn proxy_require(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn route_param(input: &[u8]) -> ParserResult<&[u8], GenericParameter> {
+fn route_param(input: &str) -> ParserResult<&str, GenericParameter> {
     generic_param(input)
 }
 
-fn route(input: &[u8]) -> ParserResult<&[u8], Route> {
+fn route(input: &str) -> ParserResult<&str, Route> {
     context(
         "route",
         map(
@@ -1571,18 +1550,18 @@ fn route(input: &[u8]) -> ParserResult<&[u8], Route> {
     )(input)
 }
 
-fn record_route(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn record_route(input: &str) -> ParserResult<&str, Header> {
     context(
         "Record-Route header",
         map(
             tuple((
-                map(tag_no_case("Record-Route"), String::from_utf8_lossy),
-                map(hcolon, String::from_utf8_lossy),
+                tag_no_case("Record-Route"),
+                hcolon,
                 cut(consumed(separated_list1(comma, route))),
             )),
             |(name, separator, (value, routes))| {
                 Header::RecordRoute(RecordRouteHeader::new(
-                    GenericHeader::new(name, separator, String::from_utf8_lossy(value)),
+                    GenericHeader::new(name, separator, value),
                     routes,
                 ))
             },
@@ -1591,31 +1570,27 @@ fn record_route(input: &[u8]) -> ParserResult<&[u8], Header> {
 }
 
 #[inline]
-fn header_name(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
+fn header_name(input: &str) -> ParserResult<&str, &str> {
     token(input)
 }
 
-fn header_value(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    map(
-        recognize(many0(alt((text_utf8char, utf8_cont, lws)))),
-        String::from_utf8_lossy,
+fn header_value(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "header_value",
+        recognize(many0(alt((recognize(text_utf8char), lws)))),
     )(input)
 }
 
-fn extension_header(input: &[u8]) -> ParserResult<&[u8], Header> {
+fn extension_header(input: &str) -> ParserResult<&str, Header> {
     map(
-        tuple((
-            header_name,
-            map(hcolon, String::from_utf8_lossy),
-            header_value,
-        )),
+        tuple((header_name, hcolon, header_value)),
         |(name, separator, value)| {
             Header::ExtensionHeader(GenericHeader::new(name, separator, value))
         },
     )(input)
 }
 
-pub(super) fn message_header(input: &[u8]) -> ParserResult<&[u8], Header> {
+pub(super) fn message_header(input: &str) -> ParserResult<&str, Header> {
     context(
         "message_header",
         alt((

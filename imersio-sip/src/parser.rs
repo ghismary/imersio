@@ -1,361 +1,331 @@
 //! TODO
 
-use std::borrow::Cow;
-
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take};
 use nom::character::complete::crlf;
-use nom::character::{is_alphabetic, is_alphanumeric, is_digit};
 use nom::combinator::{map, map_res, opt, recognize, verify};
-use nom::error::{ErrorKind, VerboseError};
-use nom::multi::{count, many0, many1, many_m_n};
-use nom::sequence::{pair, preceded, tuple};
+use nom::error::{context, ErrorKind, VerboseError};
+use nom::multi::{count, many0, many1, many_m_n, separated_list1};
+use nom::sequence::{pair, preceded, terminated, tuple};
 use nom::{IResult, InputTakeAtPosition};
 
 use crate::common::wrapped_string::WrappedString;
 
 pub(crate) type ParserResult<T, U> = IResult<T, U, VerboseError<T>>;
 
-pub(crate) fn take1(input: &[u8]) -> ParserResult<&[u8], u8> {
-    map(take(1usize), |b: &[u8]| b[0])(input)
+pub(crate) fn take1(input: &str) -> ParserResult<&str, char> {
+    map(take(1usize), |c: &str| c.chars().next().unwrap())(input)
 }
 
-pub(crate) fn is_reserved(b: u8) -> bool {
-    b";/?:@&=+$,".contains(&b)
+pub(crate) fn is_reserved(c: char) -> bool {
+    ";/?:@&=+$,".contains(c)
 }
 
-pub(crate) fn is_mark(b: u8) -> bool {
-    b"-_.!~*'()".contains(&b)
-}
-
-#[inline]
-pub(crate) fn is_unreserved(b: u8) -> bool {
-    is_alphanumeric(b) || is_mark(b)
+pub(crate) fn is_mark(c: char) -> bool {
+    "-_.!~*'()".contains(c)
 }
 
 #[inline]
-pub(crate) fn is_utf8_cont(b: u8) -> bool {
-    (0x80..=0xbf).contains(&b)
+pub(crate) fn is_unreserved(c: char) -> bool {
+    c.is_alphanumeric() || is_mark(c)
 }
 
 #[inline]
-pub(crate) fn sp(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn is_utf8char(c: char) -> bool {
+    matches!(c as u32, 0x21..=0x7e | 0x80..)
+}
+
+#[inline]
+pub(crate) fn is_utf8nonascii(c: char) -> bool {
+    matches!(c as u32, 0x80..)
+}
+
+#[inline]
+pub(crate) fn sp(input: &str) -> ParserResult<&str, &str> {
     tag(" ")(input)
 }
 
 #[inline]
-pub(crate) fn tab(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn tab(input: &str) -> ParserResult<&str, &str> {
     tag("\t")(input)
 }
 
 #[inline]
-pub(crate) fn wsp(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn wsp(input: &str) -> ParserResult<&str, &str> {
     alt((sp, tab))(input)
 }
 
 // This definition diverges from RFC3261, see https://www.rfc-editor.org/errata/eid7529
-pub(crate) fn lws(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn lws(input: &str) -> ParserResult<&str, &str> {
     recognize(pair(opt(crlf), many1(wsp)))(input)
 }
 
 #[inline]
-pub(crate) fn sws(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn sws(input: &str) -> ParserResult<&str, &str> {
     recognize(opt(lws))(input)
 }
 
-pub(crate) fn hcolon(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn hcolon(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((many0(alt((sp, tab))), tag(":"), sws)))(input)
 }
 
-pub(crate) fn comma(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn comma(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((sws, tag(","), sws)))(input)
 }
 
 #[inline]
-pub(crate) fn dquote(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn dquote(input: &str) -> ParserResult<&str, &str> {
     tag("\"")(input)
 }
 
-pub(crate) fn equal(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn equal(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((sws, tag("="), sws)))(input)
 }
 
-pub(crate) fn laquot(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn laquot(input: &str) -> ParserResult<&str, &str> {
     recognize(pair(sws, tag("<")))(input)
 }
 
-pub(crate) fn ldquot(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn ldquot(input: &str) -> ParserResult<&str, &str> {
     recognize(pair(sws, dquote))(input)
 }
 
-pub(crate) fn raquot(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn raquot(input: &str) -> ParserResult<&str, &str> {
     recognize(pair(tag(">"), sws))(input)
 }
 
-pub(crate) fn rdquot(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn rdquot(input: &str) -> ParserResult<&str, &str> {
     recognize(pair(dquote, sws))(input)
 }
 
-pub(crate) fn semi(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn semi(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((sws, tag(";"), sws)))(input)
 }
 
-pub(crate) fn slash(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn slash(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((sws, tag("/"), sws)))(input)
 }
 
-pub(crate) fn star(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn star(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((sws, tag("*"), sws)))(input)
 }
 
-pub(crate) fn alpha(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_alphabetic(*b)))(input)
+pub(crate) fn alpha(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| c.is_alphabetic())(input)
 }
 
-pub(crate) fn digit(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_digit(*b)))(input)
+pub(crate) fn digit(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| c.is_ascii_digit())(input)
 }
 
-pub(crate) fn hex_digit(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| {
-        is_digit(*b) || b"ABCDEFabcdef".contains(b)
+pub(crate) fn hex_digit(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| c.is_ascii_hexdigit())(input)
+}
+
+pub(crate) fn lhex(input: &str) -> ParserResult<&str, &str> {
+    recognize(verify(take1, |c| {
+        c.is_ascii_digit() || "abcdef".contains(*c)
     }))(input)
 }
 
-pub(crate) fn lhex(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_digit(*b) || b"abcdef".contains(b)))(input)
+#[inline]
+fn is_qdtext_first_range(c: char) -> bool {
+    matches!(c as u32, 0x23..=0x5b)
+}
+
+fn qdtext_first_range(input: &str) -> ParserResult<&str, &str> {
+    recognize(verify(take1, |c| is_qdtext_first_range(*c)))(input)
 }
 
 #[inline]
-fn is_qdtext_first_range(b: u8) -> bool {
-    (0x23..=0x5b).contains(&b)
+fn is_qdtext_second_range(c: char) -> bool {
+    matches!(c as u32, 0x5d..=0x7e)
 }
 
-fn qdtext_first_range(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_qdtext_first_range(*b)))(input)
-}
-
-#[inline]
-fn is_qdtext_second_range(b: u8) -> bool {
-    (0x5d..=0x7e).contains(&b)
-}
-
-fn qdtext_second_range(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_qdtext_second_range(*b)))(input)
-}
-
-fn qdtext(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    alt((
-        lws,
-        tag("!"),
-        qdtext_first_range,
-        qdtext_second_range,
-        utf8_nonascii,
-    ))(input)
+fn qdtext_second_range(input: &str) -> ParserResult<&str, &str> {
+    recognize(verify(take1, |c| is_qdtext_second_range(*c)))(input)
 }
 
 #[inline]
-fn is_quoted_pair_first_range(b: u8) -> bool {
-    (0x00..=0x09).contains(&b)
+fn is_obs_text(c: char) -> bool {
+    matches!(c as u32, 0x80..=0xff)
 }
 
-fn quoted_pair_first_range(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_quoted_pair_first_range(*b)))(input)
+fn obs_text(input: &str) -> ParserResult<&str, &str> {
+    recognize(verify(take1, |c| is_obs_text(*c)))(input)
 }
 
-#[inline]
-fn is_quoted_pair_second_range(b: u8) -> bool {
-    (0x0b..=0x0c).contains(&b)
-}
-
-fn quoted_pair_second_range(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_quoted_pair_second_range(*b)))(input)
-}
-
-#[inline]
-fn is_quoted_pair_third_range(b: u8) -> bool {
-    (0x0e..=0x7f).contains(&b)
-}
-
-fn quoted_pair_third_range(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_quoted_pair_third_range(*b)))(input)
-}
-
-fn quoted_pair(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(pair(
-        tag("\\"),
+fn qdtext(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "qdtext",
         alt((
-            quoted_pair_first_range,
-            quoted_pair_second_range,
-            quoted_pair_third_range,
+            lws,
+            tag("!"),
+            qdtext_first_range,
+            qdtext_second_range,
+            obs_text,
         )),
-    ))(input)
-}
-
-pub(crate) fn quoted_string(input: &[u8]) -> ParserResult<&[u8], WrappedString> {
-    map(
-        tuple((
-            sws,
-            dquote,
-            recognize(many0(alt((qdtext, quoted_pair)))),
-            dquote,
-        )),
-        |(_, _, value, _)| WrappedString::new_quoted(String::from_utf8_lossy(value)),
     )(input)
 }
 
-pub(crate) fn escaped(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    map_res(preceded(tag("%"), count(hex_digit, 2)), |digits| {
-        let idx = usize::from_str_radix(
-            &digits.into_iter().map(|d| d[0] as char).collect::<String>(),
-            16,
-        )
-        .unwrap();
-        if ESCAPED_CHARS[idx] == 0 {
-            Err(nom::Err::Error(ErrorKind::MapRes))
-        } else {
-            Ok(&ESCAPED_CHARS[idx..idx + 1])
-        }
-    })(input)
+#[inline]
+fn is_quoted_pair_first_range(c: char) -> bool {
+    matches!(c as u32, 0x00..=0x09)
 }
 
-pub(crate) fn reserved(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_reserved(*b)))(input)
+fn quoted_pair_first_range(input: &str) -> ParserResult<&str, &str> {
+    recognize(verify(take1, |c| is_quoted_pair_first_range(*c)))(input)
 }
 
-pub(crate) fn unreserved(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_unreserved(*b)))(input)
+#[inline]
+fn is_quoted_pair_second_range(c: char) -> bool {
+    matches!(c as u32, 0x0b..=0x0c)
 }
 
-pub(crate) fn utf8_cont(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(verify(take1, |b| is_utf8_cont(*b)))(input)
+fn quoted_pair_second_range(input: &str) -> ParserResult<&str, &str> {
+    recognize(verify(take1, |c| is_quoted_pair_second_range(*c)))(input)
 }
 
-fn utf8_nonascii_1byte(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(pair(
-        verify(take1, |b| (0xc0..=0xdf).contains(b)),
-        utf8_cont,
-    ))(input)
+#[inline]
+fn is_quoted_pair_third_range(c: char) -> bool {
+    matches!(c as u32, 0x0e..=0x7f)
 }
 
-fn utf8_nonascii_2bytes(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(pair(
-        verify(take1, |b| (0xe0..=0xef).contains(b)),
-        count(utf8_cont, 2),
-    ))(input)
+fn quoted_pair_third_range(input: &str) -> ParserResult<&str, &str> {
+    recognize(verify(take1, |c| is_quoted_pair_third_range(*c)))(input)
 }
 
-fn utf8_nonascii_3bytes(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(pair(
-        verify(take1, |b| (0xf0..=0xf7).contains(b)),
-        count(utf8_cont, 3),
-    ))(input)
-}
-
-fn utf8_nonascii_4bytes(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(pair(
-        verify(take1, |b| (0xf8..=0xfb).contains(b)),
-        count(utf8_cont, 4),
-    ))(input)
-}
-
-fn utf8_nonascii_5bytes(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    recognize(pair(
-        verify(take1, |b| (0xfc..=0xfd).contains(b)),
-        count(utf8_cont, 5),
-    ))(input)
-}
-
-pub(crate) fn utf8_nonascii(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    alt((
-        utf8_nonascii_1byte,
-        utf8_nonascii_2bytes,
-        utf8_nonascii_3bytes,
-        utf8_nonascii_4bytes,
-        utf8_nonascii_5bytes,
-    ))(input)
-}
-
-pub(crate) fn text_utf8char(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-    alt((
-        recognize(verify(take1, |b| (0x21..=0x7e).contains(b))),
-        utf8_nonascii,
-    ))(input)
-}
-
-pub(crate) fn text_utf8_trim(input: &[u8]) -> ParserResult<&[u8], String> {
-    map(
+fn quoted_pair(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "quoted_pair",
         recognize(pair(
-            many1(text_utf8char),
-            many0(pair(many1(lws), many0(text_utf8char))),
+            tag("\\"),
+            alt((
+                quoted_pair_first_range,
+                quoted_pair_second_range,
+                quoted_pair_third_range,
+            )),
         )),
-        |v| String::from_utf8_lossy(v).trim_end().to_string(),
     )(input)
 }
 
-pub(crate) fn token(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    input
-        .split_at_position1_complete(
-            |item| !(is_alphanumeric(item) || b"-.!%*_+`'~".contains(&item)),
-            ErrorKind::AlphaNumeric,
-        )
-        .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
+pub(crate) fn quoted_string(input: &str) -> ParserResult<&str, WrappedString> {
+    context(
+        "quoted_string",
+        map(
+            tuple((
+                sws,
+                dquote,
+                recognize(many0(alt((qdtext, quoted_pair)))),
+                dquote,
+            )),
+            |(_, _, value, _)| WrappedString::new_quoted(value),
+        ),
+    )(input)
 }
 
-pub(crate) fn word(input: &[u8]) -> ParserResult<&[u8], Cow<'_, str>> {
-    input
-        .split_at_position1_complete(
-            |item| !(is_alphanumeric(item) || b"-.!%*_+`'~()<>:\\\"/[]?{}".contains(&item)),
-            ErrorKind::AlphaNumeric,
-        )
-        .map(|(rest, value)| (rest, String::from_utf8_lossy(value)))
+pub(crate) fn escaped(input: &str) -> ParserResult<&str, char> {
+    map_res(
+        preceded(tag("%"), recognize(count(hex_digit, 2))),
+        |digits| {
+            let idx = usize::from_str_radix(digits, 16).unwrap();
+            if ESCAPED_CHARS[idx] == '\0' {
+                Err(nom::Err::Error(ErrorKind::MapRes))
+            } else {
+                Ok(ESCAPED_CHARS[idx])
+            }
+        },
+    )(input)
 }
 
-pub(crate) fn ttl(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn reserved(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_reserved(*c))(input)
+}
+
+pub(crate) fn unreserved(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_unreserved(*c))(input)
+}
+
+pub(crate) fn text_utf8_trim(input: &str) -> ParserResult<&str, String> {
+    context(
+        "text_utf8_trim",
+        map(
+            terminated(
+                separated_list1(many1(lws), recognize(many1(text_utf8char))),
+                many0(lws),
+            ),
+            |words| words.join(" "),
+        ),
+    )(input)
+}
+
+pub(crate) fn text_utf8char(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_utf8char(*c))(input)
+}
+
+pub(crate) fn utf8_nonascii(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| is_utf8nonascii(*c))(input)
+}
+
+pub(crate) fn token(input: &str) -> ParserResult<&str, &str> {
+    input.split_at_position1_complete(
+        |item| !(item.is_alphanumeric() || "-.!%*_+`'~".contains(item)),
+        ErrorKind::AlphaNumeric,
+    )
+}
+
+pub(crate) fn word(input: &str) -> ParserResult<&str, &str> {
+    input.split_at_position1_complete(
+        |c| !(c.is_alphanumeric() || "-.!%*_+`'~()<>:\\\"/[]?{}".contains(c)),
+        ErrorKind::AlphaNumeric,
+    )
+}
+
+pub(crate) fn ttl(input: &str) -> ParserResult<&str, &str> {
     recognize(many_m_n(1, 3, digit))(input)
 }
 
-pub(crate) fn pchar(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn pchar(input: &str) -> ParserResult<&str, char> {
     alt((
         unreserved,
         escaped,
-        recognize(verify(take1, |b| b":@&=+$,".contains(b))),
+        verify(take1, |c| ":@&=+$,".contains(*c)),
     ))(input)
 }
 
-pub(crate) fn param(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+pub(crate) fn param(input: &str) -> ParserResult<&str, &str> {
     recognize(many0(pchar))(input)
 }
 
 #[rustfmt::skip]
-const ESCAPED_CHARS: [u8; 256] = [
+const ESCAPED_CHARS: [char; 256] = [
     //  0      1      2      3      4      5      6      7      8      9
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', //   x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', //  1x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', //  2x
-    b'\0', b'\0',  b' ',  b'!',  b'"',  b'#',  b'$',  b'%',  b'&', b'\'', //  3x
-     b'(',  b')',  b'*',  b'+',  b',',  b'-',  b'.',  b'/',  b'0',  b'1', //  4x
-     b'2',  b'3',  b'4',  b'5',  b'6',  b'7',  b'8',  b'9',  b':',  b';', //  5x
-     b'<',  b'=',  b'>',  b'?',  b'@',  b'A',  b'B',  b'C',  b'D',  b'E', //  6x
-     b'F',  b'G',  b'H',  b'I',  b'J',  b'K',  b'L',  b'M',  b'N',  b'O', //  7x
-     b'P',  b'Q',  b'R',  b'S',  b'T',  b'U',  b'V',  b'W',  b'X',  b'Y', //  8x
-     b'Z',  b'[', b'\\',  b']',  b'^',  b'_',  b'`',  b'a',  b'b',  b'c', //  9x
-     b'd',  b'e',  b'f',  b'g',  b'h',  b'i',  b'j',  b'k',  b'l',  b'm', // 10x
-     b'n',  b'o',  b'p',  b'q',  b'r',  b's',  b't',  b'u',  b'v',  b'w', // 11x
-     b'x',  b'y',  b'z',  b'{',  b'|',  b'}',  b'~', b'\0', b'\0', b'\0', // 12x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 13x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 14x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 15x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 16x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 17x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 18x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 19x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 20x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 21x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 22x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 23x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', // 24x
-    b'\0', b'\0', b'\0', b'\0', b'\0', b'\0'                              // 25x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', //   x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', //  1x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', //  2x
+    '\0', '\0',  ' ',  '!',  '"',  '#',  '$',  '%',  '&', '\'', //  3x
+     '(',  ')',  '*',  '+',  ',',  '-',  '.',  '/',  '0',  '1', //  4x
+     '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',  ':',  ';', //  5x
+     '<',  '=',  '>',  '?',  '@',  'A',  'B',  'C',  'D',  'E', //  6x
+     'F',  'G',  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O', //  7x
+     'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',  'X',  'Y', //  8x
+     'Z',  '[', '\\',  ']',  '^',  '_',  '`',  'a',  'b',  'c', //  9x
+     'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm', // 10x
+     'n',  'o',  'p',  'q',  'r',  's',  't',  'u',  'v',  'w', // 11x
+     'x',  'y',  'z',  '{',  '|',  '}',  '~', '\0', '\0', '\0', // 12x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 13x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 14x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 15x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 16x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 17x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 18x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 19x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 20x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 21x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 22x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 23x
+    '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', // 24x
+    '\0', '\0', '\0', '\0', '\0', '\0'                              // 25x
 ];
 
 #[cfg(test)]
@@ -365,8 +335,15 @@ mod tests {
 
     #[test]
     fn test_quoted_string() {
-        let input = b"\"47364c23432d2e131a5fb210812c\"";
+        let input = "\"47364c23432d2e131a5fb210812c\"";
         let result = quoted_string(input);
+        assert_ok!(result);
+    }
+
+    #[test]
+    fn test_text_utf8_trim() {
+        let input = "Boxes by Bob";
+        let result = text_utf8_trim(input);
         assert_ok!(result);
     }
 }

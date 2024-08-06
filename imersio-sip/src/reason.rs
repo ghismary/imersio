@@ -14,12 +14,6 @@ pub struct Reason {
 }
 
 impl Reason {
-    /// Try to create a `Reason` from a slice of bytes.
-    #[inline]
-    pub fn from_bytes(input: &[u8]) -> Result<Reason, Error> {
-        parse_reason(input)
-    }
-
     /// Get a reference to the `StatusCode` of the reason.
     ///
     /// # Example
@@ -32,7 +26,7 @@ impl Reason {
         &self.status
     }
 
-    /// Get the reason phrase as a String.
+    /// Get the reason phrase.
     ///
     /// # Example
     ///
@@ -40,8 +34,8 @@ impl Reason {
     /// let reason = imersio_sip::Reason::RINGING;
     /// assert_eq!(reason.phrase(), "Ringing");
     /// ```
-    pub fn phrase(&self) -> String {
-        self.phrase.to_string()
+    pub fn phrase(&self) -> &str {
+        &self.phrase
     }
 
     /// Check if the status code is provisional (between 100 and 199).
@@ -153,7 +147,7 @@ impl TryFrom<&str> for Reason {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Reason::from_bytes(value.as_bytes())
+        parse_reason(value)
     }
 }
 
@@ -226,12 +220,6 @@ impl PartialEq<Reason> for &Reason {
 pub struct StatusCode(u16);
 
 impl StatusCode {
-    /// Try to create a `Reason` from a slice of bytes.
-    #[inline]
-    pub fn from_bytes(input: &[u8]) -> Result<StatusCode, Error> {
-        parse_status_code(input)
-    }
-
     /// Convert an u16 to a status code.
     ///
     /// The function validates the correctness of the supplied u16. It must be
@@ -403,7 +391,7 @@ impl TryFrom<&str> for StatusCode {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        StatusCode::from_bytes(value.as_bytes())
+        parse_status_code(value)
     }
 }
 
@@ -418,15 +406,6 @@ impl From<&StatusCode> for StatusCode {
     #[inline]
     fn from(value: &StatusCode) -> Self {
         value.to_owned()
-    }
-}
-
-impl TryFrom<&[u8]> for StatusCode {
-    type Error = Error;
-
-    #[inline]
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        StatusCode::from_bytes(value)
     }
 }
 
@@ -695,7 +674,7 @@ const CODE_DIGITS: &str = "\
 960961962963964965966967968969970971972973974975976977978979\
 980981982983984985986987988989990991992993994995996997998999";
 
-fn parse_reason(input: &[u8]) -> Result<Reason, Error> {
+fn parse_reason(input: &str) -> Result<Reason, Error> {
     match parser::reason(input) {
         Ok((rest, reason)) => {
             if !rest.is_empty() {
@@ -708,7 +687,7 @@ fn parse_reason(input: &[u8]) -> Result<Reason, Error> {
     }
 }
 
-fn parse_status_code(input: &[u8]) -> Result<StatusCode, Error> {
+fn parse_status_code(input: &str) -> Result<StatusCode, Error> {
     match parser::status_code(input) {
         Ok((rest, method)) => {
             if !rest.is_empty() {
@@ -724,19 +703,19 @@ fn parse_status_code(input: &[u8]) -> Result<StatusCode, Error> {
 pub(crate) mod parser {
     use super::*;
     use crate::parser::{
-        digit, escaped, reserved, sp, tab, unreserved, utf8_cont, utf8_nonascii, ParserResult,
+        digit, escaped, reserved, sp, tab, unreserved, utf8_nonascii, ParserResult,
     };
     use nom::{
         branch::alt,
         bytes::complete::tag,
-        combinator::{recognize, value},
+        combinator::{map, recognize, value},
         error::context,
         multi::{count, many0},
         sequence::separated_pair,
     };
 
     #[inline]
-    fn informational(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    fn informational(input: &str) -> ParserResult<&str, StatusCode> {
         alt((
             value(StatusCode::TRYING, tag("100")),
             value(StatusCode::RINGING, tag("180")),
@@ -747,12 +726,12 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn success(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    fn success(input: &str) -> ParserResult<&str, StatusCode> {
         value(StatusCode::OK, tag("200"))(input)
     }
 
     #[inline]
-    fn redirection(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    fn redirection(input: &str) -> ParserResult<&str, StatusCode> {
         alt((
             value(StatusCode::MULTIPLE_CHOICES, tag("300")),
             value(StatusCode::MOVED_PERMANENTLY, tag("301")),
@@ -763,7 +742,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn client_error(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    fn client_error(input: &str) -> ParserResult<&str, StatusCode> {
         alt((
             value(StatusCode::BAD_REQUEST, tag("400")),
             value(StatusCode::UNAUTHORIZED, tag("401")),
@@ -799,7 +778,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn server_error(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    fn server_error(input: &str) -> ParserResult<&str, StatusCode> {
         alt((
             value(StatusCode::SERVER_INTERNAL_ERROR, tag("500")),
             value(StatusCode::NOT_IMPLEMENTED, tag("501")),
@@ -812,7 +791,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn global_failure(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    fn global_failure(input: &str) -> ParserResult<&str, StatusCode> {
         alt((
             value(StatusCode::BUSY_EVERYWHERE, tag("600")),
             value(StatusCode::DECLINE, tag("603")),
@@ -822,17 +801,14 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn extension_code(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    fn extension_code(input: &str) -> ParserResult<&str, StatusCode> {
         recognize(count(digit, 3))(input).map(|(rest, result)| {
-            let a = result[0].wrapping_sub(b'0') as u16;
-            let b = result[1].wrapping_sub(b'0') as u16;
-            let c = result[2].wrapping_sub(b'0') as u16;
-            let status = (a * 100) + (b * 10) + c;
+            let status = result.parse::<u16>().unwrap();
             (rest, StatusCode(status))
         })
     }
 
-    pub(super) fn status_code(input: &[u8]) -> ParserResult<&[u8], StatusCode> {
+    pub(super) fn status_code(input: &str) -> ParserResult<&str, StatusCode> {
         context(
             "status_code",
             alt((
@@ -847,31 +823,34 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn reason_phrase(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
+    fn reason_phrase(input: &str) -> ParserResult<&str, String> {
         context(
             "reason_phrase",
-            recognize(many0(alt((
-                reserved,
-                unreserved,
-                escaped,
-                utf8_nonascii,
-                utf8_cont,
-                sp,
-                tab,
-            )))),
+            map(
+                many0(alt((
+                    reserved,
+                    unreserved,
+                    escaped,
+                    utf8_nonascii,
+                    value(' ', sp),
+                    value('\t', tab),
+                ))),
+                |chars| chars.iter().collect(),
+            ),
         )(input)
     }
 
-    pub(crate) fn reason(input: &[u8]) -> ParserResult<&[u8], Reason> {
-        separated_pair(status_code, sp, reason_phrase)(input).map(|(rest, result)| {
-            (
-                rest,
-                Reason {
-                    status: result.0,
-                    phrase: Cow::Owned(String::from_utf8_lossy(result.1).into_owned()),
+    pub(crate) fn reason(input: &str) -> ParserResult<&str, Reason> {
+        context(
+            "reason",
+            map(
+                separated_pair(status_code, sp, reason_phrase),
+                |(status, phrase)| Reason {
+                    status,
+                    phrase: Cow::Owned(phrase),
                 },
-            )
-        })
+            ),
+        )(input)
     }
 }
 
@@ -886,7 +865,7 @@ mod test {
         assert_err!(StatusCode::from_u16(3478));
         assert_err!(StatusCode::try_from("bob"));
         assert_err!(StatusCode::try_from("9273"));
-        assert_err!(StatusCode::from_bytes(b"4629"));
+        assert_err!(StatusCode::try_from("4629"));
     }
 
     #[test]
@@ -906,8 +885,8 @@ mod test {
 
     #[test]
     fn test_valid_reason() {
-        assert_ok!(Reason::from_bytes(b"200 OK"));
-        assert_ok!(Reason::from_bytes(b"200 Bon"));
+        assert_ok!(Reason::try_from("200 OK"));
+        assert_ok!(Reason::try_from("200 Bon"));
         assert_ok!(Reason::try_from("404 Pas Trouvé"));
     }
 

@@ -232,23 +232,15 @@ headers! {
     (ExtensionHeader, GenericHeader),
 }
 
-impl Header {
-    /// Try to create a `Header` from a slice of bytes.
-    #[inline]
-    pub fn from_bytes(input: &[u8]) -> Result<Header, Error> {
-        parse(input)
-    }
-}
-
 impl TryFrom<&str> for Header {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Header::from_bytes(value.as_bytes())
+        parse(value)
     }
 }
 
-fn parse(input: &[u8]) -> Result<Header, Error> {
+fn parse(input: &str) -> Result<Header, Error> {
     match parser::message_header(input) {
         Ok((rest, uri)) => {
             if !rest.is_empty() {

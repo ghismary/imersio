@@ -31,9 +31,9 @@ pub struct AcceptLanguage {
 }
 
 impl AcceptLanguage {
-    pub(crate) fn new(language: String, parameters: Vec<AcceptParameter>) -> Self {
+    pub(crate) fn new<S: Into<String>>(language: S, parameters: Vec<AcceptParameter>) -> Self {
         AcceptLanguage {
-            language,
+            language: language.into(),
             parameters,
         }
     }

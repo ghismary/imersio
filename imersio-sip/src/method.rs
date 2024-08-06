@@ -9,7 +9,7 @@
 //! ```
 //! use imersio_sip::Method;
 //!
-//! assert_eq!(Method::INVITE, Method::from_bytes(b"INVITE").unwrap());
+//! assert_eq!(Method::INVITE, Method::try_from("INVITE").unwrap());
 //! assert_eq!(Method::BYE.as_str(), "BYE");
 //! let method = Method::try_from("CANCEL");
 //! assert!(method.is_ok_and(|method| method == Method::CANCEL));
@@ -35,7 +35,7 @@ pub type Methods = HeaderValueCollection<Method>;
 /// ```
 /// use imersio_sip::Method;
 ///
-/// assert_eq!(Method::INVITE, Method::from_bytes(b"INVITE").unwrap());
+/// assert_eq!(Method::INVITE, Method::try_from("INVITE").unwrap());
 /// assert_eq!(Method::REGISTER.as_str(), "REGISTER");
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -46,19 +46,13 @@ impl Method {
     pub fn as_str(&self) -> &str {
         self.0.as_ref()
     }
-
-    /// Try to create a `Method` from a slice of bytes.
-    #[inline]
-    pub fn from_bytes(input: &[u8]) -> Result<Method, Error> {
-        parse(input)
-    }
 }
 
 impl TryFrom<&str> for Method {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Method::from_bytes(value.as_bytes())
+        parse(value)
     }
 }
 
@@ -155,7 +149,7 @@ methods! {
     (REGISTER, "REGISTER"),
 }
 
-fn parse(input: &[u8]) -> Result<Method, Error> {
+fn parse(input: &str) -> Result<Method, Error> {
     match parser::method(input) {
         Ok((rest, method)) => {
             if !rest.is_empty() {
@@ -171,45 +165,45 @@ fn parse(input: &[u8]) -> Result<Method, Error> {
 pub(crate) mod parser {
     use super::Method;
     use crate::parser::*;
-    use nom::{branch::alt, bytes::complete::tag, error::context};
+    use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context};
     use std::borrow::Cow;
 
     #[inline]
-    fn ack_method(input: &[u8]) -> ParserResult<&[u8], Method> {
+    fn ack_method(input: &str) -> ParserResult<&str, Method> {
         tag("ACK")(input).map(|(rest, _)| (rest, Method::ACK))
     }
 
     #[inline]
-    fn bye_method(input: &[u8]) -> ParserResult<&[u8], Method> {
+    fn bye_method(input: &str) -> ParserResult<&str, Method> {
         tag("BYE")(input).map(|(rest, _)| (rest, Method::BYE))
     }
 
     #[inline]
-    fn cancel_method(input: &[u8]) -> ParserResult<&[u8], Method> {
+    fn cancel_method(input: &str) -> ParserResult<&str, Method> {
         tag("CANCEL")(input).map(|(rest, _)| (rest, Method::CANCEL))
     }
 
     #[inline]
-    fn extension_method(input: &[u8]) -> ParserResult<&[u8], Method> {
-        token(input).map(|(rest, result)| (rest, Method(Cow::Owned(result.into_owned()))))
+    fn extension_method(input: &str) -> ParserResult<&str, Method> {
+        map(token, |result| Method(Cow::from(result.to_string())))(input)
     }
 
     #[inline]
-    fn invite_method(input: &[u8]) -> ParserResult<&[u8], Method> {
+    fn invite_method(input: &str) -> ParserResult<&str, Method> {
         tag("INVITE")(input).map(|(rest, _)| (rest, Method::INVITE))
     }
 
     #[inline]
-    fn options_method(input: &[u8]) -> ParserResult<&[u8], Method> {
+    fn options_method(input: &str) -> ParserResult<&str, Method> {
         tag("OPTIONS")(input).map(|(rest, _)| (rest, Method::OPTIONS))
     }
 
     #[inline]
-    fn register_method(input: &[u8]) -> ParserResult<&[u8], Method> {
+    fn register_method(input: &str) -> ParserResult<&str, Method> {
         tag("REGISTER")(input).map(|(rest, _)| (rest, Method::REGISTER))
     }
 
-    pub(crate) fn method(input: &[u8]) -> ParserResult<&[u8], Method> {
+    pub(crate) fn method(input: &str) -> ParserResult<&str, Method> {
         context(
             "method",
             alt((
@@ -245,23 +239,21 @@ mod test {
     #[test]
     fn test_invalid_method() {
         assert_err!(Method::try_from(""));
-        assert_err!(Method::from_bytes(b""));
-        assert_err!(Method::from_bytes(&[0xC0])); // Invalid UTF-8
-        assert_err!(Method::from_bytes(&[0x10])); // Invalid method characters
+        assert_err!(Method::try_from("\n")); // Invalid method characters
     }
 
     #[test]
     fn test_valid_method() {
         assert!(Method::try_from("INVITE").is_ok_and(|method| method == Method::INVITE));
-        assert!(Method::from_bytes(b"CANCEL").is_ok_and(|method| method == Method::CANCEL));
+        assert!(Method::try_from("CANCEL").is_ok_and(|method| method == Method::CANCEL));
         assert_eq!(Method::INVITE.as_str(), "INVITE");
     }
 
     #[test]
     fn test_extension_method() {
-        assert_eq!(Method::from_bytes(b"EXTENSION").unwrap(), "EXTENSION");
-        assert_eq!(Method::from_bytes(b"ex-Tension.").unwrap(), "ex-Tension.");
-        assert_err!(Method::from_bytes(b"BAD^EXT"));
+        assert_eq!(Method::try_from("EXTENSION").unwrap(), "EXTENSION");
+        assert_eq!(Method::try_from("ex-Tension.").unwrap(), "ex-Tension.");
+        assert_err!(Method::try_from("BAD^EXT"));
 
         let long_method = "This_is_a_very_long_method.It_is_valid_but_unlikely.";
         assert_eq!(Method::try_from(long_method).unwrap(), long_method);

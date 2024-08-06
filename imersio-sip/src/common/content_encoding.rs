@@ -82,7 +82,7 @@ impl TryFrom<&str> for ContentEncoding {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::header::parser::content_coding(value.as_bytes())
+        crate::header::parser::content_coding(value)
             .map(|(_, encoding)| encoding)
             .map_err(|_| Error::InvalidContentEncoding(value.to_string()))
     }

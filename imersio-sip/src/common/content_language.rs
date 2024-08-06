@@ -86,7 +86,7 @@ impl TryFrom<&str> for ContentLanguage {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::header::parser::language_tag(value.as_bytes())
+        crate::header::parser::language_tag(value)
             .map(|(_, language)| language)
             .map_err(|_| Error::InvalidContentLanguage(value.to_string()))
     }

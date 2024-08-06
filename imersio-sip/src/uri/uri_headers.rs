@@ -52,8 +52,8 @@ impl std::fmt::Display for UriHeaders {
                 .map(|(k, v)| {
                     format!(
                         "{}={}",
-                        escape(k, |b| { is_unreserved(b) || is_hnv_unreserved(b) }),
-                        escape(v, |b| { is_unreserved(b) || is_hnv_unreserved(b) })
+                        escape(k, |c| { is_unreserved(c) || is_hnv_unreserved(c) }),
+                        escape(v, |c| { is_unreserved(c) || is_hnv_unreserved(c) })
                     )
                 })
                 .collect::<Vec<String>>()

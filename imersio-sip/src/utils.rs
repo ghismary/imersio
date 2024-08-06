@@ -12,16 +12,15 @@ where
 
 pub(crate) fn escape<F>(input: &str, f: F) -> String
 where
-    F: Fn(u8) -> bool,
+    F: Fn(char) -> bool,
 {
     input
-        .as_bytes()
-        .iter()
-        .map(|b| {
-            if f(*b) {
-                format!("{}", *b as char)
+        .chars()
+        .map(|c| {
+            if f(c) {
+                format!("{}", c)
             } else {
-                format!("%{0:x}", b)
+                format!("%{0:x}", c as u32)
             }
         })
         .collect::<String>()
