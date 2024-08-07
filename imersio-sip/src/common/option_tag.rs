@@ -82,7 +82,7 @@ impl TryFrom<&str> for OptionTag {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::header::parser::option_tag(value)
+        crate::headers::parser::option_tag(value)
             .map(|(_, tag)| tag)
             .map_err(|_| Error::InvalidOptionTag(value.to_string()))
     }

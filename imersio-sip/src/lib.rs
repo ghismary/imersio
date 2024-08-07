@@ -4,7 +4,7 @@
 
 #![deny(warnings, missing_docs, missing_debug_implementations)]
 
-pub mod header;
+pub mod headers;
 pub mod method;
 pub mod reason;
 pub mod request;
@@ -55,7 +55,7 @@ pub use crate::common::{
     stale::Stale,
 };
 pub use crate::error::Error;
-pub use crate::header::{
+pub use crate::headers::{
     accept_encoding_header::AcceptEncodingHeader, accept_header::AcceptHeader,
     accept_language_header::AcceptLanguageHeader, alert_info_header::AlertInfoHeader,
     allow_header::AllowHeader, authentication_info_header::AuthenticationInfoHeader,

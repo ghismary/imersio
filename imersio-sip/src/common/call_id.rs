@@ -80,7 +80,7 @@ impl TryFrom<&str> for CallId {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::header::parser::callid(value)
+        crate::headers::parser::callid(value)
             .map(|(_, call_id)| call_id)
             .map_err(|_| Error::InvalidCallId(value.to_string()))
     }
