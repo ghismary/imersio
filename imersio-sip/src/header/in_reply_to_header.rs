@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::common::CallIds;
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::{header::GenericHeader, CallId, CallIds, HeaderAccessor};
 
 /// Representation of an In-Reply-To header.
 ///
@@ -23,14 +22,10 @@ pub struct InReplyToHeader {
 }
 
 impl InReplyToHeader {
-    pub(crate) fn new<S: Into<String>>(header: GenericHeader, call_ids: Vec<S>) -> Self {
+    pub(crate) fn new(header: GenericHeader, call_ids: Vec<CallId>) -> Self {
         Self {
             header,
-            call_ids: call_ids
-                .into_iter()
-                .map(|id| id.into())
-                .collect::<Vec<String>>()
-                .into(),
+            call_ids: call_ids.into(),
         }
     }
 
@@ -77,7 +72,7 @@ mod tests {
             assert_eq!(header.call_ids().len(), 1);
             assert_eq!(
                 header.call_ids().first().unwrap(),
-                &"70710@saturn.bell-tel.com".to_string()
+                "70710@saturn.bell-tel.com"
             );
         });
     }
@@ -90,11 +85,11 @@ mod tests {
                 assert_eq!(header.call_ids().len(), 2);
                 assert_eq!(
                     header.call_ids().first().unwrap(),
-                    &"70710@saturn.bell-tel.com".to_string()
+                    "70710@saturn.bell-tel.com"
                 );
                 assert_eq!(
                     header.call_ids().last().unwrap(),
-                    &"17320@saturn.bell-tel.com".to_string()
+                    "17320@saturn.bell-tel.com"
                 );
             },
         );

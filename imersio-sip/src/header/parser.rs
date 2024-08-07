@@ -27,7 +27,7 @@ use crate::{
     },
     uri::parser::{absolute_uri, host, request_uri, sip_uri},
     AcceptEncoding, AcceptLanguage, AcceptParameter, AcceptRange, Alert, Algorithm, AuthParameter,
-    AuthParameters, AuthenticationInfo, CallInfo, CallInfoParameter, Challenge, Contact,
+    AuthParameters, AuthenticationInfo, CallId, CallInfo, CallInfoParameter, Challenge, Contact,
     ContactParameter, Contacts, ContentEncoding, ContentLanguage, Credentials,
     DispositionParameter, DispositionType, DomainUri, ErrorUri, FromParameter, GenericParameter,
     Handling, MediaParameter, MediaRange, MediaType, MessageQop, NameAddress, OptionTag, Priority,
@@ -607,8 +607,14 @@ fn authorization(input: &str) -> ParserResult<&str, Header> {
     )(input)
 }
 
-fn callid(input: &str) -> ParserResult<&str, &str> {
-    context("callid", recognize(pair(word, opt(pair(tag("@"), word)))))(input)
+pub(crate) fn callid(input: &str) -> ParserResult<&str, CallId> {
+    context(
+        "callid",
+        map(
+            recognize(pair(word, opt(pair(tag("@"), word)))),
+            CallId::new,
+        ),
+    )(input)
 }
 
 fn call_id(input: &str) -> ParserResult<&str, Header> {

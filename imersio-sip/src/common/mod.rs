@@ -1,7 +1,5 @@
 //! TODO
 
-use crate::common::header_value_collection::HeaderValueCollection;
-
 pub mod accept_encoding;
 pub mod accept_language;
 pub mod accept_parameter;
@@ -10,6 +8,7 @@ pub mod alert;
 pub mod algorithm;
 pub mod auth_parameter;
 pub mod authentication_info;
+pub mod call_id;
 pub mod call_info;
 pub mod call_info_parameter;
 pub mod challenge;
@@ -36,8 +35,3 @@ pub mod priority;
 pub mod route;
 pub mod stale;
 pub mod wrapped_string;
-
-/// Representation of the list of call IDs in a `In-Reply-To` header.
-///
-/// This is usable as an iterator.
-pub type CallIds = HeaderValueCollection<String>;

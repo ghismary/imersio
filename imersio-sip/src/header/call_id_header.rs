@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::{header::GenericHeader, CallId, HeaderAccessor};
 
 /// Representation of a Call-ID header.
 ///
@@ -17,20 +17,17 @@ use crate::{header::GenericHeader, HeaderAccessor};
 pub struct CallIdHeader {
     #[partial_eq_ignore]
     header: GenericHeader,
-    call_id: String,
+    call_id: CallId,
 }
 
 impl CallIdHeader {
-    pub(crate) fn new<S: Into<String>>(header: GenericHeader, call_id: S) -> Self {
-        Self {
-            header,
-            call_id: call_id.into(),
-        }
+    pub(crate) fn new(header: GenericHeader, call_id: CallId) -> Self {
+        Self { header, call_id }
     }
 
     /// Get the call ID from the Call-ID header.
     pub fn call_id(&self) -> &str {
-        &self.call_id
+        self.call_id.as_ref()
     }
 }
 

@@ -28,6 +28,7 @@ pub use crate::common::{
     algorithm::Algorithm,
     auth_parameter::{AuthParameter, AuthParameters},
     authentication_info::{AuthenticationInfo, AuthenticationInfos},
+    call_id::{CallId, CallIds},
     call_info::{CallInfo, CallInfos},
     call_info_parameter::CallInfoParameter,
     challenge::Challenge,
