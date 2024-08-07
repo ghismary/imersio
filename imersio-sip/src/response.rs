@@ -296,9 +296,8 @@ fn parse(input: &str, body: &[u8]) -> Result<Response, Error> {
 mod parser {
     use super::*;
     use crate::{
+        common::{reason::parser::reason, version::parser::sip_version},
         parser::{sp, ParserResult},
-        reason::parser::reason,
-        version::parser::sip_version,
     };
     use nom::{
         character::complete::crlf,

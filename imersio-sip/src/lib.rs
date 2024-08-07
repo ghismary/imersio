@@ -5,12 +5,9 @@
 #![deny(warnings, missing_docs, missing_debug_implementations)]
 
 pub mod headers;
-pub mod method;
-pub mod reason;
 pub mod request;
 pub mod response;
 pub mod uri;
-pub mod version;
 
 mod common;
 mod error;
@@ -48,11 +45,15 @@ pub use crate::common::{
     media_range::MediaRange,
     media_type::MediaType,
     message_qop::{MessageQop, MessageQops},
+    method::{Method, Methods},
     name_address::NameAddress,
     option_tag::{OptionTag, OptionTags},
     priority::Priority,
+    reason::Reason,
     route::{Route, Routes},
     stale::Stale,
+    status_code::StatusCode,
+    version::Version,
 };
 pub use crate::error::Error;
 pub use crate::headers::{
@@ -72,11 +73,8 @@ pub use crate::headers::{
     proxy_authorization_header::ProxyAuthorizationHeader, proxy_require_header::ProxyRequireHeader,
     record_route_header::RecordRouteHeader, Header,
 };
-pub use crate::method::{Method, Methods};
-pub use crate::reason::{Reason, StatusCode};
 pub use crate::request::Request;
 pub use crate::response::Response;
 pub use crate::uri::{
     AbsoluteUri, HostPort, SipUri, Uri, UriHeaders, UriParameters, UriScheme, UserInfo,
 };
-pub use crate::version::Version;

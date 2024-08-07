@@ -245,10 +245,9 @@ fn parse(input: &str, body: &[u8]) -> Result<Request, Error> {
 mod parser {
     use super::*;
     use crate::{
-        method::parser::method,
+        common::{method::parser::method, version::parser::sip_version},
         parser::{sp, ParserResult},
         uri::parser::request_uri,
-        version::parser::sip_version,
     };
     use nom::{
         character::complete::crlf,

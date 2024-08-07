@@ -9,6 +9,7 @@ use nom::{
 };
 
 use crate::{
+    common::method::parser::method,
     common::wrapped_string::WrappedString,
     headers::{
         AcceptEncodingHeader, AcceptHeader, AcceptLanguageHeader, AlertInfoHeader, AllowHeader,
@@ -19,7 +20,6 @@ use crate::{
         MinExpiresHeader, OrganizationHeader, PriorityHeader, ProxyAuthenticateHeader,
         ProxyAuthorizationHeader, ProxyRequireHeader, RecordRouteHeader,
     },
-    method::parser::method,
     parser::{
         alpha, comma, digit, equal, hcolon, laquot, ldquot, lhex, lws, param, pchar, quoted_string,
         raquot, rdquot, semi, slash, sp, star, text_utf8_trim, text_utf8char, token, word,
