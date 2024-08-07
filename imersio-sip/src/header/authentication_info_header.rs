@@ -4,10 +4,8 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
-use crate::MessageQop;
-use crate::{AuthenticationInfo, AuthenticationInfos};
+use crate::header::{GenericHeader, HeaderAccessor};
+use crate::{AuthenticationInfo, AuthenticationInfos, MessageQop};
 
 /// Representation of an Authentication-Info header.
 ///
@@ -112,14 +110,14 @@ authentication_info_header! {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::AuthenticationInfoHeader;
     use crate::{
-        common::message_qop::MessageQop,
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        AuthenticationInfoHeader, Header, MessageQop,
     };
+    use claims::assert_ok;
 
     valid_header!(
         AuthenticationInfo,

@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{Alert, Alerts};
 
 /// Representation of an Alert-Info header.
@@ -55,10 +54,12 @@ impl HeaderAccessor for AlertInfoHeader {
 
 #[cfg(test)]
 mod tests {
-    use super::AlertInfoHeader;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor, Uri,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        AlertInfoHeader, Header, Uri,
     };
     use claims::assert_ok;
 

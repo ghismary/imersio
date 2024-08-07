@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
 
 /// Representation of a MIME-Version header.
 ///
@@ -47,16 +47,14 @@ impl HeaderAccessor for MimeVersionHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::MimeVersionHeader;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header,
+        Header, MimeVersionHeader,
     };
+    use claims::assert_ok;
 
     valid_header!(MimeVersion, MimeVersionHeader, "MIME-Version");
     header_equality!(MimeVersion, "MIME-Version");

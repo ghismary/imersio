@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::MediaType;
 
 /// Representation of a Content-Type header.
@@ -52,18 +51,15 @@ impl HeaderAccessor for ContentTypeHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ContentTypeHeader;
-    use crate::common::media_parameter::MediaParameter;
     use crate::{
-        common::{media_range::MediaRange, wrapped_string::WrappedString},
+        common::wrapped_string::WrappedString,
         header::{
-            tests::header_equality, tests::header_inequality, tests::invalid_header,
-            tests::valid_header,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
         },
-        Header, HeaderAccessor,
+        ContentTypeHeader, Header, MediaParameter, MediaRange,
     };
+    use claims::assert_ok;
 
     valid_header!(ContentType, ContentTypeHeader, "Content-Type");
     header_equality!(ContentType, "Content-Type");

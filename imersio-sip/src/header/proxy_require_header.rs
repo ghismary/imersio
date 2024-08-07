@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{OptionTag, OptionTags};
 
 /// Representation of a Proxy-Require header.
@@ -51,13 +51,14 @@ impl HeaderAccessor for ProxyRequireHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ProxyRequireHeader;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        Header, ProxyRequireHeader,
     };
+    use claims::assert_ok;
 
     valid_header!(ProxyRequire, ProxyRequireHeader, "Proxy-Require");
     header_equality!(ProxyRequire, "Proxy-Require");

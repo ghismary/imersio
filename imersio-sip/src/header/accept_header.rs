@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{AcceptRange, AcceptRanges};
 
 /// Representation of an Accept header.
@@ -53,15 +52,15 @@ impl HeaderAccessor for AcceptHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::AcceptHeader;
-    use crate::common::accept_parameter::AcceptParameter;
     use crate::{
         common::media_range::MediaRange,
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        AcceptHeader, AcceptParameter, Header,
     };
+    use claims::assert_ok;
 
     valid_header!(Accept, AcceptHeader, "Accept");
     header_equality!(Accept, "Accept");

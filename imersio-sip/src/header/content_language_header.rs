@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{ContentLanguage, ContentLanguages};
 
 /// Representation of a Content-Language header.
@@ -49,13 +48,14 @@ impl HeaderAccessor for ContentLanguageHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ContentLanguageHeader;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        ContentLanguageHeader, Header,
     };
+    use claims::assert_ok;
 
     valid_header!(ContentLanguage, ContentLanguageHeader, "Content-Language");
     header_equality!(ContentLanguage, "Content-Language");

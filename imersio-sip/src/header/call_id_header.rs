@@ -4,7 +4,8 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, CallId, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
+use crate::CallId;
 
 /// Representation of a Call-ID header.
 ///
@@ -47,16 +48,14 @@ impl HeaderAccessor for CallIdHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::CallIdHeader;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header,
+        CallIdHeader, Header,
     };
+    use claims::assert_ok;
 
     valid_header!(CallId, CallIdHeader, "Call-ID");
     header_equality!(CallId, "Call-ID");

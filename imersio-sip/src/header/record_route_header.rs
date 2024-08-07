@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{Route, Routes};
 
 /// Representation of a Record-Route header.
@@ -51,16 +51,14 @@ impl HeaderAccessor for RecordRouteHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::RecordRouteHeader;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header, Uri,
+        Header, RecordRouteHeader, Uri,
     };
+    use claims::assert_ok;
 
     valid_header!(RecordRoute, RecordRouteHeader, "Record-Route");
     header_equality!(RecordRoute, "Record-Route");

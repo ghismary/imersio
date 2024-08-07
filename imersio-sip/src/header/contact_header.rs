@@ -4,9 +4,8 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::Contacts;
-use crate::HeaderAccessor;
 
 /// Representation of a Contact header.
 ///
@@ -51,17 +50,15 @@ impl HeaderAccessor for ContactHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ContactHeader;
     use crate::{
         header::{
             contact_header::Contacts,
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header, Uri,
+        ContactHeader, Header, Uri,
     };
+    use claims::assert_ok;
 
     valid_header!(Contact, ContactHeader, "Contact");
     header_equality!(Contact, "Contact");

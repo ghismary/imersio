@@ -70,7 +70,7 @@ pub use crate::header::{
     min_expires_header::MinExpiresHeader, organization_header::OrganizationHeader,
     priority_header::PriorityHeader, proxy_authenticate_header::ProxyAuthenticateHeader,
     proxy_authorization_header::ProxyAuthorizationHeader, proxy_require_header::ProxyRequireHeader,
-    record_route_header::RecordRouteHeader, Header, HeaderAccessor,
+    record_route_header::RecordRouteHeader, Header,
 };
 pub use crate::method::{Method, Methods};
 pub use crate::reason::{Reason, StatusCode};

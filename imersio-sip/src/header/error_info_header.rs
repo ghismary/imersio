@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{ErrorUri, ErrorUris};
 
 /// Representation of an Error-Info header.
@@ -51,13 +50,14 @@ impl HeaderAccessor for ErrorInfoHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ErrorInfoHeader;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor, Uri,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        ErrorInfoHeader, Header, Uri,
     };
+    use claims::assert_ok;
 
     valid_header!(ErrorInfo, ErrorInfoHeader, "Error-Info");
     header_equality!(ErrorInfo, "Error-Info");

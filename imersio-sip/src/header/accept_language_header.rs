@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{AcceptLanguage, AcceptLanguages};
 
 /// Representation of an Accept-Language header.
@@ -55,9 +54,11 @@ impl HeaderAccessor for AcceptLanguageHeader {
 
 #[cfg(test)]
 mod tests {
-    use super::AcceptLanguageHeader;
-    use crate::header::tests::{header_equality, header_inequality, invalid_header, valid_header};
-    use crate::{Header, HeaderAccessor};
+    use crate::header::{
+        tests::{header_equality, header_inequality, invalid_header, valid_header},
+        HeaderAccessor,
+    };
+    use crate::{AcceptLanguageHeader, Header};
     use claims::assert_ok;
 
     valid_header!(AcceptLanguage, AcceptLanguageHeader, "Accept-Language");

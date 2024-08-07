@@ -4,8 +4,8 @@ use derive_more::Display;
 use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::utils::compare_vectors;
-use crate::{header::GenericHeader, HeaderAccessor};
 use crate::{CallInfo, CallInfos};
 
 /// Representation of a Call-Info header.
@@ -60,17 +60,14 @@ impl PartialEq for CallInfoHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::CallInfoHeader;
-    use crate::common::call_info_parameter::CallInfoParameter;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        GenericParameter, Header, Uri,
+        CallInfoHeader, CallInfoParameter, GenericParameter, Header, Uri,
     };
+    use claims::assert_ok;
 
     valid_header!(CallInfo, CallInfoHeader, "Call-Info");
     header_equality!(CallInfo, "Call-Info");

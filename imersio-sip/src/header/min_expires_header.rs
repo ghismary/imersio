@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Min-Expires header.
 ///
@@ -51,16 +51,14 @@ impl HeaderAccessor for MinExpiresHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::MinExpiresHeader;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header,
+        Header, MinExpiresHeader,
     };
+    use claims::assert_ok;
 
     valid_header!(MinExpires, MinExpiresHeader, "Min-Expires");
     header_equality!(MinExpires, "Min-Expires");

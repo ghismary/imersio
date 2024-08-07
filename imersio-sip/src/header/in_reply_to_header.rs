@@ -4,7 +4,8 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, CallId, CallIds, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
+use crate::{CallId, CallIds};
 
 /// Representation of an In-Reply-To header.
 ///
@@ -51,16 +52,14 @@ impl HeaderAccessor for InReplyToHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::InReplyToHeader;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header,
+        Header, InReplyToHeader,
     };
+    use claims::assert_ok;
 
     valid_header!(InReplyTo, InReplyToHeader, "In-Reply-To");
     header_equality!(InReplyTo, "In-Reply-To");

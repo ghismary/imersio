@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{AcceptEncoding, AcceptEncodings};
 
 /// Representation of an Accept-Encoding header.
@@ -52,11 +51,12 @@ impl HeaderAccessor for AcceptEncodingHeader {
 
 #[cfg(test)]
 mod tests {
+    use crate::header::{
+        tests::{header_equality, header_inequality, invalid_header, valid_header},
+        HeaderAccessor,
+    };
+    use crate::{AcceptEncodingHeader, Header};
     use claims::assert_ok;
-
-    use super::AcceptEncodingHeader;
-    use crate::header::tests::{header_equality, header_inequality, invalid_header, valid_header};
-    use crate::{Header, HeaderAccessor};
 
     valid_header!(AcceptEncoding, AcceptEncodingHeader, "Accept-Encoding");
     header_equality!(AcceptEncoding, "Accept-Encoding");

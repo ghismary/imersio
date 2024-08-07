@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
 
 /// Representation of an Organization header.
 ///
@@ -52,16 +52,14 @@ impl HeaderAccessor for OrganizationHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::OrganizationHeader;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, valid_header},
             HeaderAccessor,
         },
-        Header,
+        Header, OrganizationHeader,
     };
+    use claims::assert_ok;
 
     valid_header!(Organization, OrganizationHeader, "Organization");
     header_equality!(Organization, "Organization");

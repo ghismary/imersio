@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{ContentEncoding, ContentEncodings};
 
 /// Representation of a Content-Encoding header.
@@ -60,13 +59,14 @@ impl HeaderAccessor for ContentEncodingHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ContentEncodingHeader;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        ContentEncodingHeader, Header,
     };
+    use claims::assert_ok;
 
     valid_header!(ContentEncoding, ContentEncodingHeader, "Content-Encoding");
     header_equality!(ContentEncoding, "Content-Encoding");

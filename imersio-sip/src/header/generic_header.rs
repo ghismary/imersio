@@ -1,7 +1,7 @@
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 
-use crate::HeaderAccessor;
+use crate::header::HeaderAccessor;
 
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
 pub struct GenericHeader {

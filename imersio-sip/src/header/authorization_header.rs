@@ -4,9 +4,8 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::Credentials;
-use crate::HeaderAccessor;
 
 /// Representation of an Authorization header.
 ///
@@ -51,15 +50,14 @@ impl HeaderAccessor for AuthorizationHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::AuthorizationHeader;
-    use crate::common::auth_parameter::AuthParameter;
     use crate::{
-        common::{algorithm::Algorithm, message_qop::MessageQop},
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor, Uri,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        Algorithm, AuthParameter, AuthorizationHeader, Header, MessageQop, Uri,
     };
+    use claims::assert_ok;
 
     valid_header!(Authorization, AuthorizationHeader, "Authorization");
     header_equality!(Authorization, "Authorization");

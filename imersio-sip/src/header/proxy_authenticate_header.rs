@@ -4,9 +4,8 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::Challenge;
-use crate::HeaderAccessor;
 
 /// Representation of a Proxy-Authenticate header.
 ///
@@ -48,15 +47,14 @@ impl HeaderAccessor for ProxyAuthenticateHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ProxyAuthenticateHeader;
-    use crate::common::algorithm::Algorithm;
-    use crate::common::domain_uri::DomainUri;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor, Uri,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        Algorithm, DomainUri, Header, ProxyAuthenticateHeader, Uri,
     };
+    use claims::assert_ok;
 
     valid_header!(
         ProxyAuthenticate,

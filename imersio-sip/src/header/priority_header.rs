@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::Priority;
 
 /// Representation of a Priority header.
@@ -57,14 +56,14 @@ impl HeaderAccessor for PriorityHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::PriorityHeader;
-    use crate::common::priority::Priority;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        Header, Priority, PriorityHeader,
     };
+    use claims::assert_ok;
 
     valid_header!(Priority, PriorityHeader, "Priority");
     header_equality!(Priority, "Priority");

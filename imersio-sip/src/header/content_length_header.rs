@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Content-Length header.
 ///
@@ -54,16 +54,14 @@ impl HeaderAccessor for ContentLengthHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::ContentLengthHeader;
     use crate::{
         header::{
-            tests::header_equality, tests::header_inequality, tests::invalid_header,
-            tests::valid_header, HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
         },
-        Header,
+        ContentLengthHeader, Header,
     };
+    use claims::assert_ok;
 
     valid_header!(ContentLength, ContentLengthHeader, "Content-Length");
     header_equality!(ContentLength, "Content-Length");

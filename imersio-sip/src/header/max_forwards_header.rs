@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{header::GenericHeader, HeaderAccessor};
+use crate::header::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Max-Forwards header.
 ///
@@ -52,16 +52,14 @@ impl HeaderAccessor for MaxForwardsHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::MaxForwardsHeader;
     use crate::{
         header::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header,
+        Header, MaxForwardsHeader,
     };
+    use claims::assert_ok;
 
     valid_header!(MaxForwards, MaxForwardsHeader, "Max-Forwards");
     header_equality!(MaxForwards, "Max-Forwards");

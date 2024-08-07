@@ -5,11 +5,9 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
-use crate::header::GenericHeader;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::utils::compare_vectors;
-use crate::DispositionParameter;
-use crate::DispositionType;
-use crate::HeaderAccessor;
+use crate::{DispositionParameter, DispositionType};
 
 /// Representation of a Content-Disposition header.
 ///
@@ -78,14 +76,14 @@ impl PartialEq for ContentDispositionHeader {
 
 #[cfg(test)]
 mod tests {
-    use claims::assert_ok;
-
-    use super::{ContentDispositionHeader, DispositionType};
-    use crate::common::handling::Handling;
     use crate::{
-        header::tests::{header_equality, header_inequality, invalid_header, valid_header},
-        Header, HeaderAccessor,
+        header::{
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+            HeaderAccessor,
+        },
+        ContentDispositionHeader, DispositionType, Handling, Header,
     };
+    use claims::assert_ok;
 
     valid_header!(
         ContentDisposition,

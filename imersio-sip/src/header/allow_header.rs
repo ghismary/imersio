@@ -4,8 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
 
-use crate::header::GenericHeader;
-use crate::HeaderAccessor;
+use crate::header::{GenericHeader, HeaderAccessor};
 use crate::{Method, Methods};
 
 /// Representation of an Allow header.
@@ -57,11 +56,12 @@ impl HeaderAccessor for AllowHeader {
 
 #[cfg(test)]
 mod tests {
+    use crate::header::{
+        tests::{header_equality, header_inequality, valid_header},
+        HeaderAccessor,
+    };
+    use crate::{AllowHeader, Header, Method};
     use claims::assert_ok;
-
-    use super::AllowHeader;
-    use crate::header::tests::{header_equality, header_inequality, valid_header};
-    use crate::{Header, HeaderAccessor, Method};
 
     valid_header!(Allow, AllowHeader, "Allow");
     header_equality!(Allow, "Allow");
