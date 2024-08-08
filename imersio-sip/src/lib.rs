@@ -73,7 +73,8 @@ pub use crate::headers::{
     priority_header::PriorityHeader, proxy_authenticate_header::ProxyAuthenticateHeader,
     proxy_authorization_header::ProxyAuthorizationHeader, proxy_require_header::ProxyRequireHeader,
     record_route_header::RecordRouteHeader, reply_to_header::ReplyToHeader,
-    require_header::RequireHeader, retry_after_header::RetryAfterHeader, Header,
+    require_header::RequireHeader, retry_after_header::RetryAfterHeader, route_header::RouteHeader,
+    Header,
 };
 pub use crate::request::Request;
 pub use crate::response::Response;

@@ -89,9 +89,9 @@ pub(crate) mod parser {
         generic_param(input)
     }
 
-    pub(crate) fn route(input: &str) -> ParserResult<&str, Route> {
+    pub(crate) fn route_spec(input: &str) -> ParserResult<&str, Route> {
         context(
-            "route",
+            "route_spec",
             map(
                 pair(name_addr, many0(route_param)),
                 |(name_addr, params)| Route::new(name_addr, params),
