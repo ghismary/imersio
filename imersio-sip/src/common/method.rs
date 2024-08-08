@@ -164,7 +164,7 @@ fn parse(input: &str) -> Result<Method, Error> {
 
 pub(crate) mod parser {
     use super::Method;
-    use crate::parser::*;
+    use crate::parser::{token, ParserResult};
     use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context};
     use std::borrow::Cow;
 

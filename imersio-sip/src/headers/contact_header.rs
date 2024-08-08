@@ -48,6 +48,43 @@ impl HeaderAccessor for ContactHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::contact::parser::contact_param;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, star, ParserResult};
+    use crate::{ContactHeader, Contacts, Header};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn contact(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Contact header",
+            map(
+                tuple((
+                    alt((tag_no_case("Contact"), tag_no_case("m"))),
+                    hcolon,
+                    cut(consumed(alt((
+                        map(star, |_| Contacts::Any),
+                        map(separated_list1(comma, contact_param), Contacts::Contacts),
+                    )))),
+                )),
+                |(name, separator, (value, contacts))| {
+                    Header::Contact(ContactHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        contacts,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

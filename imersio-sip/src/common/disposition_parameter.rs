@@ -96,3 +96,39 @@ impl From<GenericParameter> for DispositionParameter {
         Self::Other(value)
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::generic_parameter::parser::generic_param;
+    use crate::parser::{equal, token, ParserResult};
+    use crate::{DispositionParameter, Handling};
+    use nom::{
+        branch::alt, bytes::complete::tag_no_case, combinator::map, sequence::separated_pair,
+    };
+
+    #[inline]
+    fn other_handling(input: &str) -> ParserResult<&str, &str> {
+        token(input)
+    }
+
+    fn handling_param(input: &str) -> ParserResult<&str, DispositionParameter> {
+        map(
+            separated_pair(
+                tag_no_case("handling"),
+                equal,
+                map(
+                    alt((
+                        tag_no_case("optional"),
+                        tag_no_case("required"),
+                        other_handling,
+                    )),
+                    Handling::new,
+                ),
+            ),
+            |(_, value)| DispositionParameter::Handling(value),
+        )(input)
+    }
+
+    pub(crate) fn disp_param(input: &str) -> ParserResult<&str, DispositionParameter> {
+        alt((handling_param, map(generic_param, Into::into)))(input)
+    }
+}

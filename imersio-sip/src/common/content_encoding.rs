@@ -82,8 +82,26 @@ impl TryFrom<&str> for ContentEncoding {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::headers::parser::content_coding(value)
+        parser::content_coding(value)
             .map(|(_, encoding)| encoding)
             .map_err(|_| Error::InvalidContentEncoding(value.to_string()))
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{token, ParserResult};
+    use crate::ContentEncoding;
+    use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context};
+
+    #[inline]
+    pub(crate) fn content_coding(input: &str) -> ParserResult<&str, ContentEncoding> {
+        context("content_coding", map(token, ContentEncoding::new))(input)
+    }
+
+    pub(crate) fn codings(input: &str) -> ParserResult<&str, ContentEncoding> {
+        context(
+            "codings",
+            alt((content_coding, map(tag("*"), ContentEncoding::new))),
+        )(input)
     }
 }

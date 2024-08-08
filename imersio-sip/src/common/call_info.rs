@@ -73,3 +73,31 @@ impl Hash for CallInfo {
         sorted_params.hash(state);
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::call_info_parameter::parser::info_param;
+    use crate::parser::{laquot, raquot, semi, ParserResult};
+    use crate::uri::parser::absolute_uri;
+    use crate::CallInfo;
+    use nom::{
+        combinator::map,
+        error::context,
+        multi::many0,
+        sequence::{preceded, tuple},
+    };
+
+    pub(crate) fn info(input: &str) -> ParserResult<&str, CallInfo> {
+        context(
+            "info",
+            map(
+                tuple((
+                    laquot,
+                    absolute_uri,
+                    raquot,
+                    many0(preceded(semi, info_param)),
+                )),
+                |(_, uri, _, params)| CallInfo::new(uri, params),
+            ),
+        )(input)
+    }
+}

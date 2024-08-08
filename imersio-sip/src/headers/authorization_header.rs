@@ -48,6 +48,38 @@ impl HeaderAccessor for AuthorizationHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::credentials::parser::credentials;
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, ParserResult};
+    use crate::{AuthorizationHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        sequence::tuple,
+    };
+
+    pub(crate) fn authorization(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Authorization header",
+            map(
+                tuple((
+                    tag_no_case("Authorization"),
+                    hcolon,
+                    cut(consumed(credentials)),
+                )),
+                |(name, separator, (value, credentials))| {
+                    Header::Authorization(AuthorizationHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        credentials,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

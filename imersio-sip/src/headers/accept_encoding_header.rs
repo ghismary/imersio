@@ -49,6 +49,39 @@ impl HeaderAccessor for AcceptEncodingHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::accept_encoding::parser::encoding;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{AcceptEncodingHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list0,
+        sequence::tuple,
+    };
+
+    pub(crate) fn accept_encoding(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Accept-Encoding header",
+            map(
+                tuple((
+                    tag_no_case("Accept-Encoding"),
+                    hcolon,
+                    cut(consumed(separated_list0(comma, encoding))),
+                )),
+                |(name, separator, (value, encodings))| {
+                    Header::AcceptEncoding(AcceptEncodingHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        encodings,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::headers::{

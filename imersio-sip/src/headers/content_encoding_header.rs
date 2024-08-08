@@ -57,6 +57,40 @@ impl HeaderAccessor for ContentEncodingHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::content_encoding::parser::content_coding;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{ContentEncodingHeader, Header};
+    use nom::{
+        branch::alt,
+        bytes::complete::{tag, tag_no_case},
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn content_encoding(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Content-Encoding header",
+            map(
+                tuple((
+                    alt((tag_no_case("Content-Encoding"), tag("e"))),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, content_coding))),
+                )),
+                |(name, separator, (value, encodings))| {
+                    Header::ContentEncoding(ContentEncodingHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        encodings,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

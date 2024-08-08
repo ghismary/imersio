@@ -92,3 +92,109 @@ impl Hash for AuthenticationInfo {
         }
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::wrapped_string::WrappedString;
+    use crate::parser::{equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult};
+    use crate::{AuthenticationInfo, MessageQop};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{cut, map},
+        error::context,
+        multi::{count, many0},
+        sequence::{delimited, separated_pair},
+    };
+
+    #[inline]
+    pub(crate) fn nonce_value(input: &str) -> ParserResult<&str, WrappedString> {
+        quoted_string(input)
+    }
+
+    fn nextnonce(input: &str) -> ParserResult<&str, AuthenticationInfo> {
+        context(
+            "nextnonce",
+            map(
+                separated_pair(tag_no_case("nextnonce"), equal, nonce_value),
+                |(_, value)| AuthenticationInfo::NextNonce(value),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn qop_value(input: &str) -> ParserResult<&str, &str> {
+        alt((tag_no_case("auth-int"), tag_no_case("auth"), token))(input)
+    }
+
+    pub(crate) fn message_qop(input: &str) -> ParserResult<&str, AuthenticationInfo> {
+        context(
+            "message_qop",
+            map(
+                separated_pair(tag_no_case("qop"), equal, cut(qop_value)),
+                |(_, value)| AuthenticationInfo::Qop(MessageQop::new(value)),
+            ),
+        )(input)
+    }
+
+    fn response_digest(input: &str) -> ParserResult<&str, WrappedString> {
+        map(delimited(ldquot, many0(lhex), rdquot), |digits| {
+            WrappedString::new_quoted(
+                digits
+                    .into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<String>>()
+                    .join(""),
+            )
+        })(input)
+    }
+
+    fn response_auth(input: &str) -> ParserResult<&str, AuthenticationInfo> {
+        context(
+            "response_auth",
+            map(
+                separated_pair(tag_no_case("rspauth"), equal, response_digest),
+                |(_, value)| AuthenticationInfo::ResponseAuth(value),
+            ),
+        )(input)
+    }
+
+    #[inline]
+    fn cnonce_value(input: &str) -> ParserResult<&str, WrappedString> {
+        nonce_value(input)
+    }
+
+    pub(crate) fn cnonce(input: &str) -> ParserResult<&str, AuthenticationInfo> {
+        context(
+            "cnonce",
+            map(
+                separated_pair(tag_no_case("cnonce"), equal, cut(cnonce_value)),
+                |(_, value)| AuthenticationInfo::CNonce(value),
+            ),
+        )(input)
+    }
+
+    fn nc_value(input: &str) -> ParserResult<&str, WrappedString> {
+        map(count(lhex, 8), |digits| {
+            WrappedString::new_not_wrapped(
+                digits
+                    .into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<String>>()
+                    .join(""),
+            )
+        })(input)
+    }
+
+    pub(crate) fn nonce_count(input: &str) -> ParserResult<&str, AuthenticationInfo> {
+        context(
+            "nonce_count",
+            map(
+                separated_pair(tag_no_case("nc"), equal, cut(nc_value)),
+                |(_, value)| AuthenticationInfo::NonceCount(value),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn ainfo(input: &str) -> ParserResult<&str, AuthenticationInfo> {
+        alt((nextnonce, message_qop, response_auth, cnonce, nonce_count))(input)
+    }
+}

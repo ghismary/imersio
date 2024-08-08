@@ -75,3 +75,39 @@ impl Ord for GenericHeader {
             .cmp(&other.value.to_ascii_lowercase())
     }
 }
+
+pub(crate) mod parser {
+    use crate::{
+        headers::GenericHeader,
+        parser::{hcolon, lws, text_utf8char, token, ParserResult},
+        Header,
+    };
+    use nom::{
+        branch::alt,
+        combinator::{map, recognize},
+        error::context,
+        multi::many0,
+        sequence::tuple,
+    };
+
+    #[inline]
+    fn header_name(input: &str) -> ParserResult<&str, &str> {
+        token(input)
+    }
+
+    fn header_value(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "header_value",
+            recognize(many0(alt((recognize(text_utf8char), lws)))),
+        )(input)
+    }
+
+    pub(crate) fn extension_header(input: &str) -> ParserResult<&str, Header> {
+        map(
+            tuple((header_name, hcolon, header_value)),
+            |(name, separator, value)| {
+                Header::ExtensionHeader(GenericHeader::new(name, separator, value))
+            },
+        )(input)
+    }
+}

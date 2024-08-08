@@ -52,6 +52,39 @@ impl HeaderAccessor for AlertInfoHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::alert::parser::alert_param;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{AlertInfoHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn alert_info(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Alert-Info header",
+            map(
+                tuple((
+                    tag_no_case("Alert-Info"),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, alert_param))),
+                )),
+                |(name, separator, (value, alerts))| {
+                    Header::AlertInfo(AlertInfoHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        alerts,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

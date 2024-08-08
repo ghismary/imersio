@@ -49,6 +49,39 @@ impl HeaderAccessor for ProxyRequireHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::option_tag::parser::option_tag;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{Header, ProxyRequireHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn proxy_require(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Proxy-Require header",
+            map(
+                tuple((
+                    tag_no_case("Proxy-Require"),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, option_tag))),
+                )),
+                |(name, separator, (value, tags))| {
+                    Header::ProxyRequire(ProxyRequireHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        tags,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

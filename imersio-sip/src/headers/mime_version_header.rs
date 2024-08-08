@@ -45,6 +45,42 @@ impl HeaderAccessor for MimeVersionHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::headers::GenericHeader;
+    use crate::parser::{digit, hcolon, ParserResult};
+    use crate::{Header, MimeVersionHeader};
+    use nom::{
+        bytes::complete::{tag, tag_no_case},
+        combinator::{consumed, cut, map, recognize},
+        error::context,
+        multi::many1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn mime_version(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "MIME-Version header",
+            map(
+                tuple((
+                    tag_no_case("MIME-Version"),
+                    hcolon,
+                    cut(consumed(recognize(tuple((
+                        many1(digit),
+                        tag("."),
+                        many1(digit),
+                    ))))),
+                )),
+                |(name, separator, (value, version))| {
+                    Header::MimeVersion(MimeVersionHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        version,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

@@ -216,3 +216,152 @@ challenge! {
     (nonce, has_nonce, Nonce),
     (opaque, has_opaque, Opaque),
 }
+
+pub(crate) mod parser {
+    use crate::common::auth_parameter::parser::{
+        algorithm, auth_param, auth_scheme, nonce, opaque, realm,
+    };
+    use crate::common::authentication_info::parser::qop_value;
+    use crate::parser::{comma, equal, ldquot, lws, param, pchar, rdquot, sp, ParserResult};
+    use crate::uri::parser::request_uri;
+    use crate::{AuthParameter, Challenge, DomainUri, MessageQop, Stale};
+    use nom::{
+        branch::alt,
+        bytes::complete::{tag, tag_no_case},
+        combinator::{consumed, cut, map, recognize, value},
+        error::context,
+        multi::{many0, many1, separated_list1},
+        sequence::{delimited, pair, preceded, separated_pair, tuple},
+    };
+
+    fn other_challenge(input: &str) -> ParserResult<&str, Challenge> {
+        context(
+            "other_challenge",
+            map(
+                separated_pair(auth_scheme, lws, separated_list1(comma, auth_param)),
+                |(scheme, auth_params)| Challenge::Other(scheme.to_string(), auth_params.into()),
+            ),
+        )(input)
+    }
+
+    fn segment(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "segment",
+            recognize(pair(many0(pchar), many0(preceded(tag(";"), param)))),
+        )(input)
+    }
+
+    fn path_segments(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "path_segments",
+            recognize(pair(segment, many0(preceded(tag("/"), segment)))),
+        )(input)
+    }
+
+    fn abs_path(input: &str) -> ParserResult<&str, &str> {
+        context("abs_path", recognize(pair(tag("/"), path_segments)))(input)
+    }
+
+    fn uri(input: &str) -> ParserResult<&str, DomainUri> {
+        context(
+            "uri",
+            alt((
+                map(request_uri, DomainUri::Uri),
+                map(abs_path, |path| DomainUri::AbsPath(path.to_string())),
+            )),
+        )(input)
+    }
+
+    fn domain_value(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "domain_value",
+            delimited(
+                ldquot,
+                map(separated_list1(many1(sp), uri), |uris| {
+                    AuthParameter::Domain(uris.into())
+                }),
+                rdquot,
+            ),
+        )(input)
+    }
+
+    fn domain(input: &str) -> ParserResult<&str, AuthParameter> {
+        map(
+            tuple((tag_no_case("domain"), equal, cut(domain_value))),
+            |(_, _, domain)| domain,
+        )(input)
+    }
+
+    fn stale(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "stale",
+            map(
+                separated_pair(
+                    tag_no_case("stale"),
+                    equal,
+                    cut(map(
+                        consumed(alt((
+                            value(true, tag_no_case("true")),
+                            value(false, tag_no_case("false")),
+                        ))),
+                        |(s, v)| AuthParameter::Stale(Stale::new(s, v)),
+                    )),
+                ),
+                |(_, stale)| stale,
+            ),
+        )(input)
+    }
+
+    fn qop_options(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "qop_options",
+            map(
+                separated_pair(
+                    tag_no_case("qop"),
+                    equal,
+                    cut(delimited(
+                        ldquot,
+                        separated_list1(tag(","), qop_value),
+                        rdquot,
+                    )),
+                ),
+                |(_, values)| {
+                    AuthParameter::QopOptions(
+                        values
+                            .iter()
+                            .map(|v| MessageQop::new(v.to_string()))
+                            .collect::<Vec<MessageQop>>()
+                            .into(),
+                    )
+                },
+            ),
+        )(input)
+    }
+
+    fn digest_cln(input: &str) -> ParserResult<&str, AuthParameter> {
+        alt((
+            realm,
+            domain,
+            nonce,
+            opaque,
+            stale,
+            algorithm,
+            qop_options,
+            auth_param,
+        ))(input)
+    }
+
+    pub(crate) fn challenge(input: &str) -> ParserResult<&str, Challenge> {
+        alt((
+            map(
+                separated_pair(
+                    tag_no_case("Digest"),
+                    lws,
+                    cut(separated_list1(comma, digest_cln)),
+                ),
+                |(_, auth_params)| Challenge::Digest(auth_params.into()),
+            ),
+            other_challenge,
+        ))(input)
+    }
+}

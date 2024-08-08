@@ -81,3 +81,37 @@ impl Hash for GenericParameter {
         self.value().map(|v| v.to_ascii_lowercase()).hash(state);
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::wrapped_string::WrappedString;
+    use crate::parser::{equal, quoted_string, token, ParserResult};
+    use crate::uri::parser::host;
+    use crate::GenericParameter;
+    use nom::{
+        branch::alt,
+        combinator::{map, opt},
+        error::context,
+        sequence::{pair, preceded},
+    };
+
+    fn gen_value(input: &str) -> ParserResult<&str, WrappedString> {
+        context(
+            "gen_value",
+            alt((
+                map(token, WrappedString::new_not_wrapped),
+                map(host, WrappedString::new_not_wrapped),
+                quoted_string,
+            )),
+        )(input)
+    }
+
+    pub(crate) fn generic_param(input: &str) -> ParserResult<&str, GenericParameter> {
+        context(
+            "generic_param",
+            map(
+                pair(token, opt(preceded(equal, gen_value))),
+                |(key, value)| GenericParameter::new(key.to_string(), value.map(|v| v.to_string())),
+            ),
+        )(input)
+    }
+}

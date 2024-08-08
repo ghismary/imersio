@@ -46,6 +46,39 @@ impl HeaderAccessor for CallIdHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::call_id::parser::callid;
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, ParserResult};
+    use crate::{CallIdHeader, Header};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        sequence::tuple,
+    };
+
+    pub(crate) fn call_id(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Call-ID header",
+            map(
+                tuple((
+                    alt((tag_no_case("Call-ID"), tag_no_case("i"))),
+                    hcolon,
+                    cut(consumed(callid)),
+                )),
+                |(name, separator, (value, call_id))| {
+                    Header::CallId(CallIdHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        call_id,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

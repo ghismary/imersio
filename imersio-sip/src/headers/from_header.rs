@@ -74,6 +74,69 @@ impl HeaderAccessor for FromHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::contact::parser::{addr_spec, name_addr};
+    use crate::common::generic_parameter::parser::generic_param;
+    use crate::headers::GenericHeader;
+    use crate::parser::{equal, hcolon, semi, token, ParserResult};
+    use crate::{FromHeader, FromParameter, GenericParameter, Header, NameAddress};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::many0,
+        sequence::{pair, preceded, separated_pair, tuple},
+    };
+
+    fn tag_param(input: &str) -> ParserResult<&str, GenericParameter> {
+        context(
+            "tag_param",
+            map(
+                separated_pair(tag_no_case("tag"), equal, token),
+                |(key, value)| GenericParameter::new(key, Some(value)),
+            ),
+        )(input)
+    }
+
+    fn from_param(input: &str) -> ParserResult<&str, FromParameter> {
+        context(
+            "from_param",
+            map(alt((tag_param, generic_param)), Into::into),
+        )(input)
+    }
+
+    fn from_spec(input: &str) -> ParserResult<&str, (NameAddress, Vec<FromParameter>)> {
+        context(
+            "from_spec",
+            pair(
+                alt((map(addr_spec, |uri| NameAddress::new(uri, None)), name_addr)),
+                many0(preceded(semi, from_param)),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn from(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "From header",
+            map(
+                tuple((
+                    alt((tag_no_case("From"), tag_no_case("f"))),
+                    hcolon,
+                    cut(consumed(from_spec)),
+                )),
+                |(name, separator, (value, (address, parameters)))| {
+                    Header::From(FromHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        address,
+                        parameters,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

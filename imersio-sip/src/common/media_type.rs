@@ -63,3 +63,51 @@ impl Hash for MediaType {
         sorted_params.hash(state);
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::media_range::parser::{m_subtype, m_type};
+    use crate::common::wrapped_string::WrappedString;
+    use crate::parser::{equal, quoted_string, semi, slash, token, ParserResult};
+    use crate::{MediaParameter, MediaRange, MediaType};
+    use nom::{
+        branch::alt,
+        combinator::map,
+        error::context,
+        multi::many0,
+        sequence::{preceded, separated_pair, tuple},
+    };
+
+    #[inline]
+    fn m_attribute(input: &str) -> ParserResult<&str, &str> {
+        token(input)
+    }
+
+    fn m_value(input: &str) -> ParserResult<&str, WrappedString> {
+        context(
+            "m_value",
+            alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
+        )(input)
+    }
+
+    fn m_parameter(input: &str) -> ParserResult<&str, MediaParameter> {
+        context(
+            "m_parameter",
+            map(
+                separated_pair(m_attribute, equal, m_value),
+                |(key, value)| MediaParameter::new(key, value),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn media_type(input: &str) -> ParserResult<&str, MediaType> {
+        context(
+            "media_type",
+            map(
+                tuple((m_type, slash, m_subtype, many0(preceded(semi, m_parameter)))),
+                |(r#type, _, subtype, parameters)| {
+                    MediaType::new(MediaRange::new(r#type, subtype), parameters)
+                },
+            ),
+        )(input)
+    }
+}

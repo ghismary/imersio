@@ -47,6 +47,122 @@ impl HeaderAccessor for DateHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::headers::GenericHeader;
+    use crate::parser::{digit, hcolon, sp, ParserResult};
+    use crate::{DateHeader, Header};
+    use chrono::{DateTime, Utc};
+    use nom::{
+        branch::alt,
+        bytes::complete::{tag, tag_no_case},
+        combinator::{consumed, cut, map, recognize},
+        error::{context, ErrorKind, ParseError, VerboseError},
+        multi::count,
+        sequence::tuple,
+    };
+
+    fn wkday(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "wkday",
+            alt((
+                tag("Mon"),
+                tag("Tue"),
+                tag("Wed"),
+                tag("Thu"),
+                tag("Fri"),
+                tag("Sat"),
+                tag("Sun"),
+            )),
+        )(input)
+    }
+
+    fn month(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "month",
+            alt((
+                tag("Jan"),
+                tag("Feb"),
+                tag("Mar"),
+                tag("Apr"),
+                tag("May"),
+                tag("Jun"),
+                tag("Jul"),
+                tag("Aug"),
+                tag("Sep"),
+                tag("Oct"),
+                tag("Nov"),
+                tag("Dec"),
+            )),
+        )(input)
+    }
+
+    fn date1(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "date1",
+            recognize(tuple((count(digit, 2), sp, month, sp, count(digit, 4)))),
+        )(input)
+    }
+
+    fn time(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "time",
+            recognize(tuple((
+                count(digit, 2),
+                tag(":"),
+                count(digit, 2),
+                tag(":"),
+                count(digit, 2),
+            ))),
+        )(input)
+    }
+
+    fn rfc1123_date(input: &str) -> ParserResult<&str, DateTime<Utc>> {
+        let result = recognize(tuple((
+            wkday,
+            tag(","),
+            sp,
+            date1,
+            sp,
+            time,
+            sp,
+            tag("GMT"),
+        )))(input);
+        match result {
+            Err(e) => Err(e),
+            Ok((rest, date)) => {
+                let result = DateTime::parse_from_rfc2822(date);
+                match result {
+                    Ok(date) => Ok((rest, date.to_utc())),
+                    Err(_) => Err(nom::Err::Error(VerboseError::from_error_kind(
+                        input,
+                        ErrorKind::Verify,
+                    ))),
+                }
+            }
+        }
+    }
+
+    #[inline]
+    fn sip_date(input: &str) -> ParserResult<&str, DateTime<Utc>> {
+        rfc1123_date(input)
+    }
+
+    pub(crate) fn date(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Date header",
+            map(
+                tuple((tag_no_case("Date"), hcolon, cut(consumed(sip_date)))),
+                |(name, separator, (value, date))| {
+                    Header::Date(DateHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        date,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

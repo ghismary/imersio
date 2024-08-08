@@ -50,6 +50,39 @@ impl HeaderAccessor for AcceptHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::accept_range::parser::accept_range;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{AcceptHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list0,
+        sequence::tuple,
+    };
+
+    pub(crate) fn accept(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Accept header",
+            map(
+                tuple((
+                    tag_no_case("Accept"),
+                    hcolon,
+                    cut(consumed(separated_list0(comma, accept_range))),
+                )),
+                |(name, separator, (value, ranges))| {
+                    Header::Accept(AcceptHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        ranges,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

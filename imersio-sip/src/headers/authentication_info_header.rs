@@ -108,6 +108,39 @@ authentication_info_header! {
     (nonce_count, has_nonce_count, NonceCount),
 }
 
+pub(crate) mod parser {
+    use crate::common::authentication_info::parser::ainfo;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{AuthenticationInfoHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn authentication_info(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Authentication-Info header",
+            map(
+                tuple((
+                    tag_no_case("Authentication-Info"),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, ainfo))),
+                )),
+                |(name, separator, (value, ainfos))| {
+                    Header::AuthenticationInfo(AuthenticationInfoHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        ainfos,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

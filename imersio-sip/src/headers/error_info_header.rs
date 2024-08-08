@@ -48,6 +48,39 @@ impl HeaderAccessor for ErrorInfoHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::error_uri::parser::error_uri;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{ErrorInfoHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn error_info(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Error-Info header",
+            map(
+                tuple((
+                    tag_no_case("Error-Info"),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, error_uri))),
+                )),
+                |(name, separator, (value, uris))| {
+                    Header::ErrorInfo(ErrorInfoHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        uris,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

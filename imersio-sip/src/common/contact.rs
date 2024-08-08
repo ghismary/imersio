@@ -133,3 +133,60 @@ impl Hash for Contact {
         sorted_params.hash(state);
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::contact_parameter::parser::contact_params;
+    use crate::common::wrapped_string::WrappedString;
+    use crate::parser::{laquot, lws, quoted_string, raquot, semi, token, ParserResult};
+    use crate::uri::parser::{absolute_uri, sip_uri};
+    use crate::{Contact, NameAddress, Uri};
+    use nom::{
+        branch::alt,
+        combinator::{map, opt, recognize},
+        error::context,
+        multi::many0,
+        sequence::{delimited, pair, preceded},
+    };
+
+    pub(crate) fn addr_spec(input: &str) -> ParserResult<&str, Uri> {
+        context(
+            "addr_spec",
+            alt((sip_uri, map(absolute_uri, Uri::Absolute))),
+        )(input)
+    }
+
+    fn display_name(input: &str) -> ParserResult<&str, WrappedString> {
+        context(
+            "display_name",
+            alt((
+                quoted_string,
+                map(recognize(many0(pair(token, lws))), |v| {
+                    WrappedString::new_not_wrapped(v.to_string().trim_end())
+                }),
+            )),
+        )(input)
+    }
+
+    pub(crate) fn name_addr(input: &str) -> ParserResult<&str, NameAddress> {
+        context(
+            "name_addr",
+            map(
+                pair(opt(display_name), delimited(laquot, addr_spec, raquot)),
+                |(display_name, uri)| NameAddress::new(uri, display_name),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn contact_param(input: &str) -> ParserResult<&str, Contact> {
+        context(
+            "contact_param",
+            map(
+                pair(
+                    alt((name_addr, map(addr_spec, |uri| NameAddress::new(uri, None)))),
+                    many0(preceded(semi, contact_params)),
+                ),
+                |(address, params)| Contact::new(address, params),
+            ),
+        )(input)
+    }
+}

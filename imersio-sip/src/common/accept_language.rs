@@ -84,3 +84,40 @@ impl Hash for AcceptLanguage {
         sorted_params.hash(state);
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::accept_parameter::parser::accept_param;
+    use crate::parser::{alpha, semi, ParserResult};
+    use crate::AcceptLanguage;
+    use nom::{
+        branch::alt,
+        bytes::complete::tag,
+        combinator::{map, opt, recognize},
+        error::context,
+        multi::{many0, many_m_n},
+        sequence::{pair, preceded},
+    };
+
+    fn language_range(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "language_range",
+            alt((
+                recognize(pair(
+                    many_m_n(1, 8, alpha),
+                    opt(many0(pair(tag("-"), many_m_n(1, 8, alpha)))),
+                )),
+                tag("*"),
+            )),
+        )(input)
+    }
+
+    pub(crate) fn language(input: &str) -> ParserResult<&str, AcceptLanguage> {
+        context(
+            "language",
+            map(
+                pair(language_range, many0(preceded(semi, accept_param))),
+                |(language, params)| AcceptLanguage::new(language, params),
+            ),
+        )(input)
+    }
+}

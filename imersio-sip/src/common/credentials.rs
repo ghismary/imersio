@@ -192,3 +192,40 @@ credentials! {
     (opaque, has_opaque, Opaque),
     (nonce_count, has_nonce_count, NonceCount),
 }
+
+pub(crate) mod parser {
+    use crate::common::auth_parameter::parser::{auth_params, auth_scheme, digest_response};
+    use crate::parser::{lws, ParserResult};
+    use crate::Credentials;
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{cut, map},
+        error::context,
+        sequence::separated_pair,
+    };
+
+    fn digest_credentials(input: &str) -> ParserResult<&str, Credentials> {
+        context(
+            "digest_credentials",
+            map(
+                separated_pair(tag_no_case("Digest"), lws, cut(digest_response)),
+                |(_, params)| Credentials::Digest(params),
+            ),
+        )(input)
+    }
+
+    fn other_response(input: &str) -> ParserResult<&str, Credentials> {
+        context(
+            "other_response",
+            map(
+                separated_pair(auth_scheme, lws, auth_params),
+                |(scheme, params)| Credentials::Other(scheme.to_string(), params),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn credentials(input: &str) -> ParserResult<&str, Credentials> {
+        context("credentials", alt((digest_credentials, other_response)))(input)
+    }
+}

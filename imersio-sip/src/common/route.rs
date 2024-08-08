@@ -76,3 +76,26 @@ impl Hash for Route {
         sorted_params.hash(state);
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::contact::parser::name_addr;
+    use crate::common::generic_parameter::parser::generic_param;
+    use crate::parser::ParserResult;
+    use crate::{GenericParameter, Route};
+    use nom::{combinator::map, error::context, multi::many0, sequence::pair};
+
+    #[inline]
+    fn route_param(input: &str) -> ParserResult<&str, GenericParameter> {
+        generic_param(input)
+    }
+
+    pub(crate) fn route(input: &str) -> ParserResult<&str, Route> {
+        context(
+            "route",
+            map(
+                pair(name_addr, many0(route_param)),
+                |(name_addr, params)| Route::new(name_addr, params),
+            ),
+        )(input)
+    }
+}

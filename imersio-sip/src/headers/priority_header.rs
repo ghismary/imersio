@@ -54,6 +54,38 @@ impl HeaderAccessor for PriorityHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::priority::parser::priority_value;
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, ParserResult};
+    use crate::{Header, PriorityHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        sequence::tuple,
+    };
+
+    pub(crate) fn priority(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Priority header",
+            map(
+                tuple((
+                    tag_no_case("Priority"),
+                    hcolon,
+                    cut(consumed(priority_value)),
+                )),
+                |(name, separator, (value, priority))| {
+                    Header::Priority(PriorityHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        priority,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

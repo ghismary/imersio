@@ -114,3 +114,43 @@ impl From<GenericParameter> for CallInfoParameter {
         CallInfoParameter::new(value.key(), value.value())
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::generic_parameter::parser::generic_param;
+    use crate::parser::{equal, token, ParserResult};
+    use crate::{CallInfoParameter, GenericParameter};
+    use nom::{
+        branch::alt, bytes::complete::tag_no_case, combinator::map, error::context,
+        sequence::separated_pair,
+    };
+
+    pub(crate) fn info_param(input: &str) -> ParserResult<&str, CallInfoParameter> {
+        context(
+            "info_param",
+            map(
+                alt((
+                    map(
+                        separated_pair(
+                            tag_no_case("purpose"),
+                            equal,
+                            map(
+                                alt((
+                                    tag_no_case("icon"),
+                                    tag_no_case("info"),
+                                    tag_no_case("card"),
+                                    token,
+                                )),
+                                Some,
+                            ),
+                        ),
+                        |(key, value)| {
+                            GenericParameter::new(key.to_string(), value.map(Into::into))
+                        },
+                    ),
+                    generic_param,
+                )),
+                Into::into,
+            ),
+        )(input)
+    }
+}

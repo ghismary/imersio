@@ -46,6 +46,39 @@ impl HeaderAccessor for ContentLanguageHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::content_language::parser::language_tag;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{ContentLanguageHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn content_language(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Content-Language header",
+            map(
+                tuple((
+                    tag_no_case("Content-Language"),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, language_tag))),
+                )),
+                |(name, separator, (value, languages))| {
+                    Header::ContentLanguage(ContentLanguageHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        languages,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

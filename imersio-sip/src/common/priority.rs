@@ -74,3 +74,30 @@ impl From<&str> for Priority {
         Priority::new(value)
     }
 }
+
+pub(crate) mod parser {
+    use crate::parser::{token, ParserResult};
+    use crate::Priority;
+    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
+
+    #[inline]
+    fn other_priority(input: &str) -> ParserResult<&str, &str> {
+        token(input)
+    }
+
+    pub(crate) fn priority_value(input: &str) -> ParserResult<&str, Priority> {
+        context(
+            "priority_value",
+            map(
+                alt((
+                    tag_no_case("emergency"),
+                    tag_no_case("urgent"),
+                    tag_no_case("normal"),
+                    tag_no_case("non-urgent"),
+                    other_priority,
+                )),
+                Priority::new,
+            ),
+        )(input)
+    }
+}

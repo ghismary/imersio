@@ -86,8 +86,36 @@ impl TryFrom<&str> for ContentLanguage {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::headers::parser::language_tag(value)
+        parser::language_tag(value)
             .map(|(_, language)| language)
             .map_err(|_| Error::InvalidContentLanguage(value.to_string()))
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{alpha, ParserResult};
+    use crate::ContentLanguage;
+    use nom::{
+        bytes::complete::tag,
+        combinator::{map, recognize},
+        multi::{many0, many_m_n},
+        sequence::{pair, preceded},
+    };
+
+    #[inline]
+    fn primary_tag(input: &str) -> ParserResult<&str, &str> {
+        recognize(many_m_n(1, 8, alpha))(input)
+    }
+
+    #[inline]
+    fn subtag(input: &str) -> ParserResult<&str, &str> {
+        primary_tag(input)
+    }
+
+    pub(crate) fn language_tag(input: &str) -> ParserResult<&str, ContentLanguage> {
+        map(
+            recognize(pair(primary_tag, many0(preceded(tag("-"), subtag)))),
+            ContentLanguage::new,
+        )(input)
     }
 }

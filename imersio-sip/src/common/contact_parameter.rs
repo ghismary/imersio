@@ -87,3 +87,51 @@ impl From<GenericParameter> for ContactParameter {
         Self::Other(value)
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::accept_parameter::parser::qvalue;
+    use crate::common::generic_parameter::parser::generic_param;
+    use crate::parser::{digit, equal, ParserResult};
+    use crate::{ContactParameter, GenericParameter};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{map, recognize},
+        multi::many1,
+        sequence::separated_pair,
+    };
+
+    fn c_p_q(input: &str) -> ParserResult<&str, ContactParameter> {
+        map(
+            separated_pair(tag_no_case("q"), equal, qvalue),
+            |(_, value)| ContactParameter::Q(value.to_string()),
+        )(input)
+    }
+
+    #[inline]
+    pub(crate) fn delta_seconds(input: &str) -> ParserResult<&str, u32> {
+        map(recognize(many1(digit)), |digits| {
+            digits.parse::<u32>().unwrap_or(u32::MAX)
+        })(input)
+    }
+
+    fn c_p_expires(input: &str) -> ParserResult<&str, ContactParameter> {
+        map(
+            separated_pair(
+                tag_no_case("expires"),
+                equal,
+                map(delta_seconds, |seconds| seconds.to_string()),
+            ),
+            |(_, value)| ContactParameter::Expires(value),
+        )(input)
+    }
+
+    #[inline]
+    fn contact_extension(input: &str) -> ParserResult<&str, GenericParameter> {
+        generic_param(input)
+    }
+
+    pub(crate) fn contact_params(input: &str) -> ParserResult<&str, ContactParameter> {
+        alt((c_p_q, c_p_expires, map(contact_extension, Into::into)))(input)
+    }
+}

@@ -50,6 +50,40 @@ impl HeaderAccessor for MaxForwardsHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::headers::GenericHeader;
+    use crate::parser::{digit, hcolon, ParserResult};
+    use crate::{Header, MaxForwardsHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map, recognize},
+        error::context,
+        multi::many1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn max_forwards(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Max-Forwards header",
+            map(
+                tuple((
+                    tag_no_case("Max-Forwards"),
+                    hcolon,
+                    cut(consumed(map(recognize(many1(digit)), |value| {
+                        value.parse::<u8>().unwrap_or(u8::MAX)
+                    }))),
+                )),
+                |(name, separator, (value, max_forwards))| {
+                    Header::MaxForwards(MaxForwardsHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        max_forwards,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

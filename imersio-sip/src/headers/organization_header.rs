@@ -50,6 +50,37 @@ impl HeaderAccessor for OrganizationHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, text_utf8_trim, ParserResult};
+    use crate::{Header, OrganizationHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map, opt},
+        error::context,
+        sequence::tuple,
+    };
+
+    pub(crate) fn organization(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Organization header",
+            map(
+                tuple((
+                    tag_no_case("Organization"),
+                    hcolon,
+                    cut(consumed(opt(text_utf8_trim))),
+                )),
+                |(name, separator, (value, organization))| {
+                    Header::Organization(OrganizationHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        organization.unwrap_or_default(),
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

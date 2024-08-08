@@ -52,6 +52,41 @@ impl HeaderAccessor for ContentLengthHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::headers::GenericHeader;
+    use crate::parser::{digit, hcolon, ParserResult};
+    use crate::{ContentLengthHeader, Header};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map, recognize},
+        error::context,
+        multi::many1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn content_length(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Content-Length header",
+            map(
+                tuple((
+                    alt((tag_no_case("Content-Length"), tag_no_case("l"))),
+                    hcolon,
+                    cut(consumed(map(recognize(many1(digit)), |l| {
+                        l.parse::<u32>().unwrap()
+                    }))),
+                )),
+                |(name, separator, (value, content_length))| {
+                    Header::ContentLength(ContentLengthHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        content_length,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

@@ -49,6 +49,39 @@ impl HeaderAccessor for RecordRouteHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::route::parser::route;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{Header, RecordRouteHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn record_route(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Record-Route header",
+            map(
+                tuple((
+                    tag_no_case("Record-Route"),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, route))),
+                )),
+                |(name, separator, (value, routes))| {
+                    Header::RecordRoute(RecordRouteHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        routes,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

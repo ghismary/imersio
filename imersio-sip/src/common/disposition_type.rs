@@ -79,3 +79,27 @@ impl Ord for DispositionType {
         self.to_string().cmp(&other.to_string())
     }
 }
+
+pub(crate) mod parser {
+    use crate::parser::{token, ParserResult};
+    use crate::DispositionType;
+    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map};
+
+    #[inline]
+    fn disp_extension_token(input: &str) -> ParserResult<&str, &str> {
+        token(input)
+    }
+
+    pub(crate) fn disp_type(input: &str) -> ParserResult<&str, DispositionType> {
+        map(
+            alt((
+                tag_no_case("render"),
+                tag_no_case("session"),
+                tag_no_case("icon"),
+                tag_no_case("alert"),
+                disp_extension_token,
+            )),
+            DispositionType::new,
+        )(input)
+    }
+}

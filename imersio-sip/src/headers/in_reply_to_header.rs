@@ -50,6 +50,39 @@ impl HeaderAccessor for InReplyToHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::call_id::parser::callid;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{Header, InReplyToHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list1,
+        sequence::tuple,
+    };
+
+    pub(crate) fn in_reply_to(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "In-Reply-To header",
+            map(
+                tuple((
+                    tag_no_case("In-Reply-To"),
+                    hcolon,
+                    cut(consumed(separated_list1(comma, callid))),
+                )),
+                |(name, separator, (value, call_ids))| {
+                    Header::InReplyTo(InReplyToHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        call_ids,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

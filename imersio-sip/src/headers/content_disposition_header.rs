@@ -74,6 +74,41 @@ impl PartialEq for ContentDispositionHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::disposition_parameter::parser::disp_param;
+    use crate::common::disposition_type::parser::disp_type;
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, semi, ParserResult};
+    use crate::{ContentDispositionHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::many0,
+        sequence::{pair, preceded, tuple},
+    };
+
+    pub(crate) fn content_disposition(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Content-Disposition header",
+            map(
+                tuple((
+                    tag_no_case("Content-Disposition"),
+                    hcolon,
+                    cut(consumed(pair(disp_type, many0(preceded(semi, disp_param))))),
+                )),
+                |(name, separator, (value, (r#type, params)))| {
+                    Header::ContentDisposition(ContentDispositionHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        r#type,
+                        params,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

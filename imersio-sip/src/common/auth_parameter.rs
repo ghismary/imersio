@@ -189,3 +189,176 @@ impl TryFrom<AuthenticationInfo> for AuthParameter {
         }
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::authentication_info::parser::{
+        cnonce, message_qop, nonce_count, nonce_value,
+    };
+    use crate::common::wrapped_string::WrappedString;
+    use crate::parser::{comma, equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult};
+    use crate::uri::parser::request_uri;
+    use crate::{Algorithm, AuthParameter, AuthParameters, Uri};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{cut, map, recognize},
+        error::context,
+        multi::{many_m_n, separated_list1},
+        sequence::{delimited, separated_pair},
+    };
+
+    #[inline]
+    fn username_value(input: &str) -> ParserResult<&str, WrappedString> {
+        quoted_string(input)
+    }
+
+    fn username(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "username",
+            map(
+                separated_pair(tag_no_case("username"), equal, cut(username_value)),
+                |(_, value)| AuthParameter::Username(value),
+            ),
+        )(input)
+    }
+
+    #[inline]
+    fn realm_value(input: &str) -> ParserResult<&str, WrappedString> {
+        quoted_string(input)
+    }
+
+    pub(crate) fn realm(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "realm",
+            map(
+                separated_pair(tag_no_case("realm"), equal, cut(realm_value)),
+                |(_, value)| AuthParameter::Realm(value),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn nonce(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "nonce",
+            map(
+                separated_pair(tag_no_case("nonce"), equal, cut(nonce_value)),
+                |(_, value)| AuthParameter::Nonce(value),
+            ),
+        )(input)
+    }
+
+    fn digest_uri_value(input: &str) -> ParserResult<&str, Uri> {
+        delimited(ldquot, request_uri, rdquot)(input)
+    }
+
+    fn digest_uri(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "digest_uri",
+            map(
+                separated_pair(tag_no_case("uri"), equal, cut(digest_uri_value)),
+                |(_, value)| AuthParameter::DigestUri(value),
+            ),
+        )(input)
+    }
+
+    fn request_digest(input: &str) -> ParserResult<&str, WrappedString> {
+        context(
+            "request_digest",
+            map(
+                delimited(ldquot, recognize(many_m_n(32, 32, lhex)), rdquot),
+                WrappedString::new_quoted,
+            ),
+        )(input)
+    }
+
+    fn dresponse(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "dresponse",
+            map(
+                separated_pair(tag_no_case("response"), equal, cut(request_digest)),
+                |(_, value)| AuthParameter::DResponse(value),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn algorithm(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "algorithm",
+            map(
+                separated_pair(
+                    tag_no_case("algorithm"),
+                    equal,
+                    cut(alt((tag_no_case("MD5"), tag_no_case("MD5-sess"), token))),
+                ),
+                |(_, value)| AuthParameter::Algorithm(Algorithm::new(value)),
+            ),
+        )(input)
+    }
+
+    pub(crate) fn opaque(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "opaque",
+            map(
+                separated_pair(tag_no_case("opaque"), equal, cut(quoted_string)),
+                |(_, value)| AuthParameter::Opaque(value),
+            ),
+        )(input)
+    }
+
+    #[inline]
+    fn auth_param_name(input: &str) -> ParserResult<&str, &str> {
+        token(input)
+    }
+
+    pub(crate) fn auth_param(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "auth_param",
+            map(
+                separated_pair(
+                    auth_param_name,
+                    equal,
+                    alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
+                ),
+                |(key, value)| AuthParameter::Other(key.to_string(), value),
+            ),
+        )(input)
+    }
+
+    fn dig_resp(input: &str) -> ParserResult<&str, AuthParameter> {
+        context(
+            "dig_resp",
+            alt((
+                username,
+                realm,
+                nonce,
+                digest_uri,
+                dresponse,
+                algorithm,
+                map(cnonce, |ainfo| ainfo.try_into().unwrap()),
+                opaque,
+                map(message_qop, |ainfo| ainfo.try_into().unwrap()),
+                map(nonce_count, |ainfo| ainfo.try_into().unwrap()),
+                auth_param,
+            )),
+        )(input)
+    }
+
+    pub(crate) fn digest_response(input: &str) -> ParserResult<&str, AuthParameters> {
+        context(
+            "digest_response",
+            map(separated_list1(comma, dig_resp), Into::into),
+        )(input)
+    }
+
+    #[inline]
+    pub(crate) fn auth_scheme(input: &str) -> ParserResult<&str, &str> {
+        token(input)
+    }
+
+    pub(crate) fn auth_params(input: &str) -> ParserResult<&str, AuthParameters> {
+        context(
+            "auth_params",
+            map(separated_list1(comma, auth_param), Into::into),
+        )(input)
+    }
+}

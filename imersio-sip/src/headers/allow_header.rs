@@ -54,6 +54,39 @@ impl HeaderAccessor for AllowHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::method::parser::method;
+    use crate::headers::GenericHeader;
+    use crate::parser::{comma, hcolon, ParserResult};
+    use crate::{AllowHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        multi::separated_list0,
+        sequence::tuple,
+    };
+
+    pub(crate) fn allow(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Allow header",
+            map(
+                tuple((
+                    tag_no_case("Allow"),
+                    hcolon,
+                    cut(consumed(separated_list0(comma, method))),
+                )),
+                |(name, separator, (value, methods))| {
+                    Header::Allow(AllowHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        methods,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::headers::{

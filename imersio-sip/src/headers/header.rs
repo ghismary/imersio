@@ -1,6 +1,5 @@
 use std::convert::TryFrom;
 
-use super::parser;
 use crate::headers::generic_header::GenericHeader;
 use crate::{
     AcceptEncodingHeader, AcceptHeader, AcceptLanguageHeader, AlertInfoHeader, AllowHeader,
@@ -113,11 +112,11 @@ impl TryFrom<&str> for Header {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse(value)
+        parse_message_header(value)
     }
 }
 
-fn parse(input: &str) -> Result<Header, Error> {
+fn parse_message_header(input: &str) -> Result<Header, Error> {
     match parser::message_header(input) {
         Ok((rest, uri)) => {
             if !rest.is_empty() {
@@ -127,5 +126,73 @@ fn parse(input: &str) -> Result<Header, Error> {
             }
         }
         Err(e) => Err(Error::InvalidMessageHeader(e.to_string())),
+    }
+}
+
+mod parser {
+    use crate::headers::{
+        accept_encoding_header::parser::accept_encoding, accept_header::parser::accept,
+        accept_language_header::parser::accept_language, alert_info_header::parser::alert_info,
+        allow_header::parser::allow, authentication_info_header::parser::authentication_info,
+        authorization_header::parser::authorization, call_id_header::parser::call_id,
+        call_info_header::parser::call_info, contact_header::parser::contact,
+        content_disposition_header::parser::content_disposition,
+        content_encoding_header::parser::content_encoding,
+        content_language_header::parser::content_language,
+        content_length_header::parser::content_length, content_type_header::parser::content_type,
+        cseq_header::parser::cseq, date_header::parser::date,
+        error_info_header::parser::error_info, expires_header::parser::expires,
+        from_header::parser::from, generic_header::parser::extension_header,
+        in_reply_to_header::parser::in_reply_to, max_forwards_header::parser::max_forwards,
+        mime_version_header::parser::mime_version, min_expires_header::parser::min_expires,
+        organization_header::parser::organization, priority_header::parser::priority,
+        proxy_authenticate_header::parser::proxy_authenticate,
+        proxy_authorization_header::parser::proxy_authorization,
+        proxy_require_header::parser::proxy_require, record_route_header::parser::record_route,
+    };
+    use crate::{parser::ParserResult, Header};
+    use nom::{branch::alt, error::context};
+
+    pub(super) fn message_header(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "message_header",
+            alt((
+                alt((
+                    accept,
+                    accept_encoding,
+                    accept_language,
+                    alert_info,
+                    allow,
+                    authentication_info,
+                    authorization,
+                    call_id,
+                    call_info,
+                    contact,
+                    content_disposition,
+                    content_encoding,
+                    content_language,
+                    content_length,
+                    content_type,
+                    cseq,
+                    date,
+                    error_info,
+                    expires,
+                    from,
+                    in_reply_to,
+                )),
+                alt((
+                    max_forwards,
+                    mime_version,
+                    min_expires,
+                    organization,
+                    priority,
+                    proxy_authenticate,
+                    proxy_authorization,
+                    proxy_require,
+                    record_route,
+                    extension_header,
+                )),
+            )),
+        )(input)
     }
 }

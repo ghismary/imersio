@@ -49,6 +49,39 @@ impl HeaderAccessor for ContentTypeHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::media_type::parser::media_type;
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, ParserResult};
+    use crate::{ContentTypeHeader, Header};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        sequence::tuple,
+    };
+
+    pub(crate) fn content_type(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Content-Type header",
+            map(
+                tuple((
+                    alt((tag_no_case("Content-Type"), tag_no_case("c"))),
+                    hcolon,
+                    cut(consumed(media_type)),
+                )),
+                |(name, separator, (value, media_type))| {
+                    Header::ContentType(ContentTypeHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        media_type,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

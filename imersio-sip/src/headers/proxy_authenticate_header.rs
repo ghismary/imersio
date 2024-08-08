@@ -45,6 +45,38 @@ impl HeaderAccessor for ProxyAuthenticateHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::challenge::parser::challenge;
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, ParserResult};
+    use crate::{Header, ProxyAuthenticateHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        sequence::tuple,
+    };
+
+    pub(crate) fn proxy_authenticate(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Proxy-Authenticate header",
+            map(
+                tuple((
+                    tag_no_case("Proxy-Authenticate"),
+                    hcolon,
+                    cut(consumed(challenge)),
+                )),
+                |(name, separator, (value, challenge))| {
+                    Header::ProxyAuthenticate(ProxyAuthenticateHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        challenge,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

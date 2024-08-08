@@ -60,6 +60,44 @@ impl HeaderAccessor for CSeqHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::method::parser::method;
+    use crate::headers::GenericHeader;
+    use crate::parser::{digit, hcolon, lws, ParserResult};
+    use crate::{CSeqHeader, Header};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map, recognize},
+        error::context,
+        multi::many1,
+        sequence::{separated_pair, tuple},
+    };
+
+    pub(crate) fn cseq(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "CSeq header",
+            map(
+                tuple((
+                    tag_no_case("CSeq"),
+                    hcolon,
+                    cut(consumed(separated_pair(
+                        map(recognize(many1(digit)), |cseq| cseq.parse::<u32>().unwrap()),
+                        lws,
+                        method,
+                    ))),
+                )),
+                |(name, separator, (value, (cseq, method)))| {
+                    Header::CSeq(CSeqHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        cseq,
+                        method,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

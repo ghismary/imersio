@@ -82,8 +82,18 @@ impl TryFrom<&str> for OptionTag {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::headers::parser::option_tag(value)
+        parser::option_tag(value)
             .map(|(_, tag)| tag)
             .map_err(|_| Error::InvalidOptionTag(value.to_string()))
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{token, ParserResult};
+    use crate::OptionTag;
+    use nom::{combinator::map, error::context};
+
+    pub(crate) fn option_tag(input: &str) -> ParserResult<&str, OptionTag> {
+        context("option_tag", map(token, OptionTag::new))(input)
     }
 }

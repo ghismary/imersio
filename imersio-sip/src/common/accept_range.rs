@@ -77,3 +77,26 @@ impl Hash for AcceptRange {
         sorted_params.hash(state);
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::accept_parameter::parser::accept_param;
+    use crate::common::media_range::parser::media_range;
+    use crate::parser::{semi, ParserResult};
+    use crate::AcceptRange;
+    use nom::{
+        combinator::map,
+        error::context,
+        multi::many0,
+        sequence::{pair, preceded},
+    };
+
+    pub(crate) fn accept_range(input: &str) -> ParserResult<&str, AcceptRange> {
+        context(
+            "accept_range",
+            map(
+                pair(media_range, many0(preceded(semi, accept_param))),
+                |(media_range, accept_params)| AcceptRange::new(media_range, accept_params),
+            ),
+        )(input)
+    }
+}

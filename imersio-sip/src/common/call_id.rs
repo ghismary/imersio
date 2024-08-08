@@ -80,8 +80,29 @@ impl TryFrom<&str> for CallId {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        crate::headers::parser::callid(value)
+        parser::callid(value)
             .map(|(_, call_id)| call_id)
             .map_err(|_| Error::InvalidCallId(value.to_string()))
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{word, ParserResult};
+    use crate::CallId;
+    use nom::{
+        bytes::complete::tag,
+        combinator::{map, opt, recognize},
+        error::context,
+        sequence::pair,
+    };
+
+    pub(crate) fn callid(input: &str) -> ParserResult<&str, CallId> {
+        context(
+            "callid",
+            map(
+                recognize(pair(word, opt(pair(tag("@"), word)))),
+                CallId::new,
+            ),
+        )(input)
     }
 }

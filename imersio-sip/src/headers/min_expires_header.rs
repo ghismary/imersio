@@ -49,6 +49,38 @@ impl HeaderAccessor for MinExpiresHeader {
     }
 }
 
+pub(crate) mod parser {
+    use crate::common::contact_parameter::parser::delta_seconds;
+    use crate::headers::GenericHeader;
+    use crate::parser::{hcolon, ParserResult};
+    use crate::{Header, MinExpiresHeader};
+    use nom::{
+        bytes::complete::tag_no_case,
+        combinator::{consumed, cut, map},
+        error::context,
+        sequence::tuple,
+    };
+
+    pub(crate) fn min_expires(input: &str) -> ParserResult<&str, Header> {
+        context(
+            "Min-Expires header",
+            map(
+                tuple((
+                    tag_no_case("Min-Expires"),
+                    hcolon,
+                    cut(consumed(delta_seconds)),
+                )),
+                |(name, separator, (value, min_expires))| {
+                    Header::MinExpires(MinExpiresHeader::new(
+                        GenericHeader::new(name, separator, value),
+                        min_expires,
+                    ))
+                },
+            ),
+        )(input)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

@@ -103,3 +103,46 @@ impl From<GenericParameter> for AcceptParameter {
         Self::Other(GenericParameter::new(value.key(), value.value()))
     }
 }
+
+pub(crate) mod parser {
+    use crate::common::generic_parameter::parser::generic_param;
+    use crate::parser::{digit, equal, ParserResult};
+    use crate::AcceptParameter;
+    use nom::{
+        branch::alt,
+        bytes::complete::tag,
+        combinator::{map, opt, recognize},
+        error::context,
+        multi::many_m_n,
+        sequence::{pair, separated_pair},
+    };
+
+    pub(crate) fn qvalue(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "qvalue",
+            recognize(alt((
+                pair(
+                    tag("0"),
+                    opt(pair(tag("."), many_m_n(0, 3, recognize(digit)))),
+                ),
+                pair(tag("1"), opt(pair(tag("."), many_m_n(0, 3, tag("0"))))),
+            ))),
+        )(input)
+    }
+
+    fn q_param(input: &str) -> ParserResult<&str, AcceptParameter> {
+        context(
+            "q_param",
+            map(separated_pair(tag("q"), equal, qvalue), |(key, value)| {
+                AcceptParameter::new(key, Some(value))
+            }),
+        )(input)
+    }
+
+    pub(crate) fn accept_param(input: &str) -> ParserResult<&str, AcceptParameter> {
+        context(
+            "accept_param",
+            alt((q_param, map(generic_param, Into::into))),
+        )(input)
+    }
+}
