@@ -9,7 +9,7 @@ use crate::{
     ContentLengthHeader, ContentTypeHeader, DateHeader, Error, ErrorInfoHeader, ExpiresHeader,
     FromHeader, InReplyToHeader, MaxForwardsHeader, MimeVersionHeader, MinExpiresHeader,
     OrganizationHeader, PriorityHeader, ProxyAuthenticateHeader, ProxyAuthorizationHeader,
-    ProxyRequireHeader, RecordRouteHeader, ReplyToHeader, RequireHeader,
+    ProxyRequireHeader, RecordRouteHeader, ReplyToHeader, RequireHeader, RetryAfterHeader,
 };
 
 macro_rules! headers {
@@ -109,6 +109,8 @@ headers! {
     (ReplyTo, ReplyToHeader),
     /// A Require header.
     (Require, RequireHeader),
+    /// A Retry-After header.
+    (RetryAfter, RetryAfterHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }
@@ -157,6 +159,7 @@ mod parser {
         proxy_authorization_header::parser::proxy_authorization,
         proxy_require_header::parser::proxy_require, record_route_header::parser::record_route,
         reply_to_header::parser::reply_to, require_header::parser::require,
+        retry_after_header::parser::retry_after,
     };
     use crate::{parser::ParserResult, Header};
     use nom::{branch::alt, error::context};
@@ -200,6 +203,7 @@ mod parser {
                     record_route,
                     reply_to,
                     require,
+                    retry_after,
                     extension_header,
                 )),
             )),

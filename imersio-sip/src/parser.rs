@@ -6,7 +6,7 @@ use nom::character::complete::crlf;
 use nom::combinator::{map, map_res, opt, recognize, verify};
 use nom::error::{context, ErrorKind, VerboseError};
 use nom::multi::{count, many0, many1, many_m_n, separated_list1};
-use nom::sequence::{pair, preceded, terminated, tuple};
+use nom::sequence::{delimited, pair, preceded, terminated, tuple};
 use nom::{IResult, InputTakeAtPosition};
 
 use crate::common::wrapped_string::WrappedString;
@@ -80,6 +80,14 @@ pub(crate) fn dquote(input: &str) -> ParserResult<&str, &str> {
 
 pub(crate) fn equal(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((sws, tag("="), sws)))(input)
+}
+
+pub(crate) fn lparen(input: &str) -> ParserResult<&str, &str> {
+    recognize(tuple((sws, tag("("), sws)))(input)
+}
+
+pub(crate) fn rparen(input: &str) -> ParserResult<&str, &str> {
+    recognize(tuple((sws, tag(")"), sws)))(input)
 }
 
 pub(crate) fn laquot(input: &str) -> ParserResult<&str, &str> {
@@ -211,6 +219,30 @@ fn quoted_pair(input: &str) -> ParserResult<&str, &str> {
             )),
         )),
     )(input)
+}
+
+pub(crate) fn comment(input: &str) -> ParserResult<&str, &str> {
+    context(
+        "comment",
+        delimited(
+            lparen,
+            recognize(many0(alt((ctext, quoted_pair, comment)))),
+            rparen,
+        ),
+    )(input)
+}
+
+#[inline]
+fn is_ctext(c: char) -> bool {
+    matches!(c as u32, 0x21..=0x27 | 0x2a..=0x5b | 0x5d..=0x7e)
+}
+
+fn ctext(input: &str) -> ParserResult<&str, &str> {
+    recognize(alt((
+        recognize(verify(take1, |c| is_ctext(*c))),
+        recognize(utf8_nonascii),
+        lws,
+    )))(input)
 }
 
 pub(crate) fn quoted_string(input: &str) -> ParserResult<&str, WrappedString> {

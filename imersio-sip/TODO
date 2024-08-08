@@ -23,6 +23,6 @@
 
 
 
- - Ensure Method requires uppercase
  - Add trait for parameters?
  - Add enum for wildcard content encoding
+ - Add type for delta-seconds instead of u32
