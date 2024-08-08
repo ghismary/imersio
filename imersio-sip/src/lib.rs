@@ -39,7 +39,7 @@ pub use crate::common::{
     domain_uri::{DomainUri, DomainUris},
     error_uri::{ErrorUri, ErrorUris},
     from_parameter::{FromParameter, FromParameters},
-    generic_parameter::GenericParameter,
+    generic_parameter::{GenericParameter, GenericParameters},
     handling::Handling,
     media_parameter::MediaParameter,
     media_range::MediaRange,
@@ -71,7 +71,7 @@ pub use crate::headers::{
     min_expires_header::MinExpiresHeader, organization_header::OrganizationHeader,
     priority_header::PriorityHeader, proxy_authenticate_header::ProxyAuthenticateHeader,
     proxy_authorization_header::ProxyAuthorizationHeader, proxy_require_header::ProxyRequireHeader,
-    record_route_header::RecordRouteHeader, Header,
+    record_route_header::RecordRouteHeader, reply_to_header::ReplyToHeader, Header,
 };
 pub use crate::request::Request;
 pub use crate::response::Response;

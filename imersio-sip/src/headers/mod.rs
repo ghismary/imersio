@@ -33,6 +33,7 @@ pub mod proxy_authenticate_header;
 pub mod proxy_authorization_header;
 pub mod proxy_require_header;
 pub mod record_route_header;
+pub mod reply_to_header;
 
 #[cfg(test)]
 mod tests;

@@ -1,6 +1,28 @@
+use crate::utils::compare_vectors;
+use derive_more::{Deref, From, IntoIterator};
+use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
+use std::ops::Deref;
+
+/// Representation of the list of generic parameters.
+///
+/// This is usable as an iterator.
+#[derive(Clone, Debug, Deref, Eq, From, IntoIterator, PartialEqRefs)]
+pub struct GenericParameters(Vec<GenericParameter>);
+
+impl std::fmt::Display for GenericParameters {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", join(&self.0, ";"))
+    }
+}
+
+impl PartialEq for GenericParameters {
+    fn eq(&self, other: &Self) -> bool {
+        compare_vectors(self.0.deref(), other.0.deref())
+    }
+}
 
 /// Representation of a generic parameter.
 #[derive(Clone, Debug, Eq, PartialEqRefs)]
