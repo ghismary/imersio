@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::hash::Hash;
 
-use crate::common::header_value_collection::HeaderValueCollection;
+use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
 use crate::common::wrapped_string::WrappedString;
 use crate::Algorithm;
 use crate::AuthenticationInfo;
@@ -19,7 +19,7 @@ use crate::{MessageQop, MessageQops};
 /// `ProxyAuthenticateHeader`.
 ///
 /// This is usable as an iterator.
-pub type AuthParameters = HeaderValueCollection<AuthParameter>;
+pub type AuthParameters = CommaSeparatedValueCollection<AuthParameter>;
 
 /// Representation of the authentication parameters used in an `AuthorizationHeader` or in a
 /// `ProxyAuthenticateHeader`.

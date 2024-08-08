@@ -6,7 +6,7 @@ use std::{cmp::Ordering, hash::Hash};
 
 use crate::GenericParameter;
 
-/// Representation of a parameter for a contact contained in a `Accept` header.
+/// Representation of a parameter for a contact contained in an `Accept` header.
 #[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
 pub enum AcceptParameter {
     /// q parameter
@@ -19,7 +19,7 @@ impl AcceptParameter {
     pub(crate) fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
         let key: String = key.into();
         let value: Option<String> = value.map(Into::into);
-        match (key.as_str(), &value) {
+        match (key.to_lowercase().as_str(), &value) {
             ("q", Some(value)) => Self::Q(value.to_string()),
             _ => Self::Other(GenericParameter::new(key, value)),
         }

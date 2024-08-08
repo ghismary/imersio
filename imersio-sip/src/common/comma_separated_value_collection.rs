@@ -5,11 +5,11 @@ use std::{hash::Hash, ops::Deref};
 use crate::utils::compare_vectors;
 
 #[derive(Clone, Debug, Deref, Eq)]
-pub struct HeaderValueCollection<T>(Vec<T>)
+pub struct CommaSeparatedValueCollection<T>(Vec<T>)
 where
     T: Eq + PartialEq + Hash;
 
-impl<T> From<Vec<T>> for HeaderValueCollection<T>
+impl<T> From<Vec<T>> for CommaSeparatedValueCollection<T>
 where
     T: Eq + PartialEq + Hash,
 {
@@ -18,7 +18,7 @@ where
     }
 }
 
-impl<T> std::fmt::Display for HeaderValueCollection<T>
+impl<T> std::fmt::Display for CommaSeparatedValueCollection<T>
 where
     T: std::fmt::Display + Eq + PartialEq + Hash,
 {
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<T> PartialEq for HeaderValueCollection<T>
+impl<T> PartialEq for CommaSeparatedValueCollection<T>
 where
     T: Eq + PartialEq + Hash,
 {
@@ -36,20 +36,20 @@ where
     }
 }
 
-impl<T> PartialEq<&HeaderValueCollection<T>> for HeaderValueCollection<T>
+impl<T> PartialEq<&CommaSeparatedValueCollection<T>> for CommaSeparatedValueCollection<T>
 where
     T: Eq + PartialEq + Hash,
 {
-    fn eq(&self, other: &&HeaderValueCollection<T>) -> bool {
+    fn eq(&self, other: &&CommaSeparatedValueCollection<T>) -> bool {
         self == *other
     }
 }
 
-impl<T> PartialEq<HeaderValueCollection<T>> for &HeaderValueCollection<T>
+impl<T> PartialEq<CommaSeparatedValueCollection<T>> for &CommaSeparatedValueCollection<T>
 where
     T: Eq + PartialEq + Hash,
 {
-    fn eq(&self, other: &HeaderValueCollection<T>) -> bool {
+    fn eq(&self, other: &CommaSeparatedValueCollection<T>) -> bool {
         *self == other
     }
 }

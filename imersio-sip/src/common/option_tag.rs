@@ -4,13 +4,13 @@ use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::common::header_value_collection::HeaderValueCollection;
+use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
 use crate::Error;
 
 /// Representation of the list of option tags in a `Proxy-Require` or in a `Require` header.
 ///
 /// This is usable as an iterator.
-pub type OptionTags = HeaderValueCollection<OptionTag>;
+pub type OptionTags = CommaSeparatedValueCollection<OptionTag>;
 
 /// Representation of an option tag contained in a `Proxy-Require` or in a `Require` header.
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]

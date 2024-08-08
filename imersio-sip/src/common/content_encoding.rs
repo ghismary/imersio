@@ -4,13 +4,13 @@ use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::common::header_value_collection::HeaderValueCollection;
+use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
 use crate::Error;
 
 /// Representation of the list of encodings in a `Content-Encoding` header.
 ///
 /// This is usable as an iterator.
-pub type ContentEncodings = HeaderValueCollection<ContentEncoding>;
+pub type ContentEncodings = CommaSeparatedValueCollection<ContentEncoding>;
 
 /// Representation of an encoding in a `Content-Encoding` header.
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]

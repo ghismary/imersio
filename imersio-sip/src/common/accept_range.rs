@@ -2,7 +2,7 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::header_value_collection::HeaderValueCollection;
+use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
 use crate::utils::compare_vectors;
 use crate::AcceptParameter;
 use crate::MediaRange;
@@ -10,7 +10,7 @@ use crate::MediaRange;
 /// Representation of the list of range from an `AcceptHeader`.
 ///
 /// This is usable as an iterator.
-pub type AcceptRanges = HeaderValueCollection<AcceptRange>;
+pub type AcceptRanges = CommaSeparatedValueCollection<AcceptRange>;
 
 impl AcceptRanges {
     /// Tell whether the ranges contain the given `MediaRange`.

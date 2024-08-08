@@ -15,7 +15,7 @@
 //! assert!(method.is_ok_and(|method| method == Method::CANCEL));
 //! ```
 
-use crate::common::header_value_collection::HeaderValueCollection;
+use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
 use nom::error::convert_error;
 use std::{borrow::Cow, hash::Hash, str};
 
@@ -24,7 +24,7 @@ use crate::Error;
 /// Representation of the list of methods from an `AllowHeader`.
 ///
 /// This is usable as an iterator.
-pub type Methods = HeaderValueCollection<Method>;
+pub type Methods = CommaSeparatedValueCollection<Method>;
 
 /// The Request Method
 ///

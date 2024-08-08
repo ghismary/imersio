@@ -4,7 +4,7 @@ use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::header_value_collection::HeaderValueCollection;
+use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
 use crate::common::wrapped_string::WrappedString;
 use crate::MessageQop;
 
@@ -12,7 +12,7 @@ use crate::MessageQop;
 /// `AuthenticationInfoHeader`.
 ///
 /// This is usable as an iterator.
-pub type AuthenticationInfos = HeaderValueCollection<AuthenticationInfo>;
+pub type AuthenticationInfos = CommaSeparatedValueCollection<AuthenticationInfo>;
 
 /// Representation of an info from an `AuthenticationInfoHeader`.
 #[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
