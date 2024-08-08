@@ -1,4 +1,5 @@
 use derive_more::Display;
+use nom::error::convert_error;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
@@ -82,9 +83,22 @@ impl TryFrom<&str> for ContentEncoding {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parser::content_coding(value)
-            .map(|(_, encoding)| encoding)
-            .map_err(|_| Error::InvalidContentEncoding(value.to_string()))
+        match parser::content_coding(value) {
+            Ok((rest, encoding)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(encoding)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidContentEncoding(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidContentEncoding(format!(
+                "Incomplete content encoding `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -103,5 +117,48 @@ pub(crate) mod parser {
             "codings",
             alt((content_coding, map(tag("*"), ContentEncoding::new))),
         )(input)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn test_content_encoding_eq() {
+        assert_eq!(ContentEncoding::try_from("*").unwrap(), "*");
+        assert_eq!(ContentEncoding::try_from("gzip").unwrap(), "gzip");
+    }
+
+    #[test]
+    fn test_content_encoding_eq_different_case() {
+        assert_eq!(ContentEncoding::try_from("tar").unwrap(), "TAR");
+    }
+
+    #[test]
+    fn test_valid_content_encoding() {
+        assert_ok!(ContentEncoding::try_from("gzip"));
+    }
+
+    #[test]
+    fn test_valid_content_encoding_wildcard() {
+        assert_ok!(ContentEncoding::try_from("*"));
+    }
+
+    #[test]
+    fn test_invalid_content_encoding_empty() {
+        assert_err!(ContentEncoding::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_content_encoding_with_invalid_character() {
+        assert_err!(ContentEncoding::try_from("en-😁"));
+    }
+
+    #[test]
+    fn test_valid_content_encoding_with_remaining_data() {
+        assert!(ContentEncoding::try_from("gzip anything")
+            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
     }
 }

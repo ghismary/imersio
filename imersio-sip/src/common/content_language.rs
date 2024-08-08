@@ -1,3 +1,4 @@
+use nom::error::convert_error;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
@@ -86,9 +87,22 @@ impl TryFrom<&str> for ContentLanguage {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parser::language_tag(value)
-            .map(|(_, language)| language)
-            .map_err(|_| Error::InvalidContentLanguage(value.to_string()))
+        match parser::language_tag(value) {
+            Ok((rest, language)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(language)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidContentLanguage(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidContentLanguage(format!(
+                "Incomplete content language `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -117,5 +131,47 @@ pub(crate) mod parser {
             recognize(pair(primary_tag, many0(preceded(tag("-"), subtag)))),
             ContentLanguage::new,
         )(input)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn test_content_language_eq() {
+        assert_eq!(ContentLanguage::try_from("en-US").unwrap(), "en-US");
+    }
+
+    #[test]
+    fn test_content_language_eq_different_case() {
+        assert_eq!(ContentLanguage::try_from("fr-FR").unwrap(), "fr-fr");
+    }
+
+    #[test]
+    fn test_valid_content_language_with_only_primary_tag() {
+        assert_ok!(ContentLanguage::try_from("en"));
+    }
+
+    #[test]
+    fn test_valid_content_language_with_subtag() {
+        assert_ok!(ContentLanguage::try_from("en-GB"));
+    }
+
+    #[test]
+    fn test_invalid_content_language_empty() {
+        assert_err!(ContentLanguage::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_content_language_with_invalid_character() {
+        assert_err!(ContentLanguage::try_from("en-😁"));
+    }
+
+    #[test]
+    fn test_valid_content_language_with_remaining_data() {
+        assert!(ContentLanguage::try_from("en-US anything")
+            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
     }
 }

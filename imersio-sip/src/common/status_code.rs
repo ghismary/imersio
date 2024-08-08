@@ -1,3 +1,4 @@
+use nom::error::convert_error;
 use std::convert::TryFrom;
 
 use crate::Error;
@@ -200,7 +201,22 @@ impl TryFrom<&str> for StatusCode {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse_status_code(value)
+        match parser::status_code(value) {
+            Ok((rest, status_code)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(status_code)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidStatusCode(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidStatusCode(format!(
+                "Incomplete status code `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -302,28 +318,16 @@ const CODE_DIGITS: &str = "\
 960961962963964965966967968969970971972973974975976977978979\
 980981982983984985986987988989990991992993994995996997998999";
 
-fn parse_status_code(input: &str) -> Result<StatusCode, Error> {
-    match parser::status_code(input) {
-        Ok((rest, method)) => {
-            if !rest.is_empty() {
-                Err(Error::RemainingUnparsedData)
-            } else {
-                Ok(method)
-            }
-        }
-        Err(e) => Err(Error::InvalidStatusCode(e.to_string())),
-    }
-}
-
 pub(crate) mod parser {
     use super::*;
-    use crate::parser::{digit, ParserResult};
+    use crate::parser::{digit, positive_digit, ParserResult};
     use nom::{
         branch::alt,
         bytes::complete::tag,
         combinator::{recognize, value},
         error::context,
         multi::count,
+        sequence::pair,
     };
 
     #[inline]
@@ -414,7 +418,7 @@ pub(crate) mod parser {
 
     #[inline]
     fn extension_code(input: &str) -> ParserResult<&str, StatusCode> {
-        recognize(count(digit, 3))(input).map(|(rest, result)| {
+        recognize(pair(positive_digit, count(digit, 2)))(input).map(|(rest, result)| {
             let status = result.parse::<u16>().unwrap();
             (rest, StatusCode(status))
         })
@@ -439,16 +443,7 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use claims::assert_err;
-
-    #[test]
-    fn test_invalid_status_code() {
-        assert_err!(StatusCode::from_u16(10));
-        assert_err!(StatusCode::from_u16(3478));
-        assert_err!(StatusCode::try_from("bob"));
-        assert_err!(StatusCode::try_from("9273"));
-        assert_err!(StatusCode::try_from("4629"));
-    }
+    use claims::{assert_err, assert_ok};
 
     #[test]
     fn test_status_code_eq() {
@@ -457,5 +452,77 @@ mod test {
 
         assert_eq!(StatusCode::RINGING, StatusCode::from_u16(180).unwrap());
         assert_eq!(StatusCode::from_u16(180).unwrap(), StatusCode::RINGING);
+    }
+
+    #[test]
+    fn test_valid_status_code_informational() {
+        assert!(StatusCode::try_from("180").is_ok_and(|v| v == StatusCode::RINGING));
+        assert!(StatusCode::from_u16(182).is_ok_and(|v| v == StatusCode::QUEUED));
+    }
+
+    #[test]
+    fn test_valid_status_code_success() {
+        assert!(StatusCode::try_from("200").is_ok_and(|v| v == StatusCode::OK));
+        assert!(StatusCode::from_u16(200).is_ok_and(|v| v == StatusCode::OK));
+    }
+
+    #[test]
+    fn test_valid_status_code_redirection() {
+        assert!(StatusCode::try_from("300").is_ok_and(|v| v == StatusCode::MULTIPLE_CHOICES));
+        assert!(StatusCode::from_u16(302).is_ok_and(|v| v == StatusCode::MOVED_TEMPORARILY));
+    }
+
+    #[test]
+    fn test_valid_status_code_client_error() {
+        assert!(StatusCode::try_from("410").is_ok_and(|v| v == StatusCode::GONE));
+        assert!(StatusCode::try_from(423).is_ok_and(|v| v == StatusCode::INTERVAL_TOO_BRIEF));
+    }
+
+    #[test]
+    fn test_valid_status_code_server_error() {
+        assert!(StatusCode::try_from("501").is_ok_and(|v| v == StatusCode::NOT_IMPLEMENTED));
+        assert!(StatusCode::try_from(513).is_ok_and(|v| v == StatusCode::MESSAGE_TOO_LARGE));
+    }
+
+    #[test]
+    fn test_valid_status_code_global_failure() {
+        assert!(StatusCode::try_from("600").is_ok_and(|v| v == StatusCode::BUSY_EVERYWHERE));
+        assert!(StatusCode::try_from(603).is_ok_and(|v| v == StatusCode::DECLINE));
+    }
+
+    #[test]
+    fn test_valid_status_code_extension() {
+        assert_ok!(StatusCode::try_from("829"));
+        assert_ok!(StatusCode::try_from(157));
+    }
+
+    #[test]
+    fn test_invalid_status_code_under_100() {
+        assert_err!(StatusCode::try_from("99"));
+        assert_err!(StatusCode::from_u16(10));
+    }
+
+    #[test]
+    fn test_invalid_status_code_over_999() {
+        assert_err!(StatusCode::from_u16(3478));
+        assert_err!(StatusCode::try_from("9273"));
+        assert_err!(StatusCode::try_from("4629"));
+    }
+
+    #[test]
+    fn test_invalid_status_code_0() {
+        assert_err!(StatusCode::from_u16(0));
+        assert_err!(StatusCode::try_from("000"));
+    }
+
+    #[test]
+    fn test_invalid_status_code_not_a_number() {
+        assert_err!(StatusCode::try_from("bob"));
+    }
+
+    #[test]
+    fn test_valid_status_code_but_with_remaining_data() {
+        assert!(StatusCode::try_from("200 anything")
+            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
     }
 }

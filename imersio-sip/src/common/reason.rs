@@ -1,5 +1,6 @@
 //! TODO
 
+use nom::error::convert_error;
 use std::borrow::Cow;
 use std::str;
 
@@ -147,7 +148,22 @@ impl TryFrom<&str> for Reason {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse_reason(value)
+        match parser::reason(value) {
+            Ok((rest, reason)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(reason)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidReason(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidReason(format!(
+                "Incomplete reason `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -374,19 +390,6 @@ reasons! {
     (606, NOT_ACCEPTABLE_GLOBAL, "Not Acceptable"),
 }
 
-fn parse_reason(input: &str) -> Result<Reason, Error> {
-    match parser::reason(input) {
-        Ok((rest, reason)) => {
-            if !rest.is_empty() {
-                Err(Error::RemainingUnparsedData)
-            } else {
-                Ok(reason)
-            }
-        }
-        Err(e) => Err(Error::InvalidReason(e.to_string())),
-    }
-}
-
 pub(crate) mod parser {
     use super::*;
     use crate::common::status_code::parser::status_code;
@@ -436,19 +439,6 @@ mod test {
     use claims::{assert_err, assert_ok};
 
     #[test]
-    fn test_invalid_reason() {
-        assert_err!(Reason::try_from("Hello world!"));
-        assert_err!(Reason::try_from("4040 Not Found"));
-    }
-
-    #[test]
-    fn test_valid_reason() {
-        assert_ok!(Reason::try_from("200 OK"));
-        assert_ok!(Reason::try_from("200 Bon"));
-        assert_ok!(Reason::try_from("404 Pas Trouvé"));
-    }
-
-    #[test]
     fn test_reason_eq() {
         assert_eq!(Reason::OK, 200);
         assert_eq!(&Reason::OK, 200);
@@ -464,5 +454,27 @@ mod test {
 
         let custom_ringing_reason = Reason::try_from("180 Sonne").unwrap();
         assert_eq!(Reason::RINGING, custom_ringing_reason);
+    }
+
+    #[test]
+    fn test_valid_reason() {
+        assert_ok!(Reason::try_from("200 OK"));
+        assert_ok!(Reason::try_from("200 Bon"));
+        assert_ok!(Reason::try_from("404 Pas Trouvé"));
+    }
+
+    #[test]
+    fn test_invalid_reason_empty() {
+        assert_err!(Reason::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_reason_no_status_code() {
+        assert_err!(Reason::try_from("Hello world!"));
+    }
+
+    #[test]
+    fn test_invalid_reason_invalid_status_code() {
+        assert_err!(Reason::try_from("4040 Not Found"));
     }
 }

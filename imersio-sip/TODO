@@ -18,10 +18,11 @@
 
 ## Questions
 
- - Should accept parameters be case sensitive?
+ - Should accept parameters be case sensitive? No
 
 
 
 
  - Ensure Method requires uppercase
  - Add trait for parameters?
+ - Add enum for wildcard content encoding

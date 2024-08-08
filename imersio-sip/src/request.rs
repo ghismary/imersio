@@ -235,7 +235,7 @@ fn parse(input: &str, body: &[u8]) -> Result<Request, Error> {
             if rest.is_empty() {
                 result
             } else {
-                Err(Error::RemainingUnparsedData)
+                Err(Error::RemainingUnparsedData(rest.to_string()))
             }
         }
         Err(e) => Err(Error::InvalidRequest(e.to_string())),

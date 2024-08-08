@@ -16,6 +16,7 @@
 //! ```
 
 use crate::common::header_value_collection::HeaderValueCollection;
+use nom::error::convert_error;
 use std::{borrow::Cow, hash::Hash, str};
 
 use crate::Error;
@@ -52,7 +53,22 @@ impl TryFrom<&str> for Method {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse(value)
+        match parser::method(value) {
+            Ok((rest, method)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(method)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidMethod(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidMethod(format!(
+                "Incomplete method `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -149,19 +165,6 @@ methods! {
     (REGISTER, "REGISTER"),
 }
 
-fn parse(input: &str) -> Result<Method, Error> {
-    match parser::method(input) {
-        Ok((rest, method)) => {
-            if !rest.is_empty() {
-                Err(Error::RemainingUnparsedData)
-            } else {
-                Ok(method)
-            }
-        }
-        Err(e) => Err(Error::InvalidMethod(e.to_string())),
-    }
-}
-
 pub(crate) mod parser {
     use super::Method;
     use crate::parser::{token, ParserResult};
@@ -237,16 +240,26 @@ mod test {
     }
 
     #[test]
-    fn test_invalid_method() {
-        assert_err!(Method::try_from(""));
-        assert_err!(Method::try_from("\n")); // Invalid method characters
-    }
-
-    #[test]
     fn test_valid_method() {
         assert!(Method::try_from("INVITE").is_ok_and(|method| method == Method::INVITE));
         assert!(Method::try_from("CANCEL").is_ok_and(|method| method == Method::CANCEL));
         assert_eq!(Method::INVITE.as_str(), "INVITE");
+    }
+
+    #[test]
+    fn test_invalid_method_empty() {
+        assert_err!(Method::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_method_with_invalid_character() {
+        assert_err!(Method::try_from("\n"));
+    }
+
+    #[test]
+    fn test_invalid_method_with_remaining_data() {
+        assert!(Method::try_from("INVITE anything")
+            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
     }
 
     #[test]

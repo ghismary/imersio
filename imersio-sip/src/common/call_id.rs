@@ -1,4 +1,5 @@
 use derive_more::Display;
+use nom::error::convert_error;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
@@ -80,9 +81,22 @@ impl TryFrom<&str> for CallId {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parser::callid(value)
-            .map(|(_, call_id)| call_id)
-            .map_err(|_| Error::InvalidCallId(value.to_string()))
+        match parser::callid(value) {
+            Ok((rest, call_id)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(call_id)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidCallId(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidCallId(format!(
+                "Incomplete call id `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -104,5 +118,62 @@ pub(crate) mod parser {
                 CallId::new,
             ),
         )(input)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn test_call_id_eq() {
+        assert_eq!(
+            CallId::try_from("f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com").unwrap(),
+            "f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com"
+        );
+    }
+
+    #[test]
+    fn test_call_id_not_eq_different_case() {
+        assert_ne!(
+            CallId::try_from("f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com").unwrap(),
+            "F81D4FAE-7DEC-11D0-A765-00A0C91E6BF6@foo.bar.com"
+        );
+    }
+
+    #[test]
+    fn test_valid_call_id() {
+        assert_ok!(CallId::try_from(
+            "f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com"
+        ));
+    }
+
+    #[test]
+    fn test_valid_call_id_without_at() {
+        assert_ok!(CallId::try_from("f81d4fae-7dec-11d0-a765-00a0c91e6bf6"));
+    }
+
+    #[test]
+    fn test_invalid_call_id_empty() {
+        assert_err!(CallId::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_call_id_with_invalid_character() {
+        assert_err!(CallId::try_from("😁"));
+    }
+
+    #[test]
+    fn test_invalid_call_id_with_at_but_no_second_word() {
+        assert_err!(CallId::try_from("f81d4fae-7dec-11d0-a765-00a0c91e6bf6@"));
+    }
+
+    #[test]
+    fn test_valid_call_id_with_remaining_data() {
+        assert!(
+            CallId::try_from("f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com anything")
+                .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 }

@@ -1,3 +1,4 @@
+use nom::error::convert_error;
 use std::convert::TryFrom;
 
 use crate::headers::generic_header::GenericHeader;
@@ -112,20 +113,22 @@ impl TryFrom<&str> for Header {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse_message_header(value)
-    }
-}
-
-fn parse_message_header(input: &str) -> Result<Header, Error> {
-    match parser::message_header(input) {
-        Ok((rest, uri)) => {
-            if !rest.is_empty() {
-                Err(Error::RemainingUnparsedData)
-            } else {
-                Ok(uri)
+        match parser::message_header(value) {
+            Ok((rest, uri)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(uri)
+                }
             }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidMessageHeader(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidMessageHeader(format!(
+                "Incomplete message header `{}`",
+                value
+            ))),
         }
-        Err(e) => Err(Error::InvalidMessageHeader(e.to_string())),
     }
 }
 

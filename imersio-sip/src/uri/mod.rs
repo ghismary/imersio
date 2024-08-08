@@ -180,7 +180,7 @@ fn parse_uri(input: &str) -> Result<Uri, Error> {
     match parser::request_uri(input) {
         Ok((rest, uri)) => {
             if !rest.is_empty() {
-                Err(Error::RemainingUnparsedData)
+                Err(Error::RemainingUnparsedData(rest.to_string()))
             } else {
                 Ok(uri)
             }

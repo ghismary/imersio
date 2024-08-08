@@ -118,6 +118,10 @@ pub(crate) fn digit(input: &str) -> ParserResult<&str, char> {
     verify(take1, |c| c.is_ascii_digit())(input)
 }
 
+pub(crate) fn positive_digit(input: &str) -> ParserResult<&str, char> {
+    verify(take1, |c| c.is_ascii_digit() && *c != '0')(input)
+}
+
 pub(crate) fn hex_digit(input: &str) -> ParserResult<&str, char> {
     verify(take1, |c| c.is_ascii_hexdigit())(input)
 }

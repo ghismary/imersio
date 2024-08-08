@@ -15,6 +15,7 @@
 //! ```
 
 use crate::Error;
+use nom::error::convert_error;
 
 /// Represents a version of the SIP specification.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -43,7 +44,22 @@ impl TryFrom<&str> for Version {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse(value)
+        match parser::sip_version(value) {
+            Ok((rest, version)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(version)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidVersion(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidVersion(format!(
+                "Incomplete version `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -115,19 +131,6 @@ impl<'a> PartialEq<Version> for &'a str {
     }
 }
 
-fn parse(input: &str) -> Result<Version, Error> {
-    match parser::sip_version(input) {
-        Ok((rest, version)) => {
-            if !rest.is_empty() {
-                Err(Error::RemainingUnparsedData)
-            } else {
-                Ok(version)
-            }
-        }
-        Err(e) => Err(Error::InvalidVersion(e.to_string())),
-    }
-}
-
 pub(crate) mod parser {
     use crate::{parser::ParserResult, Version};
     use nom::{bytes::complete::tag, combinator::value, error::context};
@@ -157,14 +160,28 @@ mod test {
     }
 
     #[test]
-    fn test_invalid_version() {
+    fn test_valid_version() {
+        assert_eq!(Version::try_from("SIP/2.0").unwrap(), "SIP/2.0");
+    }
+
+    #[test]
+    fn test_invalid_version_empty() {
         assert_err!(Version::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_version_unhandled_version() {
         assert_err!(Version::try_from("SIP/1.0"));
+    }
+
+    #[test]
+    fn test_invalid_version_wrong_format() {
         assert_err!(Version::try_from("crappy-version"));
     }
 
     #[test]
-    fn test_valid_version() {
-        assert_eq!(Version::try_from("SIP/2.0").unwrap(), "SIP/2.0");
+    fn test_valid_version_but_with_remaining_data() {
+        assert!(Version::try_from("SIP/2.0 anything")
+            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
     }
 }

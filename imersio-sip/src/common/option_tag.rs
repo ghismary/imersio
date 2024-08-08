@@ -1,4 +1,5 @@
 use derive_more::Display;
+use nom::error::convert_error;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
@@ -82,9 +83,22 @@ impl TryFrom<&str> for OptionTag {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parser::option_tag(value)
-            .map(|(_, tag)| tag)
-            .map_err(|_| Error::InvalidOptionTag(value.to_string()))
+        match parser::option_tag(value) {
+            Ok((rest, tag)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(tag)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidOptionTag(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidOptionTag(format!(
+                "Incomplete option tag `{}`",
+                value
+            ))),
+        }
     }
 }
 
@@ -95,5 +109,42 @@ pub(crate) mod parser {
 
     pub(crate) fn option_tag(input: &str) -> ParserResult<&str, OptionTag> {
         context("option_tag", map(token, OptionTag::new))(input)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn test_option_tag_eq() {
+        assert_eq!(OptionTag::try_from("foo").unwrap(), "foo");
+    }
+
+    #[test]
+    fn test_option_tag_eq_different_case() {
+        assert_eq!(OptionTag::try_from("foo").unwrap(), "FOO");
+    }
+
+    #[test]
+    fn test_valid_option_tag() {
+        assert_ok!(OptionTag::try_from("foo"));
+    }
+
+    #[test]
+    fn test_invalid_option_tag_empty() {
+        assert_err!(OptionTag::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_option_tag_with_invalid_character() {
+        assert_err!(OptionTag::try_from("😁"));
+    }
+
+    #[test]
+    fn test_valid_option_tag_with_remaining_data() {
+        assert!(OptionTag::try_from("foo anything")
+            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
     }
 }
