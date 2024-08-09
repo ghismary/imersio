@@ -49,9 +49,11 @@ pub use crate::common::{
     name_address::NameAddress,
     option_tag::{OptionTag, OptionTags},
     priority::Priority,
+    product::Product,
     reason::Reason,
     retry_parameter::RetryParameter,
     route::{Route, Routes},
+    server_value::{ServerValue, ServerValues},
     stale::Stale,
     status_code::StatusCode,
     version::Version,
@@ -74,7 +76,7 @@ pub use crate::headers::{
     proxy_authorization_header::ProxyAuthorizationHeader, proxy_require_header::ProxyRequireHeader,
     record_route_header::RecordRouteHeader, reply_to_header::ReplyToHeader,
     require_header::RequireHeader, retry_after_header::RetryAfterHeader, route_header::RouteHeader,
-    Header,
+    server_header::ServerHeader, Header,
 };
 pub use crate::request::Request;
 pub use crate::response::Response;

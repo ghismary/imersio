@@ -2,14 +2,14 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
+use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
 use crate::AcceptParameter;
 
 /// Representation of the list of languages from an `AcceptLanguageHeader`.
 ///
 /// This is usable as an iterator.
-pub type AcceptLanguages = CommaSeparatedValueCollection<AcceptLanguage>;
+pub type AcceptLanguages = ValueCollection<AcceptLanguage>;
 
 impl AcceptLanguages {
     /// Tell whether `Languages` contains the given language.

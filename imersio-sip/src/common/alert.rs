@@ -2,7 +2,7 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
+use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
 use crate::AbsoluteUri;
 use crate::AcceptParameter;
@@ -10,7 +10,7 @@ use crate::AcceptParameter;
 /// Representation of the list of alerts from an `AlertInfoHeader`.
 ///
 /// This is usable as an iterator.
-pub type Alerts = CommaSeparatedValueCollection<Alert>;
+pub type Alerts = ValueCollection<Alert>;
 
 impl Alerts {
     /// Tell whether `Alerts` contain the given `Uri`.

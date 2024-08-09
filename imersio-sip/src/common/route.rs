@@ -2,7 +2,7 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
+use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
 use crate::GenericParameter;
 use crate::NameAddress;
@@ -10,7 +10,7 @@ use crate::NameAddress;
 /// Representation of the list of routes from a `RecordRouteHeader`.
 ///
 /// This is usable as an iterator.
-pub type Routes = CommaSeparatedValueCollection<Route>;
+pub type Routes = ValueCollection<Route>;
 
 impl Routes {
     /// Tell whether the routes contain the given `NameAddress`.

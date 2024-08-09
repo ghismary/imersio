@@ -2,7 +2,7 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
+use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
 use crate::AbsoluteUri;
 use crate::CallInfoParameter;
@@ -10,7 +10,7 @@ use crate::CallInfoParameter;
 /// Representation of the list of call information from a `Call-Info` header.
 ///
 /// This is usable as an iterator.
-pub type CallInfos = CommaSeparatedValueCollection<CallInfo>;
+pub type CallInfos = ValueCollection<CallInfo>;
 
 impl CallInfos {
     /// Tell whether Call-Info header contains the given `AbsoluteUri`.

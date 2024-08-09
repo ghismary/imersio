@@ -3,13 +3,13 @@ use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
+use crate::common::value_collection::ValueCollection;
 use crate::Error;
 
 /// Representation of the list of languages in a `Content-Language` header.
 ///
 /// This is usable as an iterator.
-pub type ContentLanguages = CommaSeparatedValueCollection<ContentLanguage>;
+pub type ContentLanguages = ValueCollection<ContentLanguage>;
 
 /// Representation of a language contained in an `Content-Language` header.
 #[derive(Clone, Debug, Eq, PartialEqRefs)]

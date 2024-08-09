@@ -3,14 +3,14 @@ use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 use std::ops::Deref;
 
-use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
+use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
 use crate::{GenericParameter, Uri};
 
 /// Representation of the list of error uris from an `ErrorInfoHeader`.
 ///
 /// This is usable as an iterator.
-pub type ErrorUris = CommaSeparatedValueCollection<ErrorUri>;
+pub type ErrorUris = ValueCollection<ErrorUri>;
 
 impl ErrorUris {
     /// Tell whether `ErrorUris` contain the given `Uri`.

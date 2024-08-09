@@ -2,7 +2,7 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
-use crate::common::comma_separated_value_collection::CommaSeparatedValueCollection;
+use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
 use crate::AcceptParameter;
 use crate::ContentEncoding;
@@ -10,7 +10,7 @@ use crate::ContentEncoding;
 /// Representation of the list of encodings from an `AcceptEncodingHeader`.
 ///
 /// This is usable as an iterator.
-pub type AcceptEncodings = CommaSeparatedValueCollection<AcceptEncoding>;
+pub type AcceptEncodings = ValueCollection<AcceptEncoding>;
 
 impl AcceptEncodings {
     /// Tell whether the encodings contain the given encoding.
