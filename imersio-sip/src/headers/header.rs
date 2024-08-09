@@ -10,7 +10,7 @@ use crate::{
     FromHeader, InReplyToHeader, MaxForwardsHeader, MimeVersionHeader, MinExpiresHeader,
     OrganizationHeader, PriorityHeader, ProxyAuthenticateHeader, ProxyAuthorizationHeader,
     ProxyRequireHeader, RecordRouteHeader, ReplyToHeader, RequireHeader, RetryAfterHeader,
-    RouteHeader, ServerHeader,
+    RouteHeader, ServerHeader, SubjectHeader,
 };
 
 macro_rules! headers {
@@ -116,6 +116,8 @@ headers! {
     (Route, RouteHeader),
     /// A Server header.
     (Server, ServerHeader),
+    /// A Subject header.
+    (Subject, SubjectHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }
@@ -165,7 +167,7 @@ mod parser {
         proxy_require_header::parser::proxy_require, record_route_header::parser::record_route,
         reply_to_header::parser::reply_to, require_header::parser::require,
         retry_after_header::parser::retry_after, route_header::parser::route,
-        server_header::parser::server,
+        server_header::parser::server, subject_header::parser::subject,
     };
     use crate::{parser::ParserResult, Header};
     use nom::{branch::alt, error::context};
@@ -212,6 +214,7 @@ mod parser {
                     retry_after,
                     route,
                     server,
+                    subject,
                     extension_header,
                 )),
             )),
