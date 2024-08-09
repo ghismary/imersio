@@ -39,6 +39,7 @@ pub mod retry_after_header;
 pub mod route_header;
 pub mod server_header;
 pub mod subject_header;
+pub mod supported_header;
 
 #[cfg(test)]
 mod tests;

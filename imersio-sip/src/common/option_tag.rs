@@ -7,12 +7,14 @@ use std::hash::Hash;
 use crate::common::value_collection::ValueCollection;
 use crate::Error;
 
-/// Representation of the list of option tags in a `Proxy-Require` or in a `Require` header.
+/// Representation of the list of option tags in a `Proxy-Require`, `Require`, `Supported` or
+/// `Unsupported` header.
 ///
 /// This is usable as an iterator.
 pub type OptionTags = ValueCollection<OptionTag>;
 
-/// Representation of an option tag contained in a `Proxy-Require` or in a `Require` header.
+/// Representation of an option tag contained in a `Proxy-Require`, `Require`, `Supported` or
+/// `Unsupported` header.
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
 #[display(fmt = "{}", "self.0.to_ascii_lowercase()")]
 pub struct OptionTag(String);
