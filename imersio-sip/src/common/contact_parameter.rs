@@ -93,6 +93,7 @@ pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::{digit, equal, ParserResult};
     use crate::{ContactParameter, GenericParameter};
+    use chrono::TimeDelta;
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -109,9 +110,9 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    pub(crate) fn delta_seconds(input: &str) -> ParserResult<&str, u32> {
+    pub(crate) fn delta_seconds(input: &str) -> ParserResult<&str, TimeDelta> {
         map(recognize(many1(digit)), |digits| {
-            digits.parse::<u32>().unwrap_or(u32::MAX)
+            TimeDelta::seconds(digits.parse::<u32>().unwrap_or(u32::MAX) as i64)
         })(input)
     }
 
@@ -120,7 +121,7 @@ pub(crate) mod parser {
             separated_pair(
                 tag_no_case("expires"),
                 equal,
-                map(delta_seconds, |seconds| seconds.to_string()),
+                map(delta_seconds, |seconds| seconds.num_seconds().to_string()),
             ),
             |(_, value)| ContactParameter::Expires(value),
         )(input)

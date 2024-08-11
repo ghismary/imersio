@@ -25,4 +25,3 @@
 
  - Add trait for parameters?
  - Add enum for wildcard content encoding
- - Add type for delta-seconds instead of u32 -> Use TimeDelta from chrono : TimeDelta::seconds(value: i64) -> TimeDelta

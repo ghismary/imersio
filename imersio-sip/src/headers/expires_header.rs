@@ -1,5 +1,6 @@
 //! SIP Expires header parsing and generation.
 
+use chrono::TimeDelta;
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
@@ -20,16 +21,16 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 pub struct ExpiresHeader {
     #[partial_eq_ignore]
     header: GenericHeader,
-    expires: u32,
+    expires: TimeDelta,
 }
 
 impl ExpiresHeader {
-    pub(crate) fn new(header: GenericHeader, expires: u32) -> Self {
+    pub(crate) fn new(header: GenericHeader, expires: TimeDelta) -> Self {
         Self { header, expires }
     }
 
     /// Get the expires from the Expires header.
-    pub fn expires(&self) -> u32 {
+    pub fn expires(&self) -> TimeDelta {
         self.expires
     }
 }
@@ -44,7 +45,7 @@ impl HeaderAccessor for ExpiresHeader {
         Some("Expires")
     }
     fn normalized_value(&self) -> String {
-        self.expires.to_string()
+        self.expires.num_seconds().to_string()
     }
 }
 
@@ -85,6 +86,7 @@ mod tests {
         },
         ExpiresHeader, Header,
     };
+    use chrono::TimeDelta;
     use claims::assert_ok;
 
     valid_header!(Expires, ExpiresHeader, "Expires");
@@ -94,14 +96,14 @@ mod tests {
     #[test]
     fn test_valid_expires_header() {
         valid_header("Expires: 5", |header| {
-            assert_eq!(header.expires(), 5);
+            assert_eq!(header.expires(), TimeDelta::seconds(5));
         });
     }
 
     #[test]
     fn test_valid_expires_header_with_value_too_big() {
         valid_header("Expires: 4294968000", |header| {
-            assert_eq!(header.expires(), u32::MAX);
+            assert_eq!(header.expires(), TimeDelta::seconds(u32::MAX as i64));
         });
     }
 

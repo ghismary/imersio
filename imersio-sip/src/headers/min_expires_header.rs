@@ -1,5 +1,6 @@
 //! SIP Min-Expires header parsing and generation.
 
+use chrono::TimeDelta;
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use partial_eq_refs::PartialEqRefs;
@@ -18,11 +19,11 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 pub struct MinExpiresHeader {
     #[partial_eq_ignore]
     header: GenericHeader,
-    min_expires: u32,
+    min_expires: TimeDelta,
 }
 
 impl MinExpiresHeader {
-    pub(crate) fn new(header: GenericHeader, min_expires: u32) -> Self {
+    pub(crate) fn new(header: GenericHeader, min_expires: TimeDelta) -> Self {
         Self {
             header,
             min_expires,
@@ -30,7 +31,7 @@ impl MinExpiresHeader {
     }
 
     /// Get the min expires from the Min-Expires header.
-    pub fn min_expires(&self) -> u32 {
+    pub fn min_expires(&self) -> TimeDelta {
         self.min_expires
     }
 }
@@ -45,7 +46,7 @@ impl HeaderAccessor for MinExpiresHeader {
         Some("Min-Expires")
     }
     fn normalized_value(&self) -> String {
-        self.min_expires.to_string()
+        self.min_expires.num_seconds().to_string()
     }
 }
 
@@ -90,6 +91,7 @@ mod tests {
         },
         Header, MinExpiresHeader,
     };
+    use chrono::TimeDelta;
     use claims::assert_ok;
 
     valid_header!(MinExpires, MinExpiresHeader, "Min-Expires");
@@ -99,14 +101,14 @@ mod tests {
     #[test]
     fn test_valid_min_expires_header() {
         valid_header("Min-Expires: 60", |header| {
-            assert_eq!(header.min_expires(), 60);
+            assert_eq!(header.min_expires(), TimeDelta::seconds(60));
         });
     }
 
     #[test]
     fn test_valid_min_expires_header_with_value_too_big() {
         valid_header("Min-Expires: 4294968000", |header| {
-            assert_eq!(header.min_expires(), u32::MAX);
+            assert_eq!(header.min_expires(), TimeDelta::seconds(u32::MAX as i64));
         });
     }
 

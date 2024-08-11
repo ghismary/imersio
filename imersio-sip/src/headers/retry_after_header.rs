@@ -1,5 +1,6 @@
 //! SIP Retry-After header parsing and generation.
 
+use chrono::TimeDelta;
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use itertools::join;
@@ -23,7 +24,7 @@ use crate::RetryParameter;
 pub struct RetryAfterHeader {
     #[partial_eq_ignore]
     header: GenericHeader,
-    retry_after: u32,
+    retry_after: TimeDelta,
     comment: Option<String>,
     parameters: Vec<RetryParameter>,
 }
@@ -31,7 +32,7 @@ pub struct RetryAfterHeader {
 impl RetryAfterHeader {
     pub(crate) fn new<S: Into<String>>(
         header: GenericHeader,
-        retry_after: u32,
+        retry_after: TimeDelta,
         comment: Option<S>,
         parameters: Vec<RetryParameter>,
     ) -> Self {
@@ -44,7 +45,7 @@ impl RetryAfterHeader {
     }
 
     /// Get the retry after value from the Retry-After header.
-    pub fn retry_after(&self) -> u32 {
+    pub fn retry_after(&self) -> TimeDelta {
         self.retry_after
     }
 
@@ -71,7 +72,7 @@ impl HeaderAccessor for RetryAfterHeader {
     fn normalized_value(&self) -> String {
         format!(
             "{}{}{}{}{}",
-            self.retry_after(),
+            self.retry_after().num_seconds(),
             if self.comment().is_some() { " " } else { "" },
             self.comment().unwrap_or_default(),
             if self.parameters().is_empty() {
@@ -134,6 +135,7 @@ mod tests {
         },
         Header, RetryAfterHeader,
     };
+    use chrono::TimeDelta;
     use claims::assert_ok;
 
     valid_header!(RetryAfter, RetryAfterHeader, "Retry-After");
@@ -143,7 +145,7 @@ mod tests {
     #[test]
     fn test_valid_retry_after_header_simple() {
         valid_header("Retry-After: 18000", |header| {
-            assert_eq!(header.retry_after(), 18000);
+            assert_eq!(header.retry_after(), TimeDelta::seconds(18000));
             assert_eq!(header.comment(), None);
             assert_eq!(header.parameters().len(), 0);
         });
@@ -152,14 +154,14 @@ mod tests {
     #[test]
     fn test_valid_retry_after_header_with_value_too_big() {
         valid_header("Retry-After: 4294968000", |header| {
-            assert_eq!(header.retry_after(), u32::MAX);
+            assert_eq!(header.retry_after(), TimeDelta::seconds(u32::MAX as i64));
         });
     }
 
     #[test]
     fn test_valid_retry_after_header_with_param() {
         valid_header("Retry-After: 18000;duration=3600", |header| {
-            assert_eq!(header.retry_after(), 18000);
+            assert_eq!(header.retry_after(), TimeDelta::seconds(18000));
             assert_eq!(header.comment(), None);
             assert_eq!(header.parameters().len(), 1);
             assert_eq!(header.parameters().first().unwrap().key(), "duration");
@@ -170,7 +172,7 @@ mod tests {
     #[test]
     fn test_valid_retry_after_header_with_comment() {
         valid_header("Retry-After: 120 (I'm in a meeting)", |header| {
-            assert_eq!(header.retry_after(), 120);
+            assert_eq!(header.retry_after(), TimeDelta::seconds(120));
             assert_eq!(header.comment(), Some("I'm in a meeting"));
             assert_eq!(header.parameters().len(), 0);
         })
