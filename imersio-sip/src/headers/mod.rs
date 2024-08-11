@@ -42,6 +42,7 @@ pub mod subject_header;
 pub mod supported_header;
 pub mod timestamp_header;
 pub mod to_header;
+pub mod unsupported_header;
 
 #[cfg(test)]
 mod tests;
