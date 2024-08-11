@@ -11,7 +11,7 @@ use crate::{
     OrganizationHeader, PriorityHeader, ProxyAuthenticateHeader, ProxyAuthorizationHeader,
     ProxyRequireHeader, RecordRouteHeader, ReplyToHeader, RequireHeader, RetryAfterHeader,
     RouteHeader, ServerHeader, SubjectHeader, SupportedHeader, TimestampHeader, ToHeader,
-    UnsupportedHeader,
+    UnsupportedHeader, UserAgentHeader,
 };
 
 macro_rules! headers {
@@ -127,6 +127,8 @@ headers! {
     (To, ToHeader),
     /// An Unsupported header.
     (Unsupported, UnsupportedHeader),
+    /// A User-Agent header.
+    (UserAgent, UserAgentHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }
@@ -179,6 +181,7 @@ mod parser {
         server_header::parser::server, subject_header::parser::subject,
         supported_header::parser::supported, timestamp_header::parser::timestamp,
         to_header::parser::to, unsupported_header::parser::unsupported,
+        user_agent_header::parser::user_agent,
     };
     use crate::{parser::ParserResult, Header};
     use nom::{branch::alt, error::context};
@@ -230,6 +233,7 @@ mod parser {
                     timestamp,
                     to,
                     unsupported,
+                    user_agent,
                     extension_header,
                 )),
             )),
