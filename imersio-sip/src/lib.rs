@@ -56,6 +56,7 @@ pub use crate::common::{
     server_value::{ServerValue, ServerValues},
     stale::Stale,
     status_code::StatusCode,
+    to_parameter::{ToParameter, ToParameters},
     version::Version,
 };
 pub use crate::error::Error;
@@ -77,7 +78,7 @@ pub use crate::headers::{
     record_route_header::RecordRouteHeader, reply_to_header::ReplyToHeader,
     require_header::RequireHeader, retry_after_header::RetryAfterHeader, route_header::RouteHeader,
     server_header::ServerHeader, subject_header::SubjectHeader, supported_header::SupportedHeader,
-    timestamp_header::TimestampHeader, Header,
+    timestamp_header::TimestampHeader, to_header::ToHeader, Header,
 };
 pub use crate::request::Request;
 pub use crate::response::Response;
