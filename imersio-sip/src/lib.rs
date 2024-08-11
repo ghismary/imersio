@@ -79,7 +79,7 @@ pub use crate::headers::{
     require_header::RequireHeader, retry_after_header::RetryAfterHeader, route_header::RouteHeader,
     server_header::ServerHeader, subject_header::SubjectHeader, supported_header::SupportedHeader,
     timestamp_header::TimestampHeader, to_header::ToHeader, unsupported_header::UnsupportedHeader,
-    user_agent_header::UserAgentHeader, Header,
+    user_agent_header::UserAgentHeader, www_authenticate_header::WWWAuthenticateHeader, Header,
 };
 pub use crate::request::Request;
 pub use crate::response::Response;

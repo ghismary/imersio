@@ -84,7 +84,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Algorithm, DomainUri, Header, ProxyAuthenticateHeader, Uri,
+        Algorithm, DomainUri, Header, MessageQop, ProxyAuthenticateHeader, Uri,
     };
     use claims::assert_ok;
 
@@ -117,7 +117,9 @@ mod tests {
                         .into()
                     )
                 );
-                // qop
+                assert!(challenge.has_qop());
+                assert_eq!(challenge.qop().unwrap().len(), 1);
+                assert_eq!(challenge.qop().unwrap().first().unwrap(), MessageQop::Auth);
                 assert!(challenge.has_nonce());
                 assert_eq!(challenge.nonce(), Some("f84f1cec41e6cbe5aea9c8e88d359"));
                 assert!(challenge.has_opaque());
@@ -191,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_authorization_header_inequality_with_different_parameter_values() {
+    fn test_proxy_authenticate_header_inequality_with_different_parameter_values() {
         header_inequality(
             r#"Proxy-Authenticate: Digest qop="auth""#,
             r#"Proxy-Authenticate: Digest qop="auth-int""#,

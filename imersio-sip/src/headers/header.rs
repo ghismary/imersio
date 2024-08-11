@@ -11,7 +11,7 @@ use crate::{
     OrganizationHeader, PriorityHeader, ProxyAuthenticateHeader, ProxyAuthorizationHeader,
     ProxyRequireHeader, RecordRouteHeader, ReplyToHeader, RequireHeader, RetryAfterHeader,
     RouteHeader, ServerHeader, SubjectHeader, SupportedHeader, TimestampHeader, ToHeader,
-    UnsupportedHeader, UserAgentHeader,
+    UnsupportedHeader, UserAgentHeader, WWWAuthenticateHeader,
 };
 
 macro_rules! headers {
@@ -129,6 +129,8 @@ headers! {
     (Unsupported, UnsupportedHeader),
     /// A User-Agent header.
     (UserAgent, UserAgentHeader),
+    /// A WWW-Authenticate header.
+    (WWWAuthenticate, WWWAuthenticateHeader),
     /// An extension header.
     (ExtensionHeader, GenericHeader),
 }
@@ -181,7 +183,7 @@ mod parser {
         server_header::parser::server, subject_header::parser::subject,
         supported_header::parser::supported, timestamp_header::parser::timestamp,
         to_header::parser::to, unsupported_header::parser::unsupported,
-        user_agent_header::parser::user_agent,
+        user_agent_header::parser::user_agent, www_authenticate_header::parser::www_authenticate,
     };
     use crate::{parser::ParserResult, Header};
     use nom::{branch::alt, error::context};
@@ -234,8 +236,8 @@ mod parser {
                     to,
                     unsupported,
                     user_agent,
-                    extension_header,
                 )),
+                alt((www_authenticate, extension_header)),
             )),
         )(input)
     }
