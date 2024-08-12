@@ -1,27 +1,11 @@
 //! TODO
 
-mod absolute_uri;
-mod host_port;
-pub(crate) mod parser;
-mod sip_uri;
-mod uri_headers;
-mod uri_parameters;
-mod uri_scheme;
-mod user_info;
+use crate::uris::parser;
+use crate::{AbsoluteUri, Error, Host, SipUri, UriHeaders, UriParameters, UriScheme};
+use nom::error::convert_error;
+use std::convert::TryFrom;
 
-pub use absolute_uri::AbsoluteUri;
-pub use host_port::HostPort;
-pub use sip_uri::SipUri;
-pub use uri_headers::UriHeaders;
-pub use uri_parameters::UriParameters;
-pub use uri_scheme::UriScheme;
-pub use user_info::UserInfo;
-
-use std::{hash::Hash, num::NonZeroU16};
-
-use crate::Error;
-
-/// Representation of an URI, whether a SIP URI or an absolute URI.
+/// Representation of a URI, whether a SIP URI or an absolute URI.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Uri {
     /// A sip: or sips: URI
@@ -65,7 +49,7 @@ impl Uri {
     }
 
     /// Get the `Scheme` of the URI.
-    pub fn get_scheme(&self) -> &UriScheme {
+    pub fn scheme(&self) -> &UriScheme {
         match self {
             Uri::Sip(uri) => uri.scheme(),
             Uri::Absolute(uri) => uri.scheme(),
@@ -73,7 +57,7 @@ impl Uri {
     }
 
     /// Get the user from the URI.
-    pub fn get_user(&self) -> Option<&str> {
+    pub fn user(&self) -> Option<&str> {
         match self {
             Uri::Sip(uri) => uri.userinfo().map(|ui| ui.get_user()),
             Uri::Absolute(_) => None,
@@ -81,7 +65,7 @@ impl Uri {
     }
 
     /// Get the password from the URI.
-    pub fn get_password(&self) -> Option<&str> {
+    pub fn password(&self) -> Option<&str> {
         match self {
             Uri::Sip(uri) => uri.userinfo().and_then(|ui| ui.get_password()),
             Uri::Absolute(_) => None,
@@ -89,23 +73,23 @@ impl Uri {
     }
 
     /// Get the host from the URI.
-    pub fn get_host(&self) -> &str {
+    pub fn host(&self) -> Option<&Host> {
         match self {
-            Uri::Sip(uri) => uri.hostport().get_host(),
-            Uri::Absolute(uri) => uri.opaque_part(),
+            Uri::Sip(uri) => Some(uri.host()),
+            Uri::Absolute(_) => None,
         }
     }
 
     /// Get the port from the URI.
-    pub fn get_port(&self) -> Option<NonZeroU16> {
+    pub fn port(&self) -> Option<u16> {
         match self {
-            Uri::Sip(uri) => uri.hostport().get_port(),
+            Uri::Sip(uri) => uri.port(),
             Uri::Absolute(_) => None,
         }
     }
 
     /// Get the `Parameters` of the URI.
-    pub fn get_parameters(&self) -> &UriParameters {
+    pub fn parameters(&self) -> &UriParameters {
         match self {
             Uri::Sip(uri) => uri.parameters(),
             Uri::Absolute(uri) => uri.parameters(),
@@ -113,7 +97,7 @@ impl Uri {
     }
 
     /// Get a parameter value of the URI given its name.
-    pub fn get_parameter(&self, name: &str) -> Option<&str> {
+    pub fn parameter(&self, name: &str) -> Option<&str> {
         match self {
             Uri::Sip(uri) => uri.parameters().get(name),
             Uri::Absolute(_) => None,
@@ -121,7 +105,7 @@ impl Uri {
     }
 
     /// Get the `Headers` of the URI.
-    pub fn get_headers(&self) -> &UriHeaders {
+    pub fn headers(&self) -> &UriHeaders {
         match self {
             Uri::Sip(uri) => uri.headers(),
             Uri::Absolute(uri) => uri.headers(),
@@ -129,7 +113,7 @@ impl Uri {
     }
 
     /// Get a header value of the URI given its name.
-    pub fn get_header(&self, name: &str) -> Option<&str> {
+    pub fn header(&self, name: &str) -> Option<&str> {
         match self {
             Uri::Sip(uri) => uri.headers().get(name),
             Uri::Absolute(_) => None,
@@ -154,7 +138,21 @@ impl TryFrom<&str> for Uri {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse_uri(value)
+        match parser::request_uri(value) {
+            Ok((rest, uri)) => {
+                if !rest.is_empty() {
+                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(uri)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(Error::InvalidUri(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                Err(Error::InvalidUri(format!("Incomplete uri `{}`", value)))
+            }
+        }
     }
 }
 
@@ -176,205 +174,221 @@ impl PartialEq<Uri> for &Uri {
     }
 }
 
-fn parse_uri(input: &str) -> Result<Uri, Error> {
-    match parser::request_uri(input) {
-        Ok((rest, uri)) => {
-            if !rest.is_empty() {
-                Err(Error::RemainingUnparsedData(rest.to_string()))
-            } else {
-                Ok(uri)
-            }
-        }
-        Err(e) => Err(Error::InvalidUri(e.to_string())),
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
     use claims::{assert_err, assert_ok};
+    use std::net::Ipv4Addr;
 
     #[test]
-    fn test_valid_uri_parsing() {
+    fn test_valid_sip_uri_without_parameters_and_without_headers() {
         let uri = Uri::try_from("sip:alice@atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert_eq!(uri.get_user(), Some("alice"));
-        assert!(uri.get_password().is_none());
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert!(uri.get_parameters().is_empty());
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.user(), Some("alice"));
+        assert!(uri.password().is_none());
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert!(uri.parameters().is_empty());
+        assert!(uri.headers().is_empty());
         assert_eq!(uri.to_string(), "sip:alice@atlanta.com");
+    }
 
+    #[test]
+    fn test_valid_sip_uri_with_parameter() {
         let uri = Uri::try_from("sip:alice:secretword@atlanta.com;transport=tcp");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert_eq!(uri.get_user(), Some("alice"));
-        assert_eq!(uri.get_password(), Some("secretword"));
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert_eq!(uri.get_parameters().len(), 1);
-        assert_eq!(uri.get_parameter("transport"), Some("tcp"));
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.user(), Some("alice"));
+        assert_eq!(uri.password(), Some("secretword"));
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert_eq!(uri.parameters().len(), 1);
+        assert_eq!(uri.parameter("transport"), Some("tcp"));
+        assert!(uri.headers().is_empty());
         assert_eq!(
             uri.to_string(),
             "sip:alice:secretword@atlanta.com;transport=tcp"
         );
+    }
 
+    #[test]
+    fn test_valid_sip_uri_with_headers() {
         let uri = Uri::try_from("sips:alice@atlanta.com?subject=project%20x&priority=urgent");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIPS);
-        assert_eq!(uri.get_user(), Some("alice"));
-        assert!(uri.get_password().is_none());
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert!(uri.get_parameters().is_empty());
-        assert_eq!(uri.get_headers().len(), 2);
-        assert_eq!(uri.get_header("subject"), Some("project x"));
-        assert_eq!(uri.get_header("priority"), Some("urgent"));
+        assert_eq!(uri.scheme(), UriScheme::SIPS);
+        assert_eq!(uri.user(), Some("alice"));
+        assert!(uri.password().is_none());
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert!(uri.parameters().is_empty());
+        assert_eq!(uri.headers().len(), 2);
+        assert_eq!(uri.header("subject"), Some("project x"));
+        assert_eq!(uri.header("priority"), Some("urgent"));
         assert_eq!(
             uri.to_string(),
             "sips:alice@atlanta.com?subject=project%20x&priority=urgent"
         );
+    }
 
+    #[test]
+    fn test_valid_sip_uri_with_password_and_parameter() {
         let uri = Uri::try_from("sip:+1-212-555-1212:1234@gateway.com;user=phone");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert_eq!(uri.get_user(), Some("+1-212-555-1212"));
-        assert_eq!(uri.get_password(), Some("1234"));
-        assert_eq!(uri.get_host(), "gateway.com");
-        assert!(uri.get_port().is_none());
-        assert_eq!(uri.get_parameters().len(), 1);
-        assert_eq!(uri.get_parameter("user"), Some("phone"));
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.user(), Some("+1-212-555-1212"));
+        assert_eq!(uri.password(), Some("1234"));
+        assert_eq!(uri.host(), Some(&Host::Name("gateway.com".to_string())));
+        assert!(uri.port().is_none());
+        assert_eq!(uri.parameters().len(), 1);
+        assert_eq!(uri.parameter("user"), Some("phone"));
+        assert!(uri.headers().is_empty());
         assert_eq!(
             uri.to_string(),
             "sip:+1-212-555-1212:1234@gateway.com;user=phone"
         );
+    }
 
+    #[test]
+    fn test_valid_sips_uri_without_parameters_and_without_headers() {
         let uri = Uri::try_from("sips:1212@gateway.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIPS);
-        assert_eq!(uri.get_user(), Some("1212"));
-        assert!(uri.get_password().is_none());
-        assert_eq!(uri.get_host(), "gateway.com");
-        assert!(uri.get_port().is_none());
-        assert!(uri.get_parameters().is_empty());
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIPS);
+        assert_eq!(uri.user(), Some("1212"));
+        assert!(uri.password().is_none());
+        assert_eq!(uri.host(), Some(&Host::Name("gateway.com".to_string())));
+        assert!(uri.port().is_none());
+        assert!(uri.parameters().is_empty());
+        assert!(uri.headers().is_empty());
         assert_eq!(uri.to_string(), "sips:1212@gateway.com");
+    }
 
+    #[test]
+    fn test_valid_sip_uri_with_ipv4_address() {
         let uri = Uri::try_from("sip:alice@192.0.2.4");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert_eq!(uri.get_user(), Some("alice"));
-        assert!(uri.get_password().is_none());
-        assert_eq!(uri.get_host(), "192.0.2.4");
-        assert!(uri.get_port().is_none());
-        assert!(uri.get_parameters().is_empty());
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.user(), Some("alice"));
+        assert!(uri.password().is_none());
+        assert_eq!(uri.host(), Some(&Host::Ipv4(Ipv4Addr::new(192, 0, 2, 4))));
+        assert!(uri.port().is_none());
+        assert!(uri.parameters().is_empty());
+        assert!(uri.headers().is_empty());
         assert_eq!(uri.to_string(), "sip:alice@192.0.2.4");
+    }
 
+    #[test]
+    fn test_valid_sip_uri_with_parameter_and_header() {
         let uri = Uri::try_from("sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert!(uri.get_user().is_none());
-        assert!(uri.get_password().is_none());
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert_eq!(uri.get_parameters().len(), 1);
-        assert_eq!(uri.get_parameter("method"), Some("REGISTER"));
-        assert_eq!(uri.get_headers().len(), 1);
-        assert_eq!(uri.get_header("to"), Some("alice@atlanta.com"));
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert!(uri.user().is_none());
+        assert!(uri.password().is_none());
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert_eq!(uri.parameters().len(), 1);
+        assert_eq!(uri.parameter("method"), Some("REGISTER"));
+        assert_eq!(uri.headers().len(), 1);
+        assert_eq!(uri.header("to"), Some("alice@atlanta.com"));
         assert_eq!(
             uri.to_string(),
             "sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com"
         );
+    }
 
+    #[test]
+    fn test_valid_sip_uri_without_username_and_with_parameter() {
         let uri = Uri::try_from("sip:alice;day=tuesday@atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert_eq!(uri.get_user(), Some("alice;day=tuesday"));
-        assert!(uri.get_password().is_none());
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert!(uri.get_parameters().is_empty());
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.user(), Some("alice;day=tuesday"));
+        assert!(uri.password().is_none());
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert!(uri.parameters().is_empty());
+        assert!(uri.headers().is_empty());
         assert_eq!(uri.to_string(), "sip:alice;day=tuesday@atlanta.com");
+    }
 
-        // Check escaped char in password.
+    #[test]
+    fn test_valid_sip_uri_with_escaped_character_in_password() {
         let uri = Uri::try_from("sip:alice:secret%77ord@atlanta.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert_eq!(uri.get_user(), Some("alice"));
-        assert_eq!(uri.get_password(), Some("secretword"));
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert!(uri.get_parameters().is_empty());
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.user(), Some("alice"));
+        assert_eq!(uri.password(), Some("secretword"));
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert!(uri.parameters().is_empty());
+        assert!(uri.headers().is_empty());
         assert_eq!(uri.to_string(), "sip:alice:secretword@atlanta.com");
+    }
 
+    #[test]
+    fn test_valid_sip_uri_with_escaped_characters_in_parameter() {
         // Check escaped chars in parameters.
         let uri = Uri::try_from("sip:alice:secretword@atlanta.com;%74ransport=t%63p");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert_eq!(uri.get_user(), Some("alice"));
-        assert_eq!(uri.get_password(), Some("secretword"));
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert_eq!(uri.get_parameters().len(), 1);
-        assert_eq!(uri.get_parameter("transport"), Some("tcp"));
-        assert!(uri.get_headers().is_empty());
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.user(), Some("alice"));
+        assert_eq!(uri.password(), Some("secretword"));
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert_eq!(uri.parameters().len(), 1);
+        assert_eq!(uri.parameter("transport"), Some("tcp"));
+        assert!(uri.headers().is_empty());
         assert_eq!(
             uri.to_string(),
             "sip:alice:secretword@atlanta.com;transport=tcp"
         );
+    }
 
-        // Check escaped chars in headers.
+    #[test]
+    fn test_valid_sip_uri_with_escaped_characters_in_header() {
         let uri = Uri::try_from("sip:atlanta.com;method=REGISTER?t%6f=al%69ce%40atlant%61.com");
         assert_ok!(&uri);
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.get_scheme(), UriScheme::SIP);
-        assert!(uri.get_user().is_none());
-        assert!(uri.get_password().is_none());
-        assert_eq!(uri.get_host(), "atlanta.com");
-        assert!(uri.get_port().is_none());
-        assert_eq!(uri.get_parameters().len(), 1);
-        assert_eq!(uri.get_parameter("method"), Some("REGISTER"));
-        assert_eq!(uri.get_headers().len(), 1);
-        assert_eq!(uri.get_header("to"), Some("alice@atlanta.com"));
+        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert!(uri.user().is_none());
+        assert!(uri.password().is_none());
+        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert!(uri.port().is_none());
+        assert_eq!(uri.parameters().len(), 1);
+        assert_eq!(uri.parameter("method"), Some("REGISTER"));
+        assert_eq!(uri.headers().len(), 1);
+        assert_eq!(uri.header("to"), Some("alice@atlanta.com"));
         assert_eq!(
             uri.to_string(),
             "sip:atlanta.com;method=REGISTER?to=alice%40atlanta.com"
@@ -382,49 +396,71 @@ mod test {
     }
 
     #[test]
-    fn test_invalid_uri_parsing() {
-        // Multiple parameters with the same name are not allowed.
-        let uri = Uri::try_from("sip:alice@atlanta.com;transport=tcp;transport=udp");
-        assert_err!(uri);
-
-        // Invalid IPv4 address.
-        let uri = Uri::try_from("sip:alice@1923.0.2.4");
-        assert_err!(uri);
-        let uri = Uri::try_from("sip:alice@192.0.329.18");
-        assert_err!(uri);
-
-        // Invalid multiple `@` characters.
-        let uri = Uri::try_from("sip:alice@atlanta.com@gateway.com");
-        assert_err!(uri);
+    fn test_invalid_sip_uri_multiple_parameters_with_the_same_name() {
+        assert_err!(Uri::try_from(
+            "sip:alice@atlanta.com;transport=tcp;transport=udp"
+        ));
     }
 
     #[test]
-    fn test_uris_equal() {
+    fn test_invalid_sip_uri_invalid_ipv4_address() {
+        assert_err!(Uri::try_from("sip:alice@1923.0.2.4"));
+    }
+
+    #[test]
+    fn test_invalid_sip_uri_invalid_ipv4_address_2() {
+        assert_err!(Uri::try_from("sip:alice@192.0.329.18"));
+    }
+
+    #[test]
+    fn test_invalid_sip_uri_multiple_at_characters() {
+        assert_err!(Uri::try_from("sip:alice@atlanta.com@gateway.com"));
+    }
+
+    #[test]
+    fn test_sip_uri_equality_case_differences() {
         assert_eq!(
             Uri::try_from("sip:%61lice@atlanta.com;transport=TCP").unwrap(),
             Uri::try_from("sip:alice@AtLanTa.CoM;Transport=tcp").unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_equality_one_with_a_parameter_the_other_without() {
         assert_eq!(
             Uri::try_from("sip:carol@chicago.com").unwrap(),
             Uri::try_from("sip:carol@chicago.com;newparam=5").unwrap()
         );
+    }
+
+    #[test]
+    fn test_sip_uri_equality_one_with_a_parameter_the_other_without_2() {
         assert_eq!(
             Uri::try_from("sip:carol@chicago.com").unwrap(),
             Uri::try_from("sip:carol@chicago.com;security=on").unwrap()
         );
+    }
+
+    #[test]
+    fn test_sip_uri_equality_different_parameters() {
         assert_eq!(
             Uri::try_from("sip:carol@chicago.com;newparam=5").unwrap(),
             Uri::try_from("sip:carol@chicago.com;security=on").unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_equality_same_parameters_in_different_order() {
         assert_eq!(
             Uri::try_from("sip:biloxi.com;transport=tcp;method=REGISTER?to=sip:bob%40biloxi.com")
                 .unwrap(),
             Uri::try_from("sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com")
                 .unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_equality_same_headers_in_different_order() {
         assert_eq!(
             Uri::try_from("sip:alice@atlanta.com?subject=project%20x&priority=urgent").unwrap(),
             Uri::try_from("sip:alice@atlanta.com?priority=urgent&subject=project%20x").unwrap()
@@ -432,32 +468,47 @@ mod test {
     }
 
     #[test]
-    fn test_uris_not_equal() {
+    fn test_sip_uri_inequality_different_cases() {
         assert_ne!(
             Uri::try_from("SIP:ALICE@AtLanTa.CoM;Transport=udp").unwrap(),
             Uri::try_from("sip:alice@AtLanTa.CoM;Transport=UDP").unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_inequality_one_with_a_port_the_other_without() {
         assert_ne!(
             Uri::try_from("sip:bob@biloxi.com").unwrap(),
             Uri::try_from("sip:bob@biloxi.com:5060").unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_inequality_one_with_transport_parameter_the_other_without() {
         assert_ne!(
             Uri::try_from("sip:bob@biloxi.com").unwrap(),
             Uri::try_from("sip:bob@biloxi.com;transport=udp").unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_inequality_one_with_transport_parameter_and_port_the_other_without() {
         assert_ne!(
             Uri::try_from("sip:bob@biloxi.com").unwrap(),
             Uri::try_from("sip:bob@biloxi.com:6000;transport=tcp").unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_inequality_one_with_subject_header_the_other_without() {
         assert_ne!(
             Uri::try_from("sip:carol@chicago.com").unwrap(),
             Uri::try_from("sip:carol@chicago.com?Subject=next%20meeting").unwrap()
         );
+    }
 
+    #[test]
+    fn test_sip_uri_inequality_one_with_hostname_the_other_with_ipv4_address() {
         assert_ne!(
             Uri::try_from("sip:bob@phone21.boxesbybob.com").unwrap(),
             Uri::try_from("sip:bob@192.0.2.4").unwrap()

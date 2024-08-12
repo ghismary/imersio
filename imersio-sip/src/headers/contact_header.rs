@@ -114,7 +114,7 @@ mod tests {
                     first_contact.address().uri(),
                     Uri::try_from("sip:watson@worcester.bell-telephone.com").unwrap()
                 );
-                assert!(first_contact.address().uri().get_parameters().is_empty());
+                assert!(first_contact.address().uri().parameters().is_empty());
                 assert_eq!(first_contact.parameters().len(), 2);
                 assert!((first_contact.q().unwrap() - 0.7).abs() < 0.01);
                 assert_eq!(first_contact.expires().unwrap(), 3600);
@@ -124,7 +124,7 @@ mod tests {
                     second_contact.address().uri(),
                     Uri::try_from("mailto:watson@bell-telephone.com").unwrap()
                 );
-                assert!(second_contact.address().uri().get_parameters().is_empty());
+                assert!(second_contact.address().uri().parameters().is_empty());
                 assert_eq!(second_contact.parameters().len(), 1);
                 assert!((second_contact.q().unwrap() - 0.1).abs() < 0.01);
             },

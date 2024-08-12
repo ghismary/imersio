@@ -1,19 +1,17 @@
-use std::num::NonZeroU16;
-
 use crate::{
     parser::{
         alpha, digit, escaped, hex_digit, is_reserved, is_unreserved, reserved, take1, token, ttl,
         unreserved, ParserResult,
     },
     utils::has_unique_elements,
-    AbsoluteUri, HostPort, Uri, UriHeaders, UriParameters, UserInfo,
+    AbsoluteUri, Host, Uri, UriHeaders, UriParameters, UserInfo,
 };
 
+use nom::sequence::delimited;
 use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case},
-    character::complete::digit1,
-    combinator::{cut, map, map_opt, opt, recognize, verify},
+    combinator::{cut, map, opt, recognize, verify},
     error::context,
     multi::{many0, many1, many_m_n, separated_list1},
     sequence::{pair, preceded, separated_pair, tuple},
@@ -101,14 +99,17 @@ fn is_valid_hostname(input: &str) -> bool {
         .is_some_and(|label| label.as_bytes()[0].is_ascii_alphabetic())
 }
 
-fn hostname(input: &str) -> ParserResult<&str, &str> {
+fn hostname(input: &str) -> ParserResult<&str, Host> {
     context(
         "hostname",
-        verify(
-            recognize(many1(verify(take1, |c| {
-                c.is_ascii_alphanumeric() || "-.".contains(*c)
-            }))),
-            is_valid_hostname,
+        map(
+            verify(
+                recognize(many1(verify(take1, |c| {
+                    c.is_ascii_alphanumeric() || "-.".contains(*c)
+                }))),
+                is_valid_hostname,
+            ),
+            |name| Host::Name(name.into()),
         ),
     )(input)
 }
@@ -122,18 +123,21 @@ fn ipv4_address_number(input: &str) -> ParserResult<&str, &str> {
     recognize(many_m_n(1, 3, digit))(input)
 }
 
-fn ipv4_address(input: &str) -> ParserResult<&str, &str> {
+fn ipv4_address(input: &str) -> ParserResult<&str, Host> {
     context(
         "ipv4_address",
-        recognize(tuple((
-            verify(ipv4_address_number, is_valid_ipv4_address_number),
-            tag("."),
-            verify(ipv4_address_number, is_valid_ipv4_address_number),
-            tag("."),
-            verify(ipv4_address_number, is_valid_ipv4_address_number),
-            tag("."),
-            verify(ipv4_address_number, is_valid_ipv4_address_number),
-        ))),
+        map(
+            recognize(tuple((
+                verify(ipv4_address_number, is_valid_ipv4_address_number),
+                tag("."),
+                verify(ipv4_address_number, is_valid_ipv4_address_number),
+                tag("."),
+                verify(ipv4_address_number, is_valid_ipv4_address_number),
+                tag("."),
+                verify(ipv4_address_number, is_valid_ipv4_address_number),
+            ))),
+            |ipv4| Host::Ipv4(ipv4.parse().unwrap()),
+        ),
     )(input)
 }
 
@@ -153,36 +157,36 @@ fn hexpart(input: &str) -> ParserResult<&str, &str> {
     )))(input)
 }
 
-fn ipv6_address(input: &str) -> ParserResult<&str, &str> {
+fn ipv6_address(input: &str) -> ParserResult<&str, Host> {
     context(
         "ipv6_address",
-        recognize(pair(hexpart, opt(pair(tag(":"), ipv4_address)))),
+        map(
+            recognize(pair(hexpart, opt(pair(tag(":"), ipv4_address)))),
+            |ipv6| Host::Ipv6(ipv6.parse().unwrap()),
+        ),
     )(input)
 }
 
-fn ipv6_reference(input: &str) -> ParserResult<&str, &str> {
+fn ipv6_reference(input: &str) -> ParserResult<&str, Host> {
     context(
         "ipv6_reference",
-        recognize(tuple((tag("["), ipv6_address, tag("]")))),
+        delimited(tag("["), ipv6_address, tag("]")),
     )(input)
 }
 
-pub(crate) fn host(input: &str) -> ParserResult<&str, &str> {
+pub(crate) fn host(input: &str) -> ParserResult<&str, Host> {
     context("host", alt((hostname, ipv4_address, ipv6_reference)))(input)
 }
 
-fn port(input: &str) -> ParserResult<&str, NonZeroU16> {
-    let mut port_u16 = map_opt(digit1, |s: &str| s.as_bytes().parse_to());
-    port_u16(input)
+fn port(input: &str) -> ParserResult<&str, u16> {
+    context(
+        "port",
+        map(recognize(many1(digit)), |digits| digits.parse_to().unwrap()),
+    )(input)
 }
 
-fn hostport(input: &str) -> ParserResult<&str, HostPort> {
-    context(
-        "hostport",
-        map(pair(host, opt(preceded(tag(":"), port))), |(host, port)| {
-            HostPort::new(host, port)
-        }),
-    )(input)
+fn hostport(input: &str) -> ParserResult<&str, (Host, Option<u16>)> {
+    context("hostport", pair(host, opt(preceded(tag(":"), port))))(input)
 }
 
 fn transport_param(input: &str) -> ParserResult<&str, (String, String)> {
@@ -368,11 +372,12 @@ pub(crate) fn sip_uri(input: &str) -> ParserResult<&str, Uri> {
                     opt(headers),
                 ))),
             ),
-            |(scheme, (userinfo, hostport, parameters, headers))| {
+            |(scheme, (userinfo, (host, port), parameters, headers))| {
                 Uri::Sip(SipUri::new(
                     scheme,
                     userinfo,
-                    hostport,
+                    host,
+                    port,
                     parameters,
                     headers.unwrap_or_default(),
                 ))

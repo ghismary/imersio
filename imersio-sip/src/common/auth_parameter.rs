@@ -196,7 +196,7 @@ pub(crate) mod parser {
     };
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{comma, equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult};
-    use crate::uri::parser::request_uri;
+    use crate::uris::parser::request_uri;
     use crate::{Algorithm, AuthParameter, AuthParameters, Uri};
     use nom::{
         branch::alt,

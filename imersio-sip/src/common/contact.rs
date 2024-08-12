@@ -138,7 +138,7 @@ pub(crate) mod parser {
     use crate::common::contact_parameter::parser::contact_params;
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{laquot, lws, quoted_string, raquot, semi, token, ParserResult};
-    use crate::uri::parser::{absolute_uri, sip_uri};
+    use crate::uris::parser::{absolute_uri, sip_uri};
     use crate::{Contact, NameAddress, Uri};
     use nom::{
         branch::alt,

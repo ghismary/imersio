@@ -107,11 +107,11 @@ impl Hash for GenericParameter {
 pub(crate) mod parser {
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{equal, quoted_string, token, ParserResult};
-    use crate::uri::parser::host;
+    use crate::uris::parser::host;
     use crate::GenericParameter;
     use nom::{
         branch::alt,
-        combinator::{map, opt},
+        combinator::{map, opt, recognize},
         error::context,
         sequence::{pair, preceded},
     };
@@ -121,7 +121,7 @@ pub(crate) mod parser {
             "gen_value",
             alt((
                 map(token, WrappedString::new_not_wrapped),
-                map(host, WrappedString::new_not_wrapped),
+                map(recognize(host), WrappedString::new_not_wrapped),
                 quoted_string,
             )),
         )(input)

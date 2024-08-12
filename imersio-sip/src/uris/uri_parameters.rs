@@ -1,8 +1,11 @@
+//! TODO
+
 use std::{hash::Hash, ops::Deref};
 
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{parser::is_unreserved, uri::parser::is_param_unreserved, utils::escape};
+use crate::uris::parser::is_param_unreserved;
+use crate::{parser::is_unreserved, utils::escape};
 
 /// Representation of an URI parameter list.
 #[derive(Clone, Debug, Default, Eq, PartialEqRefs)]

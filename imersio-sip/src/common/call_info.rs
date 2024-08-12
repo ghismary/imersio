@@ -77,7 +77,7 @@ impl Hash for CallInfo {
 pub(crate) mod parser {
     use crate::common::call_info_parameter::parser::info_param;
     use crate::parser::{laquot, raquot, semi, ParserResult};
-    use crate::uri::parser::absolute_uri;
+    use crate::uris::parser::absolute_uri;
     use crate::CallInfo;
     use nom::{
         combinator::map,

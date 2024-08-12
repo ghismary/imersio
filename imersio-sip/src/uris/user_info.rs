@@ -1,10 +1,9 @@
+//! TODO
+
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{
-    parser::is_unreserved,
-    uri::parser::{is_password_special_char, is_user_unreserved},
-    utils::escape,
-};
+use crate::uris::parser::{is_password_special_char, is_user_unreserved};
+use crate::{parser::is_unreserved, utils::escape};
 
 /// Representation of an userinfo of a SIP URI.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, PartialEqRefs)]

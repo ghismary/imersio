@@ -1,13 +1,16 @@
+//! TODO
+
 use partial_eq_refs::PartialEqRefs;
 
-use crate::{HostPort, UriHeaders, UriParameters, UriScheme, UserInfo};
+use crate::{Host, UriHeaders, UriParameters, UriScheme, UserInfo};
 
 /// Representation of a SIP URI.
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq, PartialEqRefs)]
 pub struct SipUri {
     scheme: UriScheme,
     userinfo: Option<UserInfo>,
-    hostport: HostPort,
+    host: Host,
+    port: Option<u16>,
     parameters: UriParameters,
     headers: UriHeaders,
 }
@@ -16,14 +19,16 @@ impl SipUri {
     pub(crate) fn new(
         scheme: UriScheme,
         userinfo: Option<UserInfo>,
-        hostport: HostPort,
+        host: Host,
+        port: Option<u16>,
         parameters: UriParameters,
         headers: UriHeaders,
     ) -> Self {
         Self {
             scheme,
             userinfo,
-            hostport,
+            host,
+            port,
             parameters,
             headers,
         }
@@ -39,9 +44,14 @@ impl SipUri {
         self.userinfo.as_ref()
     }
 
-    /// Get a reference to the `HostPort` of the sip uri.
-    pub fn hostport(&self) -> &HostPort {
-        &self.hostport
+    /// Get a reference to the `Host` of the sip uri.
+    pub fn host(&self) -> &Host {
+        &self.host
+    }
+
+    /// Get the port of the sip uri.
+    pub fn port(&self) -> Option<u16> {
+        self.port
     }
 
     /// Get a reference to the `UriParameters` of the sip uri.
@@ -59,7 +69,7 @@ impl std::fmt::Display for SipUri {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}:{}{}{}{}{}{}{}",
+            "{}:{}{}{}{}{}{}{}{}{}",
             self.scheme,
             if let Some(userinfo) = &self.userinfo {
                 format!("{}", userinfo)
@@ -67,7 +77,9 @@ impl std::fmt::Display for SipUri {
                 "".to_owned()
             },
             if self.userinfo.is_some() { "@" } else { "" },
-            self.hostport,
+            self.host,
+            if self.port.is_some() { ":" } else { "" },
+            self.port.map(|p| p.to_string()).unwrap_or_default(),
             if self.parameters.is_empty() { "" } else { ";" },
             self.parameters,
             if self.headers.is_empty() { "" } else { "?" },

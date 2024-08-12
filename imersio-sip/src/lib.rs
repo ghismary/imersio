@@ -7,7 +7,7 @@
 pub mod headers;
 pub mod request;
 pub mod response;
-pub mod uri;
+pub mod uris;
 
 mod common;
 mod error;
@@ -83,6 +83,7 @@ pub use crate::headers::{
 };
 pub use crate::request::Request;
 pub use crate::response::Response;
-pub use crate::uri::{
-    AbsoluteUri, HostPort, SipUri, Uri, UriHeaders, UriParameters, UriScheme, UserInfo,
+pub use crate::uris::{
+    absolute_uri::AbsoluteUri, host::Host, sip_uri::SipUri, uri::Uri, uri_headers::UriHeaders,
+    uri_parameters::UriParameters, uri_scheme::UriScheme, user_info::UserInfo,
 };

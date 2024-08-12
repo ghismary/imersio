@@ -1,3 +1,5 @@
+//! TODO
+
 use std::hash::Hash;
 
 /// Representation of the scheme of an URI.

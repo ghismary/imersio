@@ -247,7 +247,7 @@ mod parser {
     use crate::{
         common::{method::parser::method, version::parser::sip_version},
         parser::{sp, ParserResult},
-        uri::parser::request_uri,
+        uris::parser::request_uri,
     };
     use nom::{
         character::complete::crlf,
