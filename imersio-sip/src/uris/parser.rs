@@ -193,7 +193,7 @@ pub(crate) fn port(input: &str) -> ParserResult<&str, u16> {
     )(input)
 }
 
-fn hostport(input: &str) -> ParserResult<&str, (Host, Option<u16>)> {
+pub(crate) fn hostport(input: &str) -> ParserResult<&str, (Host, Option<u16>)> {
     context("hostport", pair(host, opt(preceded(tag(":"), port))))(input)
 }
 

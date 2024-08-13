@@ -45,6 +45,7 @@ pub mod to_header;
 pub mod unsupported_header;
 pub mod user_agent_header;
 pub mod via_header;
+pub mod warning_header;
 pub mod www_authenticate_header;
 
 #[cfg(test)]

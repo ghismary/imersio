@@ -42,6 +42,12 @@ pub enum Error {
     /// Invalid SIP version.
     #[error("invalid sip version")]
     InvalidVersion(String),
+    /// Invalid warning code.
+    #[error("invalid warning code")]
+    InvalidWarnCode(String),
+    /// Invalid warning agent.
+    #[error("invalid warning agent")]
+    InvalidWarnAgent(String),
     /// Remaining unparsed data.
     #[error("remaining unparsed data")]
     RemainingUnparsedData(String),

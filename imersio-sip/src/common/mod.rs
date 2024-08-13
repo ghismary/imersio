@@ -46,4 +46,7 @@ pub mod value_collection;
 pub mod version;
 pub mod via;
 pub mod via_parameter;
+pub mod warn_agent;
+pub mod warn_code;
+pub mod warning_value;
 pub mod wrapped_string;

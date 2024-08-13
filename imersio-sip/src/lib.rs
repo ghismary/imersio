@@ -62,6 +62,8 @@ pub use crate::common::{
     version::Version,
     via::{Via, Vias},
     via_parameter::ViaParameter,
+    warn_agent::WarnAgent,
+    warning_value::{WarningValue, WarningValues},
 };
 pub use crate::error::Error;
 pub use crate::headers::{
@@ -83,7 +85,7 @@ pub use crate::headers::{
     require_header::RequireHeader, retry_after_header::RetryAfterHeader, route_header::RouteHeader,
     server_header::ServerHeader, subject_header::SubjectHeader, supported_header::SupportedHeader,
     timestamp_header::TimestampHeader, to_header::ToHeader, unsupported_header::UnsupportedHeader,
-    user_agent_header::UserAgentHeader, via_header::ViaHeader,
+    user_agent_header::UserAgentHeader, via_header::ViaHeader, warning_header::WarningHeader,
     www_authenticate_header::WWWAuthenticateHeader, Header,
 };
 pub use crate::request::Request;
