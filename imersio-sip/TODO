@@ -25,3 +25,4 @@
 
  - Add trait for parameters?
  - Add enum for wildcard content encoding
+ - Review uri parameters

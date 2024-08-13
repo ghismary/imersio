@@ -50,6 +50,7 @@ pub use crate::common::{
     option_tag::{OptionTag, OptionTags},
     priority::Priority,
     product::Product,
+    protocol::Protocol,
     reason::Reason,
     retry_parameter::RetryParameter,
     route::{Route, Routes},
@@ -57,7 +58,10 @@ pub use crate::common::{
     stale::Stale,
     status_code::StatusCode,
     to_parameter::{ToParameter, ToParameters},
+    transport::Transport,
     version::Version,
+    via::{Via, Vias},
+    via_parameter::ViaParameter,
 };
 pub use crate::error::Error;
 pub use crate::headers::{
@@ -79,7 +83,8 @@ pub use crate::headers::{
     require_header::RequireHeader, retry_after_header::RetryAfterHeader, route_header::RouteHeader,
     server_header::ServerHeader, subject_header::SubjectHeader, supported_header::SupportedHeader,
     timestamp_header::TimestampHeader, to_header::ToHeader, unsupported_header::UnsupportedHeader,
-    user_agent_header::UserAgentHeader, www_authenticate_header::WWWAuthenticateHeader, Header,
+    user_agent_header::UserAgentHeader, via_header::ViaHeader,
+    www_authenticate_header::WWWAuthenticateHeader, Header,
 };
 pub use crate::request::Request;
 pub use crate::response::Response;

@@ -6,6 +6,7 @@ use crate::{
     utils::has_unique_elements,
     AbsoluteUri, Host, Uri, UriHeaders, UriParameters, UserInfo,
 };
+use std::net::IpAddr;
 
 use nom::sequence::delimited;
 use nom::{
@@ -123,7 +124,7 @@ fn ipv4_address_number(input: &str) -> ParserResult<&str, &str> {
     recognize(many_m_n(1, 3, digit))(input)
 }
 
-fn ipv4_address(input: &str) -> ParserResult<&str, Host> {
+pub(crate) fn ipv4_address(input: &str) -> ParserResult<&str, IpAddr> {
     context(
         "ipv4_address",
         map(
@@ -136,7 +137,7 @@ fn ipv4_address(input: &str) -> ParserResult<&str, Host> {
                 tag("."),
                 verify(ipv4_address_number, is_valid_ipv4_address_number),
             ))),
-            |ipv4| Host::Ipv4(ipv4.parse().unwrap()),
+            |ipv4| ipv4.parse().unwrap(),
         ),
     )(input)
 }
@@ -157,17 +158,17 @@ fn hexpart(input: &str) -> ParserResult<&str, &str> {
     )))(input)
 }
 
-fn ipv6_address(input: &str) -> ParserResult<&str, Host> {
+pub(crate) fn ipv6_address(input: &str) -> ParserResult<&str, IpAddr> {
     context(
         "ipv6_address",
         map(
             recognize(pair(hexpart, opt(pair(tag(":"), ipv4_address)))),
-            |ipv6| Host::Ipv6(ipv6.parse().unwrap()),
+            |ipv6| ipv6.parse().unwrap(),
         ),
     )(input)
 }
 
-fn ipv6_reference(input: &str) -> ParserResult<&str, Host> {
+fn ipv6_reference(input: &str) -> ParserResult<&str, IpAddr> {
     context(
         "ipv6_reference",
         delimited(tag("["), ipv6_address, tag("]")),
@@ -175,10 +176,17 @@ fn ipv6_reference(input: &str) -> ParserResult<&str, Host> {
 }
 
 pub(crate) fn host(input: &str) -> ParserResult<&str, Host> {
-    context("host", alt((hostname, ipv4_address, ipv6_reference)))(input)
+    context(
+        "host",
+        alt((
+            hostname,
+            map(ipv4_address, Host::Ip),
+            map(ipv6_reference, Host::Ip),
+        )),
+    )(input)
 }
 
-fn port(input: &str) -> ParserResult<&str, u16> {
+pub(crate) fn port(input: &str) -> ParserResult<&str, u16> {
     context(
         "port",
         map(recognize(many1(digit)), |digits| digits.parse_to().unwrap()),

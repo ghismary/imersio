@@ -69,6 +69,10 @@ pub(crate) fn hcolon(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((many0(alt((sp, tab))), tag(":"), sws)))(input)
 }
 
+pub(crate) fn colon(input: &str) -> ParserResult<&str, &str> {
+    recognize(tuple((sws, tag(":"), sws)))(input)
+}
+
 pub(crate) fn comma(input: &str) -> ParserResult<&str, &str> {
     recognize(tuple((sws, tag(","), sws)))(input)
 }

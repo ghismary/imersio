@@ -178,7 +178,7 @@ impl PartialEq<Uri> for &Uri {
 mod test {
     use super::*;
     use claims::{assert_err, assert_ok};
-    use std::net::Ipv4Addr;
+    use std::net::{IpAddr, Ipv4Addr};
 
     #[test]
     fn test_valid_sip_uri_without_parameters_and_without_headers() {
@@ -288,7 +288,10 @@ mod test {
         assert_eq!(uri.scheme(), UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert!(uri.password().is_none());
-        assert_eq!(uri.host(), Some(&Host::Ipv4(Ipv4Addr::new(192, 0, 2, 4))));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Ip(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 4))))
+        );
         assert!(uri.port().is_none());
         assert!(uri.parameters().is_empty());
         assert!(uri.headers().is_empty());

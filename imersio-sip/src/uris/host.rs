@@ -2,7 +2,7 @@
 
 use derive_more::IsVariant;
 use std::hash::Hash;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::IpAddr;
 
 use partial_eq_refs::PartialEqRefs;
 
@@ -11,10 +11,8 @@ use partial_eq_refs::PartialEqRefs;
 pub enum Host {
     /// A hostname
     Name(String),
-    /// An Ipv4 address.
-    Ipv4(Ipv4Addr),
-    /// An Ipv6 address.
-    Ipv6(Ipv6Addr),
+    /// An Ip address.
+    Ip(IpAddr),
 }
 
 impl Host {
@@ -26,18 +24,10 @@ impl Host {
         }
     }
 
-    /// Get the ipv4 of the `Host` if it is one.
-    pub fn ipv4(&self) -> Option<&Ipv4Addr> {
+    /// Get the ip of the `Host` if it is one.
+    pub fn ip(&self) -> Option<&IpAddr> {
         match self {
-            Self::Ipv4(ipv4) => Some(ipv4),
-            _ => None,
-        }
-    }
-
-    /// Get the ipv6 of the `Host` if it is one.
-    pub fn ipv6(&self) -> Option<&Ipv6Addr> {
-        match self {
-            Self::Ipv6(ipv6) => Some(ipv6),
+            Self::Ip(ip) => Some(ip),
             _ => None,
         }
     }
@@ -50,8 +40,7 @@ impl std::fmt::Display for Host {
             "{}",
             match self {
                 Self::Name(name) => name.clone(),
-                Self::Ipv4(ipv4) => ipv4.to_string(),
-                Self::Ipv6(ipv6) => ipv6.to_string(),
+                Self::Ip(ip) => ip.to_string(),
             }
         )
     }
@@ -67,8 +56,7 @@ impl PartialEq for Host {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Name(a), Self::Name(b)) => a.eq_ignore_ascii_case(b),
-            (Self::Ipv4(a), Self::Ipv4(b)) => a == b,
-            (Self::Ipv6(a), Self::Ipv6(b)) => a == b,
+            (Self::Ip(a), Self::Ip(b)) => a == b,
             _ => false,
         }
     }
@@ -78,8 +66,7 @@ impl Hash for Host {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             Self::Name(name) => name.to_ascii_lowercase().hash(state),
-            Self::Ipv4(ipv4) => ipv4.hash(state),
-            Self::Ipv6(ipv6) => ipv6.hash(state),
+            Self::Ip(ip) => ip.hash(state),
         }
     }
 }
