@@ -21,7 +21,7 @@ pub mod error_info_header;
 pub mod expires_header;
 pub mod from_header;
 mod generic_header;
-mod header;
+pub mod header;
 mod header_accessor;
 pub mod in_reply_to_header;
 pub mod max_forwards_header;

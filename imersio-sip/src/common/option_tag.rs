@@ -23,6 +23,11 @@ impl OptionTag {
     pub(crate) fn new<S: Into<String>>(tag: S) -> Self {
         Self(tag.into())
     }
+
+    /// Get the value of the option tag.
+    pub fn value(&self) -> &str {
+        &self.0
+    }
 }
 
 impl PartialEq for OptionTag {

@@ -1,3 +1,5 @@
+//! TODO
+
 use nom::error::convert_error;
 use std::convert::TryFrom;
 
@@ -22,7 +24,7 @@ macro_rules! headers {
         )+
     ) => {
         /// Representation of a SIP message header.
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         pub enum Header {
             $(
                 $(#[$docs])*
@@ -162,7 +164,7 @@ impl TryFrom<&str> for Header {
     }
 }
 
-mod parser {
+pub(crate) mod parser {
     use crate::headers::{
         accept_encoding_header::parser::accept_encoding, accept_header::parser::accept,
         accept_language_header::parser::accept_language, alert_info_header::parser::alert_info,
@@ -193,7 +195,7 @@ mod parser {
     use crate::{parser::ParserResult, Header};
     use nom::{branch::alt, error::context};
 
-    pub(super) fn message_header(input: &str) -> ParserResult<&str, Header> {
+    pub(crate) fn message_header(input: &str) -> ParserResult<&str, Header> {
         context(
             "message_header",
             alt((

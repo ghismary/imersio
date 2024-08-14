@@ -4,14 +4,12 @@
 
 #![deny(warnings, missing_docs, missing_debug_implementations)]
 
-pub mod headers;
-pub mod request;
-pub mod response;
-pub mod uris;
-
 mod common;
 mod error;
+pub mod headers;
+mod messages;
 mod parser;
+mod uris;
 mod utils;
 
 pub use bytes::Bytes;
@@ -88,8 +86,7 @@ pub use crate::headers::{
     user_agent_header::UserAgentHeader, via_header::ViaHeader, warning_header::WarningHeader,
     www_authenticate_header::WWWAuthenticateHeader, Header,
 };
-pub use crate::request::Request;
-pub use crate::response::Response;
+pub use crate::messages::{message::Message, request::Request, response::Response};
 pub use crate::uris::{
     absolute_uri::AbsoluteUri, host::Host, sip_uri::SipUri, uri::Uri, uri_headers::UriHeaders,
     uri_parameters::UriParameters, uri_scheme::UriScheme, user_info::UserInfo,

@@ -8,7 +8,7 @@ use crate::{Error, StatusCode};
 
 /// A SIP response reason, the combination of the `StatusCode` and the reason
 /// phrase.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct Reason {
     status: StatusCode,
     phrase: Cow<'static, str>,

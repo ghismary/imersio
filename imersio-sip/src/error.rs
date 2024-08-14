@@ -15,6 +15,9 @@ pub enum Error {
     /// Invalid content language.
     #[error("invalid content language")]
     InvalidContentLanguage(String),
+    /// Invalid message.
+    #[error("invalid message")]
+    InvalidMessage(String),
     /// Invalid message header.
     #[error("invalid message header")]
     InvalidMessageHeader(String),
