@@ -13,7 +13,7 @@ use crate::{ErrorUri, ErrorUris};
 /// response.
 /// [[RFC3261, Section 20.18](https://datatracker.ietf.org/doc/html/rfc3261#section-20.18)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct ErrorInfoHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

@@ -15,7 +15,7 @@ use crate::{OptionTag, OptionTags};
 ///
 /// [[RFC3261, Section 20.32](https://datatracker.ietf.org/doc/html/rfc3261#section-20.32)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct RequireHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

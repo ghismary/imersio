@@ -20,7 +20,7 @@ use crate::RetryParameter;
 ///
 /// [[RFC3261, Section 20.33](https://datatracker.ietf.org/doc/html/rfc3261#section-20.33)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct RetryAfterHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

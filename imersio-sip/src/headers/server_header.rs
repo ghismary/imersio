@@ -14,7 +14,7 @@ use crate::{ServerValue, ServerValues};
 ///
 /// [[RFC3261, Section 20.35](https://datatracker.ietf.org/doc/html/rfc3261#section-20.35)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct ServerHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

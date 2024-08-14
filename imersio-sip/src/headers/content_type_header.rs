@@ -17,7 +17,7 @@ use crate::MediaType;
 ///
 /// [[RFC3261, Section 20.15](https://datatracker.ietf.org/doc/html/rfc3261#section-20.15)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct ContentTypeHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

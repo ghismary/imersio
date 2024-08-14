@@ -16,7 +16,7 @@ pub type OptionTags = ValueCollection<OptionTag>;
 /// Representation of an option tag contained in a `Proxy-Require`, `Require`, `Supported` or
 /// `Unsupported` header.
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
-#[display(fmt = "{}", "self.0.to_ascii_lowercase()")]
+#[display("{}", self.0.to_ascii_lowercase())]
 pub struct OptionTag(String);
 
 impl OptionTag {

@@ -13,7 +13,7 @@ use crate::{Route, Routes};
 ///
 /// [[RFC3261, Section 20.34](https://datatracker.ietf.org/doc/html/rfc3261#section-20.34)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct RouteHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

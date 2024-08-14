@@ -5,7 +5,6 @@ use itertools::{join, Itertools};
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
-use std::ops::Deref;
 
 use crate::utils::compare_vectors;
 

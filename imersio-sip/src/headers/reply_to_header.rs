@@ -16,7 +16,7 @@ use crate::{GenericParameter, GenericParameters, NameAddress};
 ///
 /// [[RFC3261, Section 20.31](https://datatracker.ietf.org/doc/html/rfc3261#section-20.31)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct ReplyToHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

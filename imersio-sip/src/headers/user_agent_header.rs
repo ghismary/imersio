@@ -17,7 +17,7 @@ use crate::{ServerValue, ServerValues};
 ///
 /// [[RFC3261, Section 20.41](https://datatracker.ietf.org/doc/html/rfc3261#section-20.41)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct UserAgentHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

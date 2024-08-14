@@ -16,7 +16,7 @@ use crate::{CallInfo, CallInfos};
 ///
 /// [[RFC3261, Section 20.9](https://datatracker.ietf.org/doc/html/rfc3261#section-20.9)]
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct CallInfoHeader {
     header: GenericHeader,
     infos: CallInfos,

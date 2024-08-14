@@ -13,7 +13,7 @@ use crate::{OptionTag, OptionTags};
 ///
 /// [[RFC3261, Section 20.40](https://datatracker.ietf.org/doc/html/rfc3261#section-20.40)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct UnsupportedHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

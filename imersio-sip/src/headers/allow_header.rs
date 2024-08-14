@@ -14,7 +14,7 @@ use crate::{Method, Methods};
 ///
 /// [[RFC3261, Section 20.5](https://datatracker.ietf.org/doc/html/rfc3261#section-20.5)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct AllowHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

@@ -17,7 +17,7 @@ use crate::{DispositionParameter, DispositionType};
 ///
 /// [[RFC3261, Section 20.11](https://datatracker.ietf.org/doc/html/rfc3261#section-20.11)]
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct ContentDispositionHeader {
     header: GenericHeader,
     r#type: DispositionType,

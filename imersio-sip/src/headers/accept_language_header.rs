@@ -17,7 +17,7 @@ use crate::{AcceptLanguage, AcceptLanguages};
 ///
 /// [[RFC3261, Section 20.3](https://datatracker.ietf.org/doc/html/rfc3261#section-20.3)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct AcceptLanguageHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

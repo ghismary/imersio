@@ -22,7 +22,7 @@ use crate::Priority;
 ///
 /// [[RFC3261, Section 20.26](https://datatracker.ietf.org/doc/html/rfc3261#section-20.26)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct PriorityHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

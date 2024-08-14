@@ -15,7 +15,7 @@ use crate::{CallId, CallIds};
 ///
 /// [[RFC3261, Section 20.21](https://datatracker.ietf.org/doc/html/rfc3261#section-20.21)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct InReplyToHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

@@ -1,6 +1,6 @@
 use derive_more::Deref;
 use itertools::join;
-use std::{hash::Hash, ops::Deref};
+use std::hash::Hash;
 
 use crate::utils::compare_vectors;
 

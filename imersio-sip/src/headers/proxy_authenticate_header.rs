@@ -13,7 +13,7 @@ use crate::Challenge;
 ///
 /// [[RFC3261, Section 20.27](https://datatracker.ietf.org/doc/html/rfc3261#section-20.27)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct ProxyAuthenticateHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

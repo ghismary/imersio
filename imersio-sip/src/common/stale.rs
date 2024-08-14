@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 
 /// Representation of a stale parameter.
 #[derive(Debug, Clone, Deref, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", str_value)]
+#[display("{}", str_value)]
 pub struct Stale {
     #[partial_eq_ignore]
     str_value: String,

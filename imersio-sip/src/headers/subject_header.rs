@@ -14,7 +14,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 ///
 /// [[RFC3261, Section 20.36](https://datatracker.ietf.org/doc/html/rfc3261#section-20.36)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct SubjectHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

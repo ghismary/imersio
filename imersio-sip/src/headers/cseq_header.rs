@@ -18,7 +18,7 @@ use crate::Method;
 ///
 /// [[RFC3261, Section 20.16](https://datatracker.ietf.org/doc/html/rfc3261#section-20.16)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct CSeqHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

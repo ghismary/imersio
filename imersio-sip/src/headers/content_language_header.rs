@@ -11,7 +11,7 @@ use crate::{ContentLanguage, ContentLanguages};
 ///
 /// [[RFC3261, Section 20.13](https://datatracker.ietf.org/doc/html/rfc3261#section-20.13)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct ContentLanguageHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

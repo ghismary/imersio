@@ -14,7 +14,7 @@ pub type CallIds = ValueCollection<CallId>;
 
 /// Representation of a call id contained in a `Call-Id` or `In-Reply-To` header.
 #[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
-#[display(fmt = "{}", "self.0.to_ascii_lowercase()")]
+#[display("{}", self.0.to_ascii_lowercase())]
 pub struct CallId(String);
 
 impl CallId {

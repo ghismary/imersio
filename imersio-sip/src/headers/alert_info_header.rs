@@ -17,7 +17,7 @@ use crate::{Alert, Alerts};
 ///
 /// [[RFC3261, Section 20.4](https://datatracker.ietf.org/doc/html/rfc3261#section-20.4)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
-#[display(fmt = "{}", header)]
+#[display("{}", header)]
 pub struct AlertInfoHeader {
     #[partial_eq_ignore]
     header: GenericHeader,

@@ -4,7 +4,6 @@ use itertools::join;
 use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
-use std::ops::Deref;
 
 /// Representation of the list of generic parameters.
 ///
