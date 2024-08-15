@@ -24,3 +24,12 @@ thiserror.workspace = true
 
 [dev-dependencies]
 claims.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "messages"
+harness = false
+
+[[bench]]
+name = "uris"
+harness = false
