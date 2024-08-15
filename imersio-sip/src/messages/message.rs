@@ -98,9 +98,11 @@ mod parser {
 
 #[cfg(test)]
 mod tests {
+    use crate::common::wrapped_string::WrappedString;
     use crate::{
         Header, Host, MediaRange, Message, Method, Methods, StatusCode, Transport, Uri, Version,
     };
+    use chrono::{TimeDelta, TimeZone, Utc};
     use std::net::{IpAddr, Ipv4Addr};
 
     #[test]
@@ -636,6 +638,456 @@ CSeq: 986759 ACK\r\n\
                 assert_eq!(request.body().len(), 0);
             }
             _ => panic!("Should be a request!"),
+        }
+    }
+
+    #[test]
+    fn test_valid_tunneled_invite_request() {
+        let message = Message::try_from(
+            b"\
+INVITE sip:bob@biloxi.com SIP/2.0\r\n\
+Via: SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bKnashds8\r\n\
+To: Bob <sip:bob@biloxi.com>\r\n\
+From: Alice <sip:alice@atlanta.com>;tag=1928301774\r\n\
+Call-ID: a84b4c76e66710\r\n\
+CSeq: 314159 INVITE\r\n\
+Max-Forwards: 70\r\n\
+Date: Thu, 21 Feb 2002 13:02:03 GMT\r\n\
+Contact: <sip:alice@pc33.atlanta.com>\r\n\
+Content-Type: multipart/signed;protocol=\"application/pkcs7-signature\"; micalg=sha1; boundary=boundary42\r\n\
+Content-Length: 944\r\n\
+\r\n\
+--boundary42\r\n\
+Content-Type: message/sip\r\n\
+\r\n\
+INVITE sip:bob@biloxi.com SIP/2.0\r\n\
+Via: SIP/2.0/UDP pc33.atlanta.com;branch=z9hG4bKnashds8\r\n\
+To: Bob <bob@biloxi.com>\r\n\
+From: Alice <alice@atlanta.com>;tag=1928301774\r\n\
+Call-ID: a84b4c76e66710\r\n\
+CSeq: 314159 INVITE\r\n\
+Max-Forwards: 70\r\n\
+Date: Thu, 21 Feb 2002 13:02:03 GMT\r\n\
+Contact: <sip:alice@pc33.atlanta.com>\r\n\
+Content-Type: application/sdp\r\n\
+Content-Length: 147\r\n\
+\r\n\
+v=0\r\n\
+o=UserA 2890844526 2890844526 IN IP4 here.com\r\n\
+s=Session SDP\r\n\
+c=IN IP4 pc33.atlanta.com\r\n\
+t=0 0\r\n\
+m=audio 49172 RTP/AVP 0\r\n\
+a=rtpmap:0 PCMU/8000\r\n\
+\r\n\
+--boundary42\r\n\
+Content-Type: application/pkcs7-signature; name=smime.p7s\r\n\
+Content-Transfer-Encoding: base64\r\n\
+Content-Disposition: attachment; filename=smime.p7s;handling=required\r\n\
+\r\n\
+ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH77n8HHGghyHhHUujhJh756tbB9HGTrfvbnjn8HHGTrfvhJhjH776tbB9HG4VQbnj7567GhIGfHfYT6ghyHhHUujpfyF47GhIGfHfYT64VQbnj756\r\n\
+\r\n\
+--boundary42-\r\n"
+                .as_slice(),
+        );
+        assert!(message.is_ok());
+        let message = message.unwrap();
+        match message {
+            Message::Request(request) => {
+                assert_eq!(request.method(), Method::INVITE);
+                assert_eq!(request.version(), Version::SIP_2);
+                assert_eq!(request.uri(), Uri::try_from("sip:bob@biloxi.com").unwrap());
+                assert_eq!(request.headers().len(), 10);
+                let mut it = request.headers().iter();
+                let header = it.next().unwrap();
+                match header {
+                    Header::Via(via_header) => {
+                        assert_eq!(via_header.vias().len(), 1);
+                        let via = via_header.vias().first().unwrap();
+                        assert_eq!(via.protocol().name(), "SIP");
+                        assert_eq!(via.protocol().version(), "2.0");
+                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.host(), Host::Name("pc33.atlanta.com".to_string()));
+                        assert_eq!(via.port(), None);
+                        assert_eq!(via.parameters().len(), 1);
+                        assert!(via.parameters().first().unwrap().is_branch());
+                        assert_eq!(
+                            via.parameters().first().unwrap().branch(),
+                            Some("z9hG4bKnashds8".to_string())
+                        );
+                    }
+                    _ => panic!("Should be a Via header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::To(to_header) => {
+                        assert_eq!(to_header.address().display_name(), Some("Bob"));
+                        assert_eq!(
+                            to_header.address().uri(),
+                            Uri::try_from("sip:bob@biloxi.com").unwrap()
+                        );
+                        assert_eq!(to_header.parameters().len(), 0);
+                    }
+                    _ => panic!("Should be a To header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::From(from_header) => {
+                        assert_eq!(from_header.address().display_name(), Some("Alice"));
+                        assert_eq!(
+                            from_header.address().uri(),
+                            Uri::try_from("sip:alice@atlanta.com").unwrap()
+                        );
+                        assert_eq!(from_header.parameters().len(), 1);
+                        assert_eq!(from_header.tag(), Some("1928301774"));
+                    }
+                    _ => panic!("Should be a From header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::CallId(call_id_header) => {
+                        assert_eq!(call_id_header.call_id(), "a84b4c76e66710");
+                    }
+                    _ => panic!("Should be Call-ID header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::CSeq(cseq_header) => {
+                        assert_eq!(cseq_header.cseq(), 314159);
+                        assert_eq!(cseq_header.method(), Method::INVITE);
+                    }
+                    _ => panic!("Should be a CSeq header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::MaxForwards(max_forwards_header) => {
+                        assert_eq!(max_forwards_header.max_forwards(), 70);
+                    }
+                    _ => panic!("Should be a Max-Forwards header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::Date(date_header) => {
+                        assert_eq!(
+                            date_header.datetime(),
+                            &Utc.with_ymd_and_hms(2002, 2, 21, 13, 2, 3).unwrap()
+                        );
+                    }
+                    _ => panic!("Should be a Date header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::Contact(contact_header) => {
+                        assert_eq!(contact_header.contacts().len(), 1);
+                        let contact = contact_header.contacts().first().unwrap();
+                        assert_eq!(contact.address().display_name(), None);
+                        assert_eq!(
+                            contact.address().uri(),
+                            Uri::try_from("sip:alice@pc33.atlanta.com").unwrap()
+                        );
+                        assert_eq!(contact.parameters().len(), 0);
+                    }
+                    _ => panic!("Should be a Contact header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::ContentType(content_type_header) => {
+                        assert_eq!(
+                            content_type_header.media_type().media_range(),
+                            MediaRange::new("multipart", "signed")
+                        );
+                        let params = content_type_header.media_type().parameters();
+                        assert_eq!(params.len(), 3);
+                        let protocol_param = params.first().unwrap();
+                        assert_eq!(protocol_param.key(), "protocol");
+                        assert_eq!(
+                            protocol_param.value(),
+                            WrappedString::Quoted("application/pkcs7-signature".to_string())
+                        );
+                        let micalg_param = params.get(1).unwrap();
+                        assert_eq!(micalg_param.key(), "micalg");
+                        assert_eq!(
+                            micalg_param.value(),
+                            WrappedString::NotWrapped("sha1".to_string())
+                        );
+                        let boundary_param = params.last().unwrap();
+                        assert_eq!(boundary_param.key(), "boundary");
+                        assert_eq!(
+                            boundary_param.value(),
+                            WrappedString::NotWrapped("boundary42".to_string())
+                        );
+                    }
+                    _ => panic!("Should be an Accept header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::ContentLength(content_length_header) => {
+                        assert_eq!(content_length_header.content_length(), 944);
+                    }
+                    _ => panic!("Should be a Content-Length header!"),
+                }
+                assert_eq!(it.next(), None);
+                assert_eq!(request.body().len(), 944);
+            }
+            _ => panic!("Should be a request!"),
+        }
+    }
+
+    #[test]
+    fn test_valid_register_request() {
+        let message = Message::try_from(
+            b"\
+REGISTER sip:registrar.biloxi.com SIP/2.0\r\n\
+Via: SIP/2.0/UDP bobspc.biloxi.com:5060;branch=z9hG4bKnashds7\r\n\
+Max-Forwards: 70\r\n\
+To: Bob <sip:bob@biloxi.com>\r\n\
+From: Bob <sip:bob@biloxi.com>;tag=456248\r\n\
+Call-ID: 843817637684230@998sdasdh09\r\n\
+CSeq: 1826 REGISTER\r\n\
+Contact: <sip:bob@192.0.2.4>\r\n\
+Expires: 7200\r\n\
+Content-Length: 0\r\n\
+\r\n"
+                .as_slice(),
+        );
+        assert!(message.is_ok());
+        let message = message.unwrap();
+        match message {
+            Message::Request(request) => {
+                assert_eq!(request.method(), Method::REGISTER);
+                assert_eq!(request.version(), Version::SIP_2);
+                assert_eq!(
+                    request.uri(),
+                    Uri::try_from("sip:registrar.biloxi.com").unwrap()
+                );
+                assert_eq!(request.headers().len(), 9);
+                let mut it = request.headers().iter();
+                let header = it.next().unwrap();
+                match header {
+                    Header::Via(via_header) => {
+                        assert_eq!(via_header.vias().len(), 1);
+                        let via = via_header.vias().first().unwrap();
+                        assert_eq!(via.protocol().name(), "SIP");
+                        assert_eq!(via.protocol().version(), "2.0");
+                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.host(), Host::Name("bobspc.biloxi.com".to_string()));
+                        assert_eq!(via.port(), Some(5060));
+                        assert_eq!(via.parameters().len(), 1);
+                        assert!(via.parameters().first().unwrap().is_branch());
+                        assert_eq!(
+                            via.parameters().first().unwrap().branch(),
+                            Some("z9hG4bKnashds7".to_string())
+                        );
+                    }
+                    _ => panic!("Should be a Via header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::MaxForwards(max_forwards_header) => {
+                        assert_eq!(max_forwards_header.max_forwards(), 70);
+                    }
+                    _ => panic!("Should be a Max-Forwards header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::To(to_header) => {
+                        assert_eq!(to_header.address().display_name(), Some("Bob"));
+                        assert_eq!(
+                            to_header.address().uri(),
+                            Uri::try_from("sip:bob@biloxi.com").unwrap()
+                        );
+                        assert_eq!(to_header.parameters().len(), 0);
+                    }
+                    _ => panic!("Should be a To header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::From(from_header) => {
+                        assert_eq!(from_header.address().display_name(), Some("Bob"));
+                        assert_eq!(
+                            from_header.address().uri(),
+                            Uri::try_from("sip:bob@biloxi.com").unwrap()
+                        );
+                        assert_eq!(from_header.parameters().len(), 1);
+                        assert_eq!(from_header.tag(), Some("456248"));
+                    }
+                    _ => panic!("Should be a From header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::CallId(call_id_header) => {
+                        assert_eq!(call_id_header.call_id(), "843817637684230@998sdasdh09");
+                    }
+                    _ => panic!("Should be Call-ID header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::CSeq(cseq_header) => {
+                        assert_eq!(cseq_header.cseq(), 1826);
+                        assert_eq!(cseq_header.method(), Method::REGISTER);
+                    }
+                    _ => panic!("Should be a CSeq header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::Contact(contact_header) => {
+                        assert_eq!(contact_header.contacts().len(), 1);
+                        let contact = contact_header.contacts().first().unwrap();
+                        assert_eq!(contact.address().display_name(), None);
+                        assert_eq!(
+                            contact.address().uri(),
+                            Uri::try_from("sip:bob@192.0.2.4").unwrap()
+                        );
+                        assert_eq!(contact.parameters().len(), 0);
+                    }
+                    _ => panic!("Should be a Contact header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::Expires(expires_header) => {
+                        assert_eq!(expires_header.expires(), TimeDelta::new(7200, 0).unwrap());
+                    }
+                    _ => panic!("Should be an Expires header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::ContentLength(content_length_header) => {
+                        assert_eq!(content_length_header.content_length(), 0);
+                    }
+                    _ => panic!("Should be a Content-Length header!"),
+                }
+                assert_eq!(it.next(), None);
+                assert_eq!(request.body().len(), 0);
+            }
+            _ => panic!("Should be a request!"),
+        }
+    }
+
+    #[test]
+    fn test_valid_200_ok_response_to_register_request() {
+        let message = Message::try_from(
+            b"\
+SIP/2.0 200 OK\r\n\
+Via: SIP/2.0/UDP bobspc.biloxi.com:5060;branch=z9hG4bKnashds7 ;received=192.0.2.4\r\n\
+To: Bob <sip:bob@biloxi.com>;tag=2493k59kd\r\n\
+From: Bob <sip:bob@biloxi.com>;tag=456248\r\n\
+Call-ID: 843817637684230@998sdasdh09\r\n\
+CSeq: 1826 REGISTER\r\n\
+Contact: <sip:bob@192.0.2.4>\r\n\
+Expires: 7200\r\n\
+Content-Length: 0\r\n\
+\r\n"
+                .as_slice(),
+        );
+        assert!(message.is_ok());
+        let message = message.unwrap();
+        match message {
+            Message::Response(response) => {
+                assert_eq!(response.version(), Version::SIP_2);
+                assert_eq!(response.reason().status(), StatusCode::OK);
+                assert_eq!(response.reason().phrase(), "OK");
+                assert_eq!(response.headers().len(), 8);
+                let mut it = response.headers().iter();
+                let header = it.next().unwrap();
+                match header {
+                    Header::Via(via_header) => {
+                        assert_eq!(via_header.vias().len(), 1);
+                        let via = via_header.vias().first().unwrap();
+                        assert_eq!(via.protocol().name(), "SIP");
+                        assert_eq!(via.protocol().version(), "2.0");
+                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.host(), Host::Name("bobspc.biloxi.com".to_string()));
+                        assert_eq!(via.port(), Some(5060));
+                        assert_eq!(via.parameters().len(), 2);
+                        assert!(via.parameters().first().unwrap().is_branch());
+                        assert_eq!(
+                            via.parameters().first().unwrap().branch(),
+                            Some("z9hG4bKnashds7".to_string())
+                        );
+                        assert!(via.parameters().last().unwrap().is_received());
+                        assert_eq!(
+                            via.parameters().last().unwrap().received(),
+                            Some(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 4)))
+                        );
+                    }
+                    _ => panic!("Should be a Via header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::To(to_header) => {
+                        assert_eq!(to_header.address().display_name(), Some("Bob"));
+                        assert_eq!(
+                            to_header.address().uri(),
+                            Uri::try_from("sip:bob@biloxi.com").unwrap()
+                        );
+                        assert_eq!(to_header.parameters().len(), 1);
+                        assert!(to_header.parameters().first().unwrap().is_tag());
+                        assert_eq!(
+                            to_header.parameters().first().unwrap().tag(),
+                            Some("2493k59kd")
+                        );
+                    }
+                    _ => panic!("Should be a To header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::From(from_header) => {
+                        assert_eq!(from_header.address().display_name(), Some("Bob"));
+                        assert_eq!(
+                            from_header.address().uri(),
+                            Uri::try_from("sip:bob@biloxi.com").unwrap()
+                        );
+                        assert_eq!(from_header.parameters().len(), 1);
+                        assert_eq!(from_header.tag(), Some("456248"));
+                    }
+                    _ => panic!("Should be a From header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::CallId(call_id_header) => {
+                        assert_eq!(call_id_header.call_id(), "843817637684230@998sdasdh09");
+                    }
+                    _ => panic!("Should be Call-ID header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::CSeq(cseq_header) => {
+                        assert_eq!(cseq_header.cseq(), 1826);
+                        assert_eq!(cseq_header.method(), Method::REGISTER);
+                    }
+                    _ => panic!("Should be a CSeq header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::Contact(contact_header) => {
+                        assert_eq!(contact_header.contacts().len(), 1);
+                        let contact = contact_header.contacts().first().unwrap();
+                        assert_eq!(contact.address().display_name(), None);
+                        assert_eq!(
+                            contact.address().uri(),
+                            Uri::try_from("sip:bob@192.0.2.4").unwrap()
+                        );
+                        assert_eq!(contact.parameters().len(), 0);
+                    }
+                    _ => panic!("Should be a Contact header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::Expires(expires_header) => {
+                        assert_eq!(expires_header.expires(), TimeDelta::new(7200, 0).unwrap());
+                    }
+                    _ => panic!("Should be an Expires header!"),
+                }
+                let header = it.next().unwrap();
+                match header {
+                    Header::ContentLength(content_length_header) => {
+                        assert_eq!(content_length_header.content_length(), 0);
+                    }
+                    _ => panic!("Should be a Content-Length header!"),
+                }
+                assert_eq!(it.next(), None);
+            }
+            _ => panic!("Should be a response!"),
         }
     }
 }
