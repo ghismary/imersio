@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use derive_more::IsVariant;
 use nom::error::convert_error;
 use std::cmp::Ordering;

@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use derive_more::{Deref, From, IsVariant};
 use itertools::{join, Itertools};
 use partial_eq_refs::PartialEqRefs;

@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use derive_more::IsVariant;
 use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
@@ -15,7 +13,9 @@ pub type ServerValues = ValueCollection<ServerValue>;
 /// Representation of an server value contained in a `Server` or `User-Agent` header.
 #[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq, PartialEqRefs)]
 pub enum ServerValue {
+    /// A product name and version
     Product(Product),
+    /// A comment.
     Comment(String),
 }
 

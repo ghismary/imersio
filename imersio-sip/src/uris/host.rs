@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use derive_more::IsVariant;
 use std::hash::Hash;
 use std::net::IpAddr;

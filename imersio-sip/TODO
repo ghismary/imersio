@@ -2,17 +2,8 @@
 
  - Implement URI builder
 
-## Request
-
- - Add SIP headers
-
-## Response
-
- - Add SIP headers
-
 ## SIP Headers
 
- - Implement parsing
  - Implement builder
 
 

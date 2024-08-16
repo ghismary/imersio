@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
