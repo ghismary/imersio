@@ -2,7 +2,6 @@
 //!
 //! TODO
 
-use bytes::Bytes;
 use itertools::join;
 use nom::error::convert_error;
 use std::str::from_utf8;
@@ -17,7 +16,7 @@ pub struct Response {
     reason: Reason,
     version: Version,
     headers: Vec<Header>,
-    body: Bytes,
+    body: Vec<u8>,
 }
 
 impl Response {
@@ -40,12 +39,12 @@ impl Response {
 
     /// Get a reference to the associated body.
     #[inline]
-    pub fn body(&self) -> &Bytes {
-        &self.body
+    pub fn body(&self) -> &[u8] {
+        self.body.as_slice()
     }
 
     pub(crate) fn set_body(&mut self, body: &[u8]) {
-        self.body = Bytes::copy_from_slice(body);
+        self.body = body.to_vec();
     }
 }
 
@@ -125,7 +124,7 @@ pub(crate) mod parser {
                     version,
                     reason,
                     headers,
-                    body: Bytes::copy_from_slice(&[]),
+                    body: vec![],
                 },
             ),
         )(input)
@@ -153,13 +152,6 @@ mod test {
         assert_eq!(not_found.reason(), Reason::NOT_FOUND);
         assert_eq!(not_found.reason().to_string(), "404 Not Found");
         assert_eq!(not_found.headers().len(), 0);
-
-        // let with_body = Response::from_bytes(b"SIP/2.0 200 OK\r\n\r\nHello world!");
-        // assert_ok!(&with_body);
-        // let with_body = with_body.unwrap();
-        // assert_eq!(with_body.version(), Version::SIP_2);
-        // assert_eq!(with_body.reason(), Reason::OK);
-        // assert_eq!(with_body.body(), &Bytes::from_static(b"Hello world!"));
 
         let unknown_status = Response::try_from("SIP/2.0 999 Mon Status 😁\r\n\r\n");
         assert_ok!(&unknown_status);

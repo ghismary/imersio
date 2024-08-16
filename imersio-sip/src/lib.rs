@@ -12,8 +12,6 @@ mod parser;
 mod uris;
 mod utils;
 
-pub use bytes::Bytes;
-
 pub use crate::common::{
     accept_encoding::{AcceptEncoding, AcceptEncodings},
     accept_language::{AcceptLanguage, AcceptLanguages},
