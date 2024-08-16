@@ -70,15 +70,15 @@ impl Hash for Host {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{digit, hex_digit, take1, ParserResult};
+    use crate::parser::{digit, take1, ParserResult};
     use crate::Host;
     use nom::{
         branch::alt,
         bytes::complete::tag,
         combinator::{map, map_res, opt, recognize, verify},
         error::context,
-        multi::{many0, many1, many_m_n},
-        sequence::{delimited, pair, preceded, tuple},
+        multi::{many1, many_m_n},
+        sequence::{delimited, pair, preceded},
     };
     use std::net::IpAddr;
 
@@ -126,55 +126,26 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn is_valid_ipv4_address_number(input: &str) -> bool {
-        input.parse::<u8>().is_ok()
-    }
-
-    fn ipv4_address_number(input: &str) -> ParserResult<&str, &str> {
-        recognize(many_m_n(1, 3, digit))(input)
+    fn ipv4_char(input: &str) -> ParserResult<&str, char> {
+        verify(take1, |c| c.is_ascii_digit() || ".".contains(*c))(input)
     }
 
     pub(crate) fn ipv4_address(input: &str) -> ParserResult<&str, IpAddr> {
         context(
             "ipv4_address",
-            map_res(
-                recognize(tuple((
-                    verify(ipv4_address_number, is_valid_ipv4_address_number),
-                    tag("."),
-                    verify(ipv4_address_number, is_valid_ipv4_address_number),
-                    tag("."),
-                    verify(ipv4_address_number, is_valid_ipv4_address_number),
-                    tag("."),
-                    verify(ipv4_address_number, is_valid_ipv4_address_number),
-                ))),
-                |ipv4| ipv4.parse(),
-            ),
+            map_res(recognize(many1(ipv4_char)), |ipv4| ipv4.parse()),
         )(input)
     }
 
-    fn hex4(input: &str) -> ParserResult<&str, &str> {
-        recognize(many_m_n(1, 4, hex_digit))(input)
-    }
-
-    fn hexseq(input: &str) -> ParserResult<&str, &str> {
-        recognize(pair(hex4, many0(pair(tag(":"), hex4))))(input)
-    }
-
-    fn hexpart(input: &str) -> ParserResult<&str, &str> {
-        recognize(alt((
-            hexseq,
-            recognize(tuple((hexseq, tag("::"), hexseq))),
-            recognize(pair(tag("::"), hexseq)),
-        )))(input)
+    #[inline]
+    fn ipv6_char(input: &str) -> ParserResult<&str, char> {
+        verify(take1, |c| c.is_ascii_hexdigit() || ":.".contains(*c))(input)
     }
 
     pub(crate) fn ipv6_address(input: &str) -> ParserResult<&str, IpAddr> {
         context(
             "ipv6_address",
-            map_res(
-                recognize(pair(hexpart, opt(pair(tag(":"), ipv4_address)))),
-                |ipv6| ipv6.parse(),
-            ),
+            map_res(recognize(many1(ipv6_char)), |ipv6| ipv6.parse()),
         )(input)
     }
 
