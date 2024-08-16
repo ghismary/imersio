@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
-use crate::Error;
+use crate::SipError;
 
 /// Representation of the list of encodings in a `Content-Encoding` header.
 ///
@@ -80,21 +80,21 @@ impl AsRef<str> for ContentEncoding {
 }
 
 impl TryFrom<&str> for ContentEncoding {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::content_coding(value) {
             Ok((rest, encoding)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(encoding)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidContentEncoding(convert_error(value, e)))
+                Err(SipError::InvalidContentEncoding(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidContentEncoding(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidContentEncoding(format!(
                 "Incomplete content encoding `{}`",
                 value
             ))),
@@ -159,6 +159,6 @@ mod test {
     #[test]
     fn test_valid_content_encoding_with_remaining_data() {
         assert!(ContentEncoding::try_from("gzip anything")
-            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
+            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
     }
 }

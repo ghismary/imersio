@@ -1,4 +1,4 @@
-use crate::{Error, Request, Response};
+use crate::{Request, Response, SipError};
 use nom::error::convert_error;
 use std::str::from_utf8;
 
@@ -34,7 +34,7 @@ impl std::fmt::Display for Message {
 }
 
 impl TryFrom<&[u8]> for Message {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         match parser::sip_message_raw(value) {
@@ -42,29 +42,29 @@ impl TryFrom<&[u8]> for Message {
                 Ok(message_head) => match parser::sip_message(message_head) {
                     Ok((rest, mut message)) => {
                         if !rest.is_empty() {
-                            Err(Error::RemainingUnparsedData(rest.to_string()))
+                            Err(SipError::RemainingUnparsedData(rest.to_string()))
                         } else {
                             message.set_body(body);
                             Ok(message)
                         }
                     }
                     Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                        Err(Error::InvalidResponse(convert_error(message_head, e)))
+                        Err(SipError::InvalidResponse(convert_error(message_head, e)))
                     }
-                    Err(nom::Err::Incomplete(_)) => Err(Error::InvalidResponse(format!(
+                    Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidResponse(format!(
                         "Incomplete message `{}`",
                         message_head
                     ))),
                 },
-                Err(_) => Err(Error::InvalidMessage(format!(
+                Err(_) => Err(SipError::InvalidMessage(format!(
                     "Invalid message head is not UTF-8 encoded `{:?}`",
                     value
                 ))),
             },
-            Err(nom::Err::Error(_)) | Err(nom::Err::Failure(_)) => Err(Error::InvalidMessage(
+            Err(nom::Err::Error(_)) | Err(nom::Err::Failure(_)) => Err(SipError::InvalidMessage(
                 format!("Invalid message `{:?}`", value),
             )),
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidMessage(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidMessage(format!(
                 "Incomplete message `{:?}`",
                 value
             ))),

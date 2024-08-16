@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::uris::parser::hostport;
-use crate::Error;
+use crate::SipError;
 use partial_eq_refs::PartialEqRefs;
 
 /// Representation of a warning agent contained in a Warning header.
@@ -61,21 +61,21 @@ impl Hash for WarnAgent {
 }
 
 impl TryFrom<&str> for WarnAgent {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::warn_agent(value) {
             Ok((rest, tag)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(tag)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidWarnAgent(convert_error(value, e)))
+                Err(SipError::InvalidWarnAgent(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidWarnAgent(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidWarnAgent(format!(
                 "Incomplete warning agent `{}`",
                 value
             ))),

@@ -1,7 +1,7 @@
 //! TODO
 
 use crate::uris::parser;
-use crate::{AbsoluteUri, Error, Host, SipUri, UriHeaders, UriParameters, UriScheme};
+use crate::{AbsoluteUri, Host, SipError, SipUri, UriHeaders, UriParameters, UriScheme};
 use nom::error::convert_error;
 use std::convert::TryFrom;
 
@@ -135,22 +135,22 @@ impl std::fmt::Display for Uri {
 }
 
 impl TryFrom<&str> for Uri {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::request_uri(value) {
             Ok((rest, uri)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(uri)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidUri(convert_error(value, e)))
+                Err(SipError::InvalidUri(convert_error(value, e)))
             }
             Err(nom::Err::Incomplete(_)) => {
-                Err(Error::InvalidUri(format!("Incomplete uri `{}`", value)))
+                Err(SipError::InvalidUri(format!("Incomplete uri `{}`", value)))
             }
         }
     }

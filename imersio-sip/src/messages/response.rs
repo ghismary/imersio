@@ -8,7 +8,7 @@ use std::str::from_utf8;
 
 use crate::Reason;
 use crate::Version;
-use crate::{Error, Header};
+use crate::{Header, SipError};
 
 /// Representation of a SIP response.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -65,21 +65,21 @@ impl std::fmt::Display for Response {
 }
 
 impl TryFrom<&str> for Response {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::response(value) {
             Ok((rest, response)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(response)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidResponse(convert_error(value, e)))
+                Err(SipError::InvalidResponse(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidResponse(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidResponse(format!(
                 "Incomplete response `{}`",
                 value
             ))),

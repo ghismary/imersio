@@ -4,7 +4,7 @@ use nom::error::convert_error;
 use std::borrow::Cow;
 use std::str;
 
-use crate::{Error, StatusCode};
+use crate::{SipError, StatusCode};
 
 /// A SIP response reason, the combination of the `StatusCode` and the reason
 /// phrase.
@@ -145,21 +145,21 @@ impl std::fmt::Display for Reason {
 }
 
 impl TryFrom<&str> for Reason {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::reason(value) {
             Ok((rest, reason)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(reason)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidReason(convert_error(value, e)))
+                Err(SipError::InvalidReason(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidReason(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidReason(format!(
                 "Incomplete reason `{}`",
                 value
             ))),

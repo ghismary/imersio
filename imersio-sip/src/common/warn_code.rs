@@ -2,7 +2,7 @@ use crate::common::status_code::CODE_DIGITS;
 use nom::error::convert_error;
 use std::convert::TryFrom;
 
-use crate::Error;
+use crate::SipError;
 
 /// A SIP warning code.
 ///
@@ -18,9 +18,11 @@ impl WarnCode {
     /// The function validates the correctness of the supplied u16. It must be
     /// greater or equal to 100 and less than 1000.
     /// ```
-    pub fn from_u16(src: u16) -> Result<WarnCode, Error> {
+    pub fn from_u16(src: u16) -> Result<WarnCode, SipError> {
         if !(100..1000).contains(&src) {
-            return Err(Error::InvalidWarnCode("not between 100 & 1000".to_string()));
+            return Err(SipError::InvalidWarnCode(
+                "not between 100 & 1000".to_string(),
+            ));
         }
 
         Ok(Self(src))
@@ -55,21 +57,21 @@ impl std::fmt::Display for WarnCode {
 }
 
 impl TryFrom<&str> for WarnCode {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::warn_code(value) {
             Ok((rest, warn_code)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(warn_code)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidWarnCode(convert_error(value, e)))
+                Err(SipError::InvalidWarnCode(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidWarnCode(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidWarnCode(format!(
                 "Incomplete warning code `{}`",
                 value
             ))),
@@ -92,7 +94,7 @@ impl From<&WarnCode> for WarnCode {
 }
 
 impl TryFrom<u16> for WarnCode {
-    type Error = Error;
+    type Error = SipError;
 
     #[inline]
     fn try_from(value: u16) -> Result<Self, Self::Error> {
@@ -270,6 +272,6 @@ mod test {
     #[test]
     fn test_valid_warn_code_but_with_remaining_data() {
         assert!(WarnCode::try_from("306 anything")
-            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
+            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
     }
 }

@@ -14,7 +14,7 @@
 //! println!("{}", Version::SIP_2);
 //! ```
 
-use crate::Error;
+use crate::SipError;
 use nom::error::convert_error;
 
 /// Represents a version of the SIP specification.
@@ -41,21 +41,21 @@ impl Version {
 }
 
 impl TryFrom<&str> for Version {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::sip_version(value) {
             Ok((rest, version)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(version)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidVersion(convert_error(value, e)))
+                Err(SipError::InvalidVersion(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidVersion(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidVersion(format!(
                 "Incomplete version `{}`",
                 value
             ))),
@@ -182,6 +182,6 @@ mod test {
     #[test]
     fn test_valid_version_but_with_remaining_data() {
         assert!(Version::try_from("SIP/2.0 anything")
-            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
+            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
     }
 }

@@ -1,7 +1,7 @@
 use nom::error::convert_error;
 use std::convert::TryFrom;
 
-use crate::Error;
+use crate::SipError;
 
 /// A SIP response status code (`Status-Code` in RFC3261).
 ///
@@ -49,9 +49,9 @@ impl StatusCode {
     /// let err2 = StatusCode::from_u16(2738);
     /// assert!(err2.is_err());
     /// ```
-    pub fn from_u16(src: u16) -> Result<StatusCode, Error> {
+    pub fn from_u16(src: u16) -> Result<StatusCode, SipError> {
         if !(100..1000).contains(&src) {
-            return Err(Error::InvalidStatusCode(
+            return Err(SipError::InvalidStatusCode(
                 "not between 100 & 1000".to_string(),
             ));
         }
@@ -198,21 +198,21 @@ impl std::fmt::Display for StatusCode {
 }
 
 impl TryFrom<&str> for StatusCode {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::status_code(value) {
             Ok((rest, status_code)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(status_code)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidStatusCode(convert_error(value, e)))
+                Err(SipError::InvalidStatusCode(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidStatusCode(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidStatusCode(format!(
                 "Incomplete status code `{}`",
                 value
             ))),
@@ -235,7 +235,7 @@ impl From<&StatusCode> for StatusCode {
 }
 
 impl TryFrom<u16> for StatusCode {
-    type Error = Error;
+    type Error = SipError;
 
     #[inline]
     fn try_from(value: u16) -> Result<Self, Self::Error> {
@@ -523,6 +523,6 @@ mod test {
     #[test]
     fn test_valid_status_code_but_with_remaining_data() {
         assert!(StatusCode::try_from("200 anything")
-            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
+            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
     }
 }

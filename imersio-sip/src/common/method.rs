@@ -19,7 +19,7 @@ use crate::common::value_collection::ValueCollection;
 use nom::error::convert_error;
 use std::{borrow::Cow, hash::Hash, str};
 
-use crate::Error;
+use crate::SipError;
 
 /// Representation of the list of methods from an `AllowHeader`.
 ///
@@ -50,21 +50,21 @@ impl Method {
 }
 
 impl TryFrom<&str> for Method {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::method(value) {
             Ok((rest, method)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(method)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidMethod(convert_error(value, e)))
+                Err(SipError::InvalidMethod(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidMethod(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidMethod(format!(
                 "Incomplete method `{}`",
                 value
             ))),
@@ -259,7 +259,7 @@ mod test {
     #[test]
     fn test_invalid_method_with_remaining_data() {
         assert!(Method::try_from("INVITE anything")
-            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
+            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
     }
 
     #[test]

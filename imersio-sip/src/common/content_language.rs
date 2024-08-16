@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
-use crate::Error;
+use crate::SipError;
 
 /// Representation of the list of languages in a `Content-Language` header.
 ///
@@ -84,21 +84,21 @@ impl AsRef<str> for ContentLanguage {
 }
 
 impl TryFrom<&str> for ContentLanguage {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::language_tag(value) {
             Ok((rest, language)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(language)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidContentLanguage(convert_error(value, e)))
+                Err(SipError::InvalidContentLanguage(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidContentLanguage(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidContentLanguage(format!(
                 "Incomplete content language `{}`",
                 value
             ))),
@@ -172,6 +172,6 @@ mod test {
     #[test]
     fn test_valid_content_language_with_remaining_data() {
         assert!(ContentLanguage::try_from("en-US anything")
-            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
+            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
     }
 }

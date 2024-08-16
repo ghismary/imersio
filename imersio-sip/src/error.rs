@@ -1,63 +1,61 @@
-use thiserror::Error;
+use std::error::Error;
+
+use derive_more::Display;
 
 /// A generic error for SIP
-#[derive(Error, Debug, PartialEq)]
-pub enum Error {
+#[derive(Debug, Display, PartialEq)]
+pub enum SipError {
     /// Failed converting AInfo to AuthParam.
-    #[error("failed converting AInfo to AuthParam")]
+    #[display("Failed converting AInfo to AuthParam")]
     FailedConvertingAInfoToAuthParam,
     /// Invalid call id.
-    #[error("invalid call id")]
+    #[display("Invalid call id: `{_0}`")]
     InvalidCallId(String),
     /// Invalid content encoding.
-    #[error("invalid content encoding")]
+    #[display("Invalid content encoding: `{_0}`")]
     InvalidContentEncoding(String),
     /// Invalid content language.
-    #[error("invalid content language")]
+    #[display("Invalid content language: `{_0}`")]
     InvalidContentLanguage(String),
     /// Invalid message.
-    #[error("invalid message")]
+    #[display("Invalid message:\n{_0}")]
     InvalidMessage(String),
     /// Invalid message header.
-    #[error("invalid message header")]
+    #[display("Invalid message header: `{_0}`")]
     InvalidMessageHeader(String),
     /// Invalid method.
-    #[error("invalid method")]
+    #[display("Invalid method: `{_0}`")]
     InvalidMethod(String),
     /// Invalid option tag.
-    #[error("invalid option tag")]
+    #[display("Invalid option tag: `{_0}`")]
     InvalidOptionTag(String),
     /// Invalid response reason.
-    #[error("invalid reason")]
+    #[display("Invalid reason: `{_0}`")]
     InvalidReason(String),
     /// Invalid request.
-    #[error("invalid request")]
+    #[display("Invalid request:\n{_0}")]
     InvalidRequest(String),
     /// Invalid response.
-    #[error("invalid response")]
+    #[display("Invalid response:\n{_0}")]
     InvalidResponse(String),
     /// Invalid response status code.
-    #[error("invalid status code")]
+    #[display("Invalid status code: `{_0}`")]
     InvalidStatusCode(String),
     /// Invalid URI.
-    #[error("invalid uri")]
+    #[display("Invalid uri: `{_0}`")]
     InvalidUri(String),
     /// Invalid SIP version.
-    #[error("invalid sip version")]
+    #[display("Invalid sip version: `{_0}`")]
     InvalidVersion(String),
     /// Invalid warning code.
-    #[error("invalid warning code")]
+    #[display("Invalid warning code: `{_0}`")]
     InvalidWarnCode(String),
     /// Invalid warning agent.
-    #[error("invalid warning agent")]
+    #[display("Invalid warning agent: `{_0}`")]
     InvalidWarnAgent(String),
     /// Remaining unparsed data.
-    #[error("remaining unparsed data")]
+    #[display("Remaining unparsed data")]
     RemainingUnparsedData(String),
 }
 
-impl From<std::convert::Infallible> for Error {
-    fn from(value: std::convert::Infallible) -> Self {
-        match value {}
-    }
-}
+impl Error for SipError {}

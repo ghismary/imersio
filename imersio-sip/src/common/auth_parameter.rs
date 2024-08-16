@@ -10,8 +10,8 @@ use crate::Algorithm;
 use crate::AuthenticationInfo;
 use crate::DomainUris;
 use crate::Stale;
-use crate::{Error, Uri};
 use crate::{MessageQop, MessageQops};
+use crate::{SipError, Uri};
 
 /// Representation of a list of authentication parameters from an `AuthorizationHeader` or a
 /// `ProxyAuthenticateHeader`.
@@ -176,14 +176,14 @@ impl Hash for AuthParameter {
 }
 
 impl TryFrom<AuthenticationInfo> for AuthParameter {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: AuthenticationInfo) -> Result<Self, Self::Error> {
         match value {
             AuthenticationInfo::CNonce(value) => Ok(AuthParameter::CNonce(value)),
             AuthenticationInfo::Qop(value) => Ok(AuthParameter::Qop(value)),
             AuthenticationInfo::NonceCount(value) => Ok(AuthParameter::NonceCount(value)),
-            _ => Err(Error::FailedConvertingAInfoToAuthParam),
+            _ => Err(SipError::FailedConvertingAInfoToAuthParam),
         }
     }
 }

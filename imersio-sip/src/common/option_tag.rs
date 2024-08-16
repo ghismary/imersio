@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
-use crate::Error;
+use crate::SipError;
 
 /// Representation of the list of option tags in a `Proxy-Require`, `Require`, `Supported` or
 /// `Unsupported` header.
@@ -87,21 +87,21 @@ impl AsRef<str> for OptionTag {
 }
 
 impl TryFrom<&str> for OptionTag {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::option_tag(value) {
             Ok((rest, tag)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(tag)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidOptionTag(convert_error(value, e)))
+                Err(SipError::InvalidOptionTag(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidOptionTag(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidOptionTag(format!(
                 "Incomplete option tag `{}`",
                 value
             ))),
@@ -152,6 +152,6 @@ mod test {
     #[test]
     fn test_valid_option_tag_with_remaining_data() {
         assert!(OptionTag::try_from("foo anything")
-            .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string())));
+            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
     }
 }

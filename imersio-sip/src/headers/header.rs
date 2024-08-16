@@ -8,12 +8,12 @@ use crate::{
     AcceptEncodingHeader, AcceptHeader, AcceptLanguageHeader, AlertInfoHeader, AllowHeader,
     AuthenticationInfoHeader, AuthorizationHeader, CSeqHeader, CallIdHeader, CallInfoHeader,
     ContactHeader, ContentDispositionHeader, ContentEncodingHeader, ContentLanguageHeader,
-    ContentLengthHeader, ContentTypeHeader, DateHeader, Error, ErrorInfoHeader, ExpiresHeader,
-    FromHeader, InReplyToHeader, MaxForwardsHeader, MimeVersionHeader, MinExpiresHeader,
-    OrganizationHeader, PriorityHeader, ProxyAuthenticateHeader, ProxyAuthorizationHeader,
-    ProxyRequireHeader, RecordRouteHeader, ReplyToHeader, RequireHeader, RetryAfterHeader,
-    RouteHeader, ServerHeader, SubjectHeader, SupportedHeader, TimestampHeader, ToHeader,
-    UnsupportedHeader, UserAgentHeader, ViaHeader, WWWAuthenticateHeader, WarningHeader,
+    ContentLengthHeader, ContentTypeHeader, DateHeader, ErrorInfoHeader, ExpiresHeader, FromHeader,
+    InReplyToHeader, MaxForwardsHeader, MimeVersionHeader, MinExpiresHeader, OrganizationHeader,
+    PriorityHeader, ProxyAuthenticateHeader, ProxyAuthorizationHeader, ProxyRequireHeader,
+    RecordRouteHeader, ReplyToHeader, RequireHeader, RetryAfterHeader, RouteHeader, ServerHeader,
+    SipError, SubjectHeader, SupportedHeader, TimestampHeader, ToHeader, UnsupportedHeader,
+    UserAgentHeader, ViaHeader, WWWAuthenticateHeader, WarningHeader,
 };
 
 macro_rules! headers {
@@ -142,21 +142,21 @@ headers! {
 }
 
 impl TryFrom<&str> for Header {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::message_header(value) {
             Ok((rest, uri)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(uri)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidMessageHeader(convert_error(value, e)))
+                Err(SipError::InvalidMessageHeader(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidMessageHeader(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidMessageHeader(format!(
                 "Incomplete message header `{}`",
                 value
             ))),

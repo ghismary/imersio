@@ -26,4 +26,3 @@ nom = "7.1"
 partial_eq_refs = { path = "partial_eq_refs" }
 quote = "1.0"
 syn = "2.0"
-thiserror = "1.0"

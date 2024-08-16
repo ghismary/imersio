@@ -61,7 +61,7 @@ pub use crate::common::{
     warn_agent::WarnAgent,
     warning_value::{WarningValue, WarningValues},
 };
-pub use crate::error::Error;
+pub use crate::error::SipError;
 pub use crate::headers::{
     accept_encoding_header::AcceptEncodingHeader, accept_header::AcceptHeader,
     accept_language_header::AcceptLanguageHeader, alert_info_header::AlertInfoHeader,

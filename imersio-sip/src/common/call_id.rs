@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
-use crate::Error;
+use crate::SipError;
 
 /// Representation of the list of call IDs in a `In-Reply-To` header.
 ///
@@ -78,21 +78,21 @@ impl AsRef<str> for CallId {
 }
 
 impl TryFrom<&str> for CallId {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::callid(value) {
             Ok((rest, call_id)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(call_id)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidCallId(convert_error(value, e)))
+                Err(SipError::InvalidCallId(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidCallId(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidCallId(format!(
                 "Incomplete call id `{}`",
                 value
             ))),
@@ -173,7 +173,7 @@ mod test {
     fn test_valid_call_id_with_remaining_data() {
         assert!(
             CallId::try_from("f81d4fae-7dec-11d0-a765-00a0c91e6bf6@foo.bar.com anything")
-                .is_err_and(|e| e == Error::RemainingUnparsedData(" anything".to_string()))
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
         );
     }
 }

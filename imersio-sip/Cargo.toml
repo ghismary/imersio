@@ -19,7 +19,6 @@ derive-partial-eq-extras.workspace = true
 itertools.workspace = true
 nom.workspace = true
 partial_eq_refs.workspace = true
-thiserror.workspace = true
 
 [dev-dependencies]
 claims.workspace = true

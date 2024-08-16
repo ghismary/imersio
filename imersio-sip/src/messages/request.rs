@@ -9,7 +9,7 @@ use std::str::from_utf8;
 use crate::Method;
 use crate::Uri;
 use crate::Version;
-use crate::{Error, Header};
+use crate::{Header, SipError};
 
 /// Representation of a SIP request.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -71,21 +71,21 @@ impl std::fmt::Display for Request {
 }
 
 impl TryFrom<&str> for Request {
-    type Error = Error;
+    type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match parser::request(value) {
             Ok((rest, request)) => {
                 if !rest.is_empty() {
-                    Err(Error::RemainingUnparsedData(rest.to_string()))
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
                     Ok(request)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                Err(Error::InvalidRequest(convert_error(value, e)))
+                Err(SipError::InvalidRequest(convert_error(value, e)))
             }
-            Err(nom::Err::Incomplete(_)) => Err(Error::InvalidRequest(format!(
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidRequest(format!(
                 "Incomplete request `{}`",
                 value
             ))),
