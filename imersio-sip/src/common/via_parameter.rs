@@ -188,7 +188,7 @@ pub(crate) mod parser {
     }
 
     fn is_valid_ttl(value: &str) -> bool {
-        value.parse::<u16>().unwrap() < 256
+        value.parse::<u8>().is_ok()
     }
     fn ttl(input: &str) -> ParserResult<&str, &str> {
         recognize(many_m_n(1, 3, digit))(input)

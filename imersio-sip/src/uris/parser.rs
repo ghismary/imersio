@@ -8,6 +8,7 @@ use crate::{
 };
 use std::net::IpAddr;
 
+use nom::combinator::map_res;
 use nom::sequence::delimited;
 use nom::{
     branch::alt,
@@ -16,7 +17,6 @@ use nom::{
     error::context,
     multi::{many0, many1, many_m_n, separated_list1},
     sequence::{pair, preceded, separated_pair, tuple},
-    ParseTo,
 };
 
 use super::{sip_uri::SipUri, uri_scheme::UriScheme};
@@ -127,7 +127,7 @@ fn ipv4_address_number(input: &str) -> ParserResult<&str, &str> {
 pub(crate) fn ipv4_address(input: &str) -> ParserResult<&str, IpAddr> {
     context(
         "ipv4_address",
-        map(
+        map_res(
             recognize(tuple((
                 verify(ipv4_address_number, is_valid_ipv4_address_number),
                 tag("."),
@@ -137,7 +137,7 @@ pub(crate) fn ipv4_address(input: &str) -> ParserResult<&str, IpAddr> {
                 tag("."),
                 verify(ipv4_address_number, is_valid_ipv4_address_number),
             ))),
-            |ipv4| ipv4.parse().unwrap(),
+            |ipv4| ipv4.parse(),
         ),
     )(input)
 }
@@ -161,9 +161,9 @@ fn hexpart(input: &str) -> ParserResult<&str, &str> {
 pub(crate) fn ipv6_address(input: &str) -> ParserResult<&str, IpAddr> {
     context(
         "ipv6_address",
-        map(
+        map_res(
             recognize(pair(hexpart, opt(pair(tag(":"), ipv4_address)))),
-            |ipv6| ipv6.parse().unwrap(),
+            |ipv6| ipv6.parse(),
         ),
     )(input)
 }
@@ -189,7 +189,7 @@ pub(crate) fn host(input: &str) -> ParserResult<&str, Host> {
 pub(crate) fn port(input: &str) -> ParserResult<&str, u16> {
     context(
         "port",
-        map(recognize(many1(digit)), |digits| digits.parse_to().unwrap()),
+        map_res(recognize(many_m_n(1, 5, digit)), |digits| digits.parse()),
     )(input)
 }
 
