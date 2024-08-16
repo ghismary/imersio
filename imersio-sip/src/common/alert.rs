@@ -15,12 +15,12 @@ pub type Alerts = ValueCollection<Alert>;
 impl Alerts {
     /// Tell whether `Alerts` contain the given `Uri`.
     pub fn contains(&self, uri: &AbsoluteUri) -> bool {
-        self.iter().any(|a| a.uri == uri)
+        self.iter().any(|a| &a.uri == uri)
     }
 
     /// Get the `Alert` corresponding to the given `Uri`.
     pub fn get(&self, uri: &AbsoluteUri) -> Option<&Alert> {
-        self.iter().find(|a| a.uri == uri)
+        self.iter().find(|a| &a.uri == uri)
     }
 }
 
@@ -77,7 +77,7 @@ impl Hash for Alert {
 pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::{laquot, raquot, semi, ParserResult};
-    use crate::uris::parser::absolute_uri;
+    use crate::uris::absolute_uri::parser::absolute_uri;
     use crate::Alert;
     use nom::{
         combinator::map,

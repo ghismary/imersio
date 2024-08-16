@@ -1,13 +1,11 @@
-//! TODO
-
-use partial_eq_refs::PartialEqRefs;
+//! Parsing and generation of an absolute URI.
 
 use crate::{UriHeaders, UriParameters, UriScheme};
 
 /// Representation of an absolute URI.
 ///
 /// As of now, only the scheme is distinguished for the rest of the URI.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct AbsoluteUri {
     scheme: UriScheme,
     opaque_part: String,
@@ -54,5 +52,63 @@ impl AbsoluteUri {
 impl std::fmt::Display for AbsoluteUri {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}", self.scheme, self.opaque_part)
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{
+        alpha, digit, escaped, is_reserved, is_unreserved, reserved, take1, unreserved,
+        ParserResult,
+    };
+    use crate::{AbsoluteUri, UriHeaders, UriParameters, UriScheme};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag,
+        combinator::{map, recognize, verify},
+        error::context,
+        multi::many0,
+        sequence::{pair, separated_pair},
+    };
+
+    fn uric(input: &str) -> ParserResult<&str, char> {
+        alt((reserved, unreserved, escaped))(input)
+    }
+
+    fn uric_no_slash(input: &str) -> ParserResult<&str, char> {
+        verify(take1, |c| {
+            is_reserved(*c) || is_unreserved(*c) || ";?:@&=+$,".contains(*c)
+        })(input)
+    }
+
+    fn scheme_special_char(input: &str) -> ParserResult<&str, char> {
+        verify(take1, |c| "+-.".contains(*c))(input)
+    }
+
+    fn scheme(input: &str) -> ParserResult<&str, &str> {
+        context(
+            "scheme",
+            recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
+        )(input)
+    }
+
+    fn opaque_part(input: &str) -> ParserResult<&str, &str> {
+        recognize(pair(uric_no_slash, many0(uric)))(input)
+    }
+
+    pub(crate) fn absolute_uri(input: &str) -> ParserResult<&str, AbsoluteUri> {
+        context(
+            "absolute_uri",
+            map(
+                separated_pair(scheme, tag(":"), opaque_part),
+                |(scheme, opaque_part)| {
+                    AbsoluteUri::new(
+                        UriScheme::Other(scheme.to_string()),
+                        opaque_part,
+                        UriParameters::default(),
+                        UriHeaders::default(),
+                    )
+                },
+            ),
+        )(input)
     }
 }

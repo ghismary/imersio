@@ -96,10 +96,10 @@ impl TryFrom<&str> for Request {
 pub(crate) mod parser {
     use super::*;
     use crate::headers::header::parser::message_header;
+    use crate::uris::uri::parser::request_uri;
     use crate::{
         common::{method::parser::method, version::parser::sip_version},
         parser::{sp, ParserResult},
-        uris::parser::request_uri,
     };
     use nom::{
         character::complete::crlf,

@@ -1,6 +1,5 @@
-//! TODO
+//! Parsing and generation of a URI and its parts, either a SIP URI or an absolute URI.
 
-use crate::uris::parser;
 use crate::{AbsoluteUri, Host, SipError, SipUri, UriHeaders, UriParameters, UriScheme};
 use nom::error::convert_error;
 use std::convert::TryFrom;
@@ -43,7 +42,7 @@ impl Uri {
     /// Telss whether this `Uri` is secure or not.
     pub fn is_secure(&self) -> bool {
         match self {
-            Uri::Sip(uri) => uri.scheme() == UriScheme::SIPS,
+            Uri::Sip(uri) => uri.scheme() == &UriScheme::SIPS,
             _ => false,
         }
     }
@@ -174,6 +173,18 @@ impl PartialEq<Uri> for &Uri {
     }
 }
 
+pub(crate) mod parser {
+    use crate::parser::ParserResult;
+    use crate::uris::absolute_uri::parser::absolute_uri;
+    use crate::uris::sip_uri::parser::sip_uri;
+    use crate::Uri;
+    use nom::{branch::alt, combinator::map, error::context};
+
+    pub(crate) fn request_uri(input: &str) -> ParserResult<&str, Uri> {
+        context("uri", alt((sip_uri, map(absolute_uri, Uri::Absolute))))(input)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -187,7 +198,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert!(uri.password().is_none());
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
@@ -204,7 +215,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert_eq!(uri.password(), Some("secretword"));
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
@@ -225,7 +236,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIPS);
+        assert_eq!(uri.scheme(), &UriScheme::SIPS);
         assert_eq!(uri.user(), Some("alice"));
         assert!(uri.password().is_none());
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
@@ -247,7 +258,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("+1-212-555-1212"));
         assert_eq!(uri.password(), Some("1234"));
         assert_eq!(uri.host(), Some(&Host::Name("gateway.com".to_string())));
@@ -268,7 +279,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIPS);
+        assert_eq!(uri.scheme(), &UriScheme::SIPS);
         assert_eq!(uri.user(), Some("1212"));
         assert!(uri.password().is_none());
         assert_eq!(uri.host(), Some(&Host::Name("gateway.com".to_string())));
@@ -285,7 +296,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert!(uri.password().is_none());
         assert_eq!(
@@ -305,7 +316,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert!(uri.user().is_none());
         assert!(uri.password().is_none());
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
@@ -327,7 +338,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice;day=tuesday"));
         assert!(uri.password().is_none());
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
@@ -344,7 +355,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert_eq!(uri.password(), Some("secretword"));
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
@@ -362,7 +373,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert_eq!(uri.password(), Some("secretword"));
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
@@ -383,7 +394,7 @@ mod test {
         let uri = uri.unwrap();
         assert!(uri.is_sip());
         assert!(!uri.is_secure());
-        assert_eq!(uri.scheme(), UriScheme::SIP);
+        assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert!(uri.user().is_none());
         assert!(uri.password().is_none());
         assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));

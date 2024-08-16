@@ -1,4 +1,4 @@
-//! TODO
+//! Parsing and generation of the scheme of a SIP URI..
 
 use std::hash::Hash;
 
@@ -69,18 +69,6 @@ impl PartialEq<str> for UriScheme {
 impl PartialEq<UriScheme> for str {
     fn eq(&self, other: &UriScheme) -> bool {
         other == self
-    }
-}
-
-impl PartialEq<&UriScheme> for UriScheme {
-    fn eq(&self, other: &&UriScheme) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<UriScheme> for &UriScheme {
-    fn eq(&self, other: &UriScheme) -> bool {
-        *self == other
     }
 }
 

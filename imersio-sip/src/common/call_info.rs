@@ -15,12 +15,12 @@ pub type CallInfos = ValueCollection<CallInfo>;
 impl CallInfos {
     /// Tell whether Call-Info header contains the given `AbsoluteUri`.
     pub fn contains(&self, uri: &AbsoluteUri) -> bool {
-        self.iter().any(|info| info.uri == uri)
+        self.iter().any(|info| &info.uri == uri)
     }
 
     /// Get the `CallInfo` corresponding to the given `AbsoluteUri`.
     pub fn get(&self, uri: &AbsoluteUri) -> Option<&CallInfo> {
-        self.iter().find(|info| info.uri == uri)
+        self.iter().find(|info| &info.uri == uri)
     }
 }
 
@@ -77,7 +77,7 @@ impl Hash for CallInfo {
 pub(crate) mod parser {
     use crate::common::call_info_parameter::parser::info_param;
     use crate::parser::{laquot, raquot, semi, ParserResult};
-    use crate::uris::parser::absolute_uri;
+    use crate::uris::absolute_uri::parser::absolute_uri;
     use crate::CallInfo;
     use nom::{
         combinator::map,

@@ -1,11 +1,9 @@
-//! TODO
-
-use partial_eq_refs::PartialEqRefs;
+//! Parsing and generation of a SIP URI.
 
 use crate::{Host, UriHeaders, UriParameters, UriScheme, UserInfo};
 
 /// Representation of a SIP URI.
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct SipUri {
     scheme: UriScheme,
     userinfo: Option<UserInfo>,
@@ -85,5 +83,54 @@ impl std::fmt::Display for SipUri {
             if self.headers.is_empty() { "" } else { "?" },
             self.headers
         )
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::ParserResult;
+    use crate::uris::host::parser::hostport;
+    use crate::uris::uri_headers::parser::headers;
+    use crate::uris::uri_parameters::parser::uri_parameters;
+    use crate::uris::user_info::parser::userinfo;
+    use crate::utils::has_unique_elements;
+    use crate::{SipUri, Uri, UriScheme};
+    use nom::{
+        branch::alt,
+        bytes::complete::tag_no_case,
+        combinator::{cut, map, opt, verify},
+        error::context,
+        sequence::{pair, tuple},
+    };
+
+    pub(crate) fn sip_uri(input: &str) -> ParserResult<&str, Uri> {
+        context(
+            "sip_uri",
+            map(
+                pair(
+                    alt((
+                        map(tag_no_case("sip:"), |_| UriScheme::SIP),
+                        map(tag_no_case("sips:"), |_| UriScheme::SIPS),
+                    )),
+                    cut(tuple((
+                        opt(userinfo),
+                        hostport,
+                        cut(verify(uri_parameters, |params| {
+                            has_unique_elements(params.iter().map(|p| &p.0))
+                        })),
+                        opt(headers),
+                    ))),
+                ),
+                |(scheme, (userinfo, (host, port), parameters, headers))| {
+                    Uri::Sip(SipUri::new(
+                        scheme,
+                        userinfo,
+                        host,
+                        port,
+                        parameters,
+                        headers.unwrap_or_default(),
+                    ))
+                },
+            ),
+        )(input)
     }
 }

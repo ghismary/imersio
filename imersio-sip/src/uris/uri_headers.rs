@@ -1,14 +1,12 @@
-//! TODO
+//! Parsing and generation of the headers of a SIP URI.
 
 use std::hash::Hash;
 
-use partial_eq_refs::PartialEqRefs;
-
-use crate::uris::parser::is_hnv_unreserved;
+use crate::uris::uri_headers::parser::is_hnv_unreserved;
 use crate::{parser::is_unreserved, utils::escape};
 
 /// Representation of an URI header list.
-#[derive(Clone, Debug, Default, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Default, Eq)]
 pub struct UriHeaders(Vec<(String, String)>);
 
 impl UriHeaders {
@@ -100,5 +98,59 @@ impl Hash for UriHeaders {
             .collect();
         sorted_headers.sort_by(|(a, _), (b, _)| a.cmp(b));
         sorted_headers.hash(state)
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{escaped, take1, unreserved, ParserResult};
+    use crate::UriHeaders;
+    use nom::{
+        branch::alt,
+        bytes::complete::tag,
+        combinator::{map, verify},
+        error::context,
+        multi::{many0, many1, separated_list1},
+        sequence::{preceded, separated_pair},
+    };
+
+    #[inline]
+    pub(crate) fn is_hnv_unreserved(c: char) -> bool {
+        "[]/?:+$".contains(c)
+    }
+
+    fn hnv_unreserved(input: &str) -> ParserResult<&str, char> {
+        verify(take1, |c| is_hnv_unreserved(*c))(input)
+    }
+
+    fn hname(input: &str) -> ParserResult<&str, String> {
+        context(
+            "hname",
+            map(many1(alt((hnv_unreserved, unreserved, escaped))), |name| {
+                name.iter().collect::<String>()
+            }),
+        )(input)
+    }
+
+    fn hvalue(input: &str) -> ParserResult<&str, String> {
+        context(
+            "hvalue",
+            map(many0(alt((hnv_unreserved, unreserved, escaped))), |value| {
+                value.iter().collect::<String>()
+            }),
+        )(input)
+    }
+
+    fn header(input: &str) -> ParserResult<&str, (String, String)> {
+        context("header", separated_pair(hname, tag("="), hvalue))(input)
+    }
+
+    pub(crate) fn headers(input: &str) -> ParserResult<&str, UriHeaders> {
+        context(
+            "headers",
+            map(
+                preceded(tag("?"), separated_list1(tag("&"), header)),
+                UriHeaders::new,
+            ),
+        )(input)
     }
 }

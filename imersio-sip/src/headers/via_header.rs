@@ -113,7 +113,7 @@ mod tests {
                 );
                 assert_eq!(
                     first_via.host(),
-                    Host::Name("erlang.bell-telephone.com".to_string())
+                    &Host::Name("erlang.bell-telephone.com".to_string())
                 );
                 assert_eq!(first_via.port(), Some(5060));
                 assert_eq!(
@@ -137,7 +137,7 @@ mod tests {
                 );
                 assert_eq!(
                     first_via.host(),
-                    Host::Ip(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1)))
+                    &Host::Ip(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1)))
                 );
                 assert_eq!(first_via.port(), Some(5060));
                 assert_eq!(
@@ -165,7 +165,7 @@ mod tests {
                 );
                 assert_eq!(
                     first_via.host(),
-                    Host::Name("first.example.com".to_string())
+                    &Host::Name("first.example.com".to_string())
                 );
                 assert_eq!(first_via.port(), Some(4000));
                 let mut it = first_via.parameters().iter();

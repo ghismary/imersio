@@ -95,7 +95,7 @@ pub(crate) mod parser {
     use crate::common::protocol::parser::sent_protocol;
     use crate::common::via_parameter::parser::via_params;
     use crate::parser::{colon, lws, semi, ParserResult};
-    use crate::uris::parser::{host, port};
+    use crate::uris::host::parser::{host, port};
     use crate::{Host, Via};
     use nom::{
         combinator::{map, opt},

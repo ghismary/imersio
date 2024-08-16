@@ -3,7 +3,7 @@ use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::net::IpAddr;
 
-use crate::uris::parser::host;
+use crate::uris::host::parser::host;
 use crate::{GenericParameter, Host};
 
 /// Representation of a via parameter.
@@ -114,7 +114,7 @@ impl From<GenericParameter> for ViaParameter {
 pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::{digit, equal, token, ParserResult};
-    use crate::uris::parser::{host, ipv4_address, ipv6_address};
+    use crate::uris::host::parser::{host, ipv4_address, ipv6_address};
     use crate::ViaParameter;
     use nom::combinator::consumed;
     use nom::{

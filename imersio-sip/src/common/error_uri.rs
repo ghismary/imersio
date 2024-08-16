@@ -81,7 +81,7 @@ impl Hash for ErrorUri {
 pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::{laquot, raquot, semi, ParserResult};
-    use crate::uris::parser::request_uri;
+    use crate::uris::uri::parser::request_uri;
     use crate::ErrorUri;
     use nom::{
         combinator::map,

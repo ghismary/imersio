@@ -221,7 +221,7 @@ pub(crate) mod parser {
     };
     use crate::common::authentication_info::parser::qop_value;
     use crate::parser::{comma, equal, ldquot, lws, param, pchar, rdquot, sp, ParserResult};
-    use crate::uris::parser::request_uri;
+    use crate::uris::uri::parser::request_uri;
     use crate::{AuthParameter, Challenge, DomainUri, MessageQop, Stale};
     use nom::{
         branch::alt,

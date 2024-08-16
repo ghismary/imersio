@@ -106,7 +106,7 @@ impl Hash for GenericParameter {
 pub(crate) mod parser {
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{equal, quoted_string, token, ParserResult};
-    use crate::uris::parser::host;
+    use crate::uris::host::parser::host;
     use crate::GenericParameter;
     use nom::{
         branch::alt,

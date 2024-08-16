@@ -1,14 +1,12 @@
-//! TODO
+//! Parsing and generation of the parameters of a SIP URI.
 
 use std::{hash::Hash, ops::Deref};
 
-use partial_eq_refs::PartialEqRefs;
-
-use crate::uris::parser::is_param_unreserved;
+use crate::uris::uri_parameters::parser::is_param_unreserved;
 use crate::{parser::is_unreserved, utils::escape};
 
-/// Representation of an URI parameter list.
-#[derive(Clone, Debug, Default, Eq, PartialEqRefs)]
+/// Representation of an URI parameters list.
+#[derive(Clone, Debug, Default, Eq)]
 pub struct UriParameters(Vec<(String, Option<String>)>);
 
 impl UriParameters {
@@ -114,5 +112,143 @@ impl Hash for UriParameters {
             .collect();
         sorted_params.sort_by(|(a, _), (b, _)| a.cmp(b));
         sorted_params.hash(state)
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{escaped, take1, token, ttl, unreserved, ParserResult};
+    use crate::uris::host::parser::host;
+    use crate::UriParameters;
+    use nom::{
+        branch::alt,
+        bytes::complete::tag,
+        combinator::{map, opt, verify},
+        error::context,
+        multi::{many0, many1},
+        sequence::{pair, preceded, separated_pair},
+    };
+
+    fn transport_param(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "transport_param",
+            map(
+                separated_pair(tag("transport"), tag("="), token),
+                |(name, value)| (name.to_string(), value.to_string()),
+            ),
+        )(input)
+    }
+
+    fn user_param(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "user_param",
+            map(
+                separated_pair(tag("user"), tag("="), token),
+                |(name, value)| (name.to_string(), value.to_string()),
+            ),
+        )(input)
+    }
+
+    fn method_param(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "method_param",
+            map(
+                separated_pair(tag("method"), tag("="), token),
+                |(name, value)| (name.to_string(), value.to_string()),
+            ),
+        )(input)
+    }
+
+    fn ttl_param(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "ttl_param",
+            map(
+                separated_pair(tag("ttl"), tag("="), ttl),
+                |(name, value)| (name.to_string(), value.to_string()),
+            ),
+        )(input)
+    }
+
+    fn maddr_param(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "maddr_param",
+            map(
+                separated_pair(tag("maddr"), tag("="), host),
+                |(name, value)| (name.to_string(), value.to_string()),
+            ),
+        )(input)
+    }
+
+    #[inline]
+    fn lr_param(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "lr_param",
+            map(tag("lr"), |name: &str| (name.to_string(), "".to_string())),
+        )(input)
+    }
+
+    #[inline]
+    pub(crate) fn is_param_unreserved(c: char) -> bool {
+        "[]/:&+$".contains(c)
+    }
+
+    fn param_unreserved(input: &str) -> ParserResult<&str, char> {
+        verify(take1, |c| is_param_unreserved(*c))(input)
+    }
+
+    fn paramchar(input: &str) -> ParserResult<&str, char> {
+        alt((param_unreserved, unreserved, escaped))(input)
+    }
+
+    fn pname(input: &str) -> ParserResult<&str, String> {
+        context(
+            "pname",
+            map(many1(paramchar), |pname| pname.iter().collect::<String>()),
+        )(input)
+    }
+
+    fn pvalue(input: &str) -> ParserResult<&str, String> {
+        context(
+            "pvalue",
+            map(many1(paramchar), |pvalue| pvalue.iter().collect::<String>()),
+        )(input)
+    }
+
+    fn other_param(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "other_param",
+            map(
+                pair(pname, opt(preceded(tag("="), pvalue))),
+                |(name, value)| (name, value.unwrap_or_default()),
+            ),
+        )(input)
+    }
+
+    fn uri_parameter(input: &str) -> ParserResult<&str, (String, String)> {
+        context(
+            "uri_parameter",
+            alt((
+                transport_param,
+                user_param,
+                method_param,
+                ttl_param,
+                maddr_param,
+                lr_param,
+                other_param,
+            )),
+        )(input)
+    }
+
+    pub(crate) fn uri_parameters(input: &str) -> ParserResult<&str, UriParameters> {
+        context(
+            "uri_parameters",
+            map(many0(preceded(tag(";"), uri_parameter)), |parameters| {
+                UriParameters::new(
+                    parameters
+                        .into_iter()
+                        .map(|(k, v)| (k, if v.is_empty() { None } else { Some(v) }))
+                        .collect(),
+                )
+            }),
+        )(input)
     }
 }

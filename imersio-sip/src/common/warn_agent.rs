@@ -3,7 +3,7 @@ use nom::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::uris::parser::hostport;
+use crate::uris::host::parser::hostport;
 use crate::SipError;
 use partial_eq_refs::PartialEqRefs;
 
@@ -85,7 +85,7 @@ impl TryFrom<&str> for WarnAgent {
 
 pub(crate) mod parser {
     use crate::parser::{token, ParserResult};
-    use crate::uris::parser::hostport;
+    use crate::uris::host::parser::hostport;
     use crate::WarnAgent;
     use nom::combinator::consumed;
     use nom::{branch::alt, combinator::map, error::context};
