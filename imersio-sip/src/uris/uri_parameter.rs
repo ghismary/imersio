@@ -13,6 +13,7 @@ use crate::{
     UserType,
 };
 
+/// Representation of a SIP URI parameter.
 #[derive(Clone, Debug, Eq, IsVariant)]
 pub enum UriParameter {
     /// A `transport` parameter.
@@ -27,11 +28,12 @@ pub enum UriParameter {
     MAddr(String),
     /// A `lr` parameter.
     Lr,
+    /// Any other parameter.
     Other(GenericParameter),
 }
 
 impl UriParameter {
-    /// Get the key of the parameter.
+    /// Get the name of the parameter.
     pub fn name(&self) -> &str {
         match self {
             Self::Transport(_) => "transport",
@@ -228,8 +230,7 @@ impl TryFrom<Vec<UriParameter>> for UriParameters {
 pub(crate) mod parser {
     use crate::parser::{escaped, take1, token, ttl, unreserved, ParserResult};
     use crate::uris::host::parser::host;
-    use crate::uris::uri_parameter::UriParameter;
-    use crate::{GenericParameter, UriParameters};
+    use crate::{GenericParameter, UriParameter, UriParameters};
     use nom::{
         branch::alt,
         bytes::complete::tag,

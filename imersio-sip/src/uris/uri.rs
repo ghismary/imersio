@@ -114,7 +114,7 @@ impl Uri {
     /// Get a header value of the URI given its name.
     pub fn header(&self, name: &str) -> Option<&str> {
         match self {
-            Uri::Sip(uri) => uri.headers().get(name),
+            Uri::Sip(uri) => uri.headers().get(name).map(|h| h.value()),
             Uri::Absolute(_) => None,
         }
     }

@@ -89,7 +89,7 @@ impl std::fmt::Display for SipUri {
 pub(crate) mod parser {
     use crate::parser::ParserResult;
     use crate::uris::host::parser::hostport;
-    use crate::uris::uri_headers::parser::headers;
+    use crate::uris::uri_header::parser::headers;
     use crate::uris::uri_parameter::parser::uri_parameters;
     use crate::uris::user_info::parser::userinfo;
     use crate::{SipUri, Uri, UriScheme};

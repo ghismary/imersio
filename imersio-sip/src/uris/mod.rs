@@ -4,7 +4,7 @@ pub mod absolute_uri;
 pub mod host;
 pub mod sip_uri;
 pub mod uri;
-pub mod uri_headers;
+pub mod uri_header;
 pub mod uri_parameter;
 pub mod uri_scheme;
 pub mod user_info;

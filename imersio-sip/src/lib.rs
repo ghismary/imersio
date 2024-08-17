@@ -87,6 +87,12 @@ pub use crate::headers::{
 };
 pub use crate::messages::{message::Message, request::Request, response::Response};
 pub use crate::uris::{
-    absolute_uri::AbsoluteUri, host::Host, sip_uri::SipUri, uri::Uri, uri_headers::UriHeaders,
-    uri_parameter::UriParameters, uri_scheme::UriScheme, user_info::UserInfo,
+    absolute_uri::AbsoluteUri,
+    host::Host,
+    sip_uri::SipUri,
+    uri::Uri,
+    uri_header::{UriHeader, UriHeaders},
+    uri_parameter::{UriParameter, UriParameters},
+    uri_scheme::UriScheme,
+    user_info::UserInfo,
 };
