@@ -93,6 +93,6 @@ pub use crate::uris::{
     uri::Uri,
     uri_header::{UriHeader, UriHeaders},
     uri_parameter::{UriParameter, UriParameters},
-    uri_scheme::{UriScheme, UriSchemeToken},
-    user_info::{PasswordToken, UserInfo, UserToken},
+    uri_scheme::{UriScheme, UriSchemeString},
+    user_info::{PasswordString, UserInfo, UserString},
 };

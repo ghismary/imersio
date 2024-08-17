@@ -11,15 +11,15 @@ use crate::{
 
 /// Representation of a URI user value accepting only the valid characters.
 #[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
-pub struct UserToken(String);
+pub struct UserString(String);
 
-impl UserToken {
+impl UserString {
     pub(crate) fn new<S: Into<String>>(value: S) -> Self {
         Self(value.into())
     }
 }
 
-impl TryFrom<&str> for UserToken {
+impl TryFrom<&str> for UserString {
     type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -41,15 +41,15 @@ impl TryFrom<&str> for UserToken {
 
 /// Representation of a URI password value accepting only the valid characters.
 #[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
-pub struct PasswordToken(String);
+pub struct PasswordString(String);
 
-impl PasswordToken {
+impl PasswordString {
     pub(crate) fn new<S: Into<String>>(value: S) -> Self {
         Self(value.into())
     }
 }
 
-impl TryFrom<&str> for PasswordToken {
+impl TryFrom<&str> for PasswordString {
     type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -72,12 +72,12 @@ impl TryFrom<&str> for PasswordToken {
 /// Representation of an userinfo of a SIP URI.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct UserInfo {
-    user: UserToken,
-    password: Option<PasswordToken>,
+    user: UserString,
+    password: Option<PasswordString>,
 }
 
 impl UserInfo {
-    pub(crate) fn new(user: UserToken, password: Option<PasswordToken>) -> Self {
+    pub(crate) fn new(user: UserString, password: Option<PasswordString>) -> Self {
         Self { user, password }
     }
 
@@ -110,7 +110,7 @@ impl std::fmt::Display for UserInfo {
 
 pub(crate) mod parser {
     use crate::parser::{escaped, take1, unreserved, ParserResult};
-    use crate::{PasswordToken, UserInfo, UserToken};
+    use crate::{PasswordString, UserInfo, UserString};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -130,11 +130,11 @@ pub(crate) mod parser {
         verify(take1, |c| is_user_unreserved(*c))(input)
     }
 
-    pub(super) fn user(input: &str) -> ParserResult<&str, UserToken> {
+    pub(super) fn user(input: &str) -> ParserResult<&str, UserString> {
         context(
             "user",
             map(many1(alt((unreserved, escaped, user_unreserved))), |user| {
-                UserToken::new(user.iter().collect::<String>())
+                UserString::new(user.iter().collect::<String>())
             }),
         )(input)
     }
@@ -149,12 +149,12 @@ pub(crate) mod parser {
         verify(take1, |c| is_password_special_char(*c))(input)
     }
 
-    pub(super) fn password(input: &str) -> ParserResult<&str, PasswordToken> {
+    pub(super) fn password(input: &str) -> ParserResult<&str, PasswordString> {
         context(
             "password",
             map(
                 many0(alt((unreserved, escaped, password_special_char))),
-                |password| PasswordToken::new(password.iter().collect::<String>()),
+                |password| PasswordString::new(password.iter().collect::<String>()),
             ),
         )(input)
     }
@@ -175,79 +175,79 @@ pub(crate) mod parser {
 }
 #[cfg(test)]
 mod tests {
-    use crate::{PasswordToken, UserInfo, UserToken};
+    use crate::{PasswordString, UserInfo, UserString};
     use claims::{assert_err, assert_ok};
 
     #[test]
-    fn test_valid_user_token() {
-        let user_token = UserToken::try_from("bob");
-        assert_ok!(&user_token);
-        if let Ok(user_token) = user_token {
-            assert_eq!(user_token.as_str(), "bob");
-            assert_eq!(format!("{}", user_token), "bob");
+    fn test_valid_user_string() {
+        let user_string = UserString::try_from("bob");
+        assert_ok!(&user_string);
+        if let Ok(user_string) = user_string {
+            assert_eq!(user_string.as_str(), "bob");
+            assert_eq!(format!("{}", user_string), "bob");
         }
     }
 
     #[test]
-    fn test_valid_user_token_needing_escaping() {
-        let user_token = UserToken::try_from("a username");
-        assert_ok!(&user_token);
-        if let Ok(user_token) = user_token {
-            assert_eq!(user_token.as_str(), "a username");
-            assert_eq!(format!("{}", user_token), "a username");
+    fn test_valid_user_string_needing_escaping() {
+        let user_string = UserString::try_from("a username");
+        assert_ok!(&user_string);
+        if let Ok(user_string) = user_string {
+            assert_eq!(user_string.as_str(), "a username");
+            assert_eq!(format!("{}", user_string), "a username");
         }
     }
 
     #[test]
-    fn test_invalid_user_token() {
-        assert_err!(UserToken::try_from("Éric"));
+    fn test_invalid_user_string() {
+        assert_err!(UserString::try_from("Éric"));
     }
 
     #[test]
-    fn test_valid_password_token() {
-        let password_token = PasswordToken::try_from("password");
-        assert_ok!(&password_token);
-        if let Ok(password_token) = password_token {
-            assert_eq!(password_token.as_str(), "password");
-            assert_eq!(format!("{}", password_token), "password");
+    fn test_valid_password_string() {
+        let password_string = PasswordString::try_from("password");
+        assert_ok!(&password_string);
+        if let Ok(password_string) = password_string {
+            assert_eq!(password_string.as_str(), "password");
+            assert_eq!(format!("{}", password_string), "password");
         }
     }
 
     #[test]
-    fn test_valid_password_token_needing_escaping() {
-        let password_token = PasswordToken::try_from("secret# word$");
-        assert_ok!(&password_token);
-        if let Ok(password_token) = password_token {
-            assert_eq!(password_token.as_str(), "secret# word$");
-            assert_eq!(format!("{}", password_token), "secret# word$");
+    fn test_valid_password_string_needing_escaping() {
+        let password_string = PasswordString::try_from("secret# word$");
+        assert_ok!(&password_string);
+        if let Ok(password_string) = password_string {
+            assert_eq!(password_string.as_str(), "secret# word$");
+            assert_eq!(format!("{}", password_string), "secret# word$");
         }
     }
 
     #[test]
-    fn test_invalid_password_token() {
-        assert_err!(PasswordToken::try_from("mot crypté"));
+    fn test_invalid_password_string() {
+        assert_err!(PasswordString::try_from("mot crypté"));
     }
 
     #[test]
     fn test_userinfo_display() {
-        let user_token = UserToken::try_from("bob").unwrap();
-        let password_token = PasswordToken::try_from("password").unwrap();
-        let user_info = UserInfo::new(user_token, Some(password_token));
+        let user_string = UserString::try_from("bob").unwrap();
+        let password_string = PasswordString::try_from("password").unwrap();
+        let user_info = UserInfo::new(user_string, Some(password_string));
         assert_eq!(format!("{}", user_info), "bob:password");
     }
 
     #[test]
     fn test_userinfo_display_without_password() {
-        let user_token = UserToken::try_from("bob").unwrap();
-        let user_info = UserInfo::new(user_token, None);
+        let user_string = UserString::try_from("bob").unwrap();
+        let user_info = UserInfo::new(user_string, None);
         assert_eq!(format!("{}", user_info), "bob");
     }
 
     #[test]
     fn test_userinfo_display_with_escaped_chars() {
-        let user_token = UserToken::try_from("a username").unwrap();
-        let password_token = PasswordToken::try_from("secret# word$").unwrap();
-        let user_info = UserInfo::new(user_token, Some(password_token));
+        let user_string = UserString::try_from("a username").unwrap();
+        let password_string = PasswordString::try_from("secret# word$").unwrap();
+        let user_info = UserInfo::new(user_string, Some(password_string));
         assert_eq!(format!("{}", user_info), "a%20username:secret%23%20word$");
     }
 }

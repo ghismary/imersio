@@ -10,24 +10,24 @@ use crate::SipError;
 
 /// Representation of a URI scheme value accepting only the valid characters.
 #[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
-pub struct UriSchemeToken(String);
+pub struct UriSchemeString(String);
 
-impl UriSchemeToken {
+impl UriSchemeString {
     pub(crate) fn new<S: Into<String>>(value: S) -> Self {
         Self(value.into())
     }
 }
 
-impl TryFrom<&str> for UriSchemeToken {
+impl TryFrom<&str> for UriSchemeString {
     type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match scheme(value) {
-            Ok((rest, scheme_token)) => {
+            Ok((rest, scheme_string)) => {
                 if !rest.is_empty() {
                     Err(SipError::RemainingUnparsedData(rest.to_string()))
                 } else {
-                    Ok(scheme_token)
+                    Ok(scheme_string)
                 }
             }
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
@@ -49,7 +49,7 @@ pub enum UriScheme {
     /// SIPS protocol scheme.
     Sips,
     /// Any other protocol scheme.
-    Other(UriSchemeToken),
+    Other(UriSchemeString),
 }
 
 impl UriScheme {
@@ -136,14 +136,14 @@ impl TryFrom<&str> for UriScheme {
         match lowercase_value.as_str() {
             "sip" => Ok(UriScheme::Sip),
             "sips" => Ok(UriScheme::Sips),
-            _ => UriSchemeToken::try_from(value).map(UriScheme::Other),
+            _ => UriSchemeString::try_from(value).map(UriScheme::Other),
         }
     }
 }
 
 pub(crate) mod parser {
     use crate::parser::{alpha, digit, take1, ParserResult};
-    use crate::UriSchemeToken;
+    use crate::UriSchemeString;
     use nom::{
         branch::alt,
         combinator::{map, recognize, verify},
@@ -157,12 +157,12 @@ pub(crate) mod parser {
         verify(take1, |c| "+-.".contains(*c))(input)
     }
 
-    pub(crate) fn scheme(input: &str) -> ParserResult<&str, UriSchemeToken> {
+    pub(crate) fn scheme(input: &str) -> ParserResult<&str, UriSchemeString> {
         context(
             "scheme",
             map(
                 recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
-                UriSchemeToken::new,
+                UriSchemeString::new,
             ),
         )(input)
     }
@@ -170,22 +170,22 @@ pub(crate) mod parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::{UriScheme, UriSchemeToken};
+    use crate::{UriScheme, UriSchemeString};
     use claims::{assert_err, assert_ok};
 
     #[test]
-    fn test_valid_uri_scheme_token() {
-        let scheme_token = UriSchemeToken::try_from("http");
-        assert_ok!(&scheme_token);
-        if let Ok(scheme_token) = scheme_token {
-            assert_eq!(scheme_token.as_str(), "http");
-            assert_eq!(format!("{}", scheme_token), "http");
+    fn test_valid_uri_scheme_string() {
+        let scheme_string = UriSchemeString::try_from("http");
+        assert_ok!(&scheme_string);
+        if let Ok(scheme_string) = scheme_string {
+            assert_eq!(scheme_string.as_str(), "http");
+            assert_eq!(format!("{}", scheme_string), "http");
         }
     }
 
     #[test]
-    fn test_invalid_uri_scheme_token() {
-        assert_err!(UriSchemeToken::try_from("my_scheme"));
+    fn test_invalid_uri_scheme_string() {
+        assert_err!(UriSchemeString::try_from("my_scheme"));
     }
 
     #[test]
@@ -215,7 +215,7 @@ mod tests {
         if let Ok(scheme) = scheme {
             assert_eq!(
                 scheme,
-                UriScheme::Other(UriSchemeToken::try_from("http").unwrap())
+                UriScheme::Other(UriSchemeString::try_from("http").unwrap())
             );
             assert_eq!(format!("{}", scheme), "http");
         }
