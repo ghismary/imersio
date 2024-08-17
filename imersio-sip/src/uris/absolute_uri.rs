@@ -43,7 +43,7 @@ impl AbsoluteUri {
         &self.parameters
     }
 
-    /// Get a reference to the `UriHeaders` of the abosulet uri.
+    /// Get a reference to the `UriHeaders` of the absolute uri.
     pub fn headers(&self) -> &UriHeaders {
         &self.headers
     }
@@ -57,9 +57,9 @@ impl std::fmt::Display for AbsoluteUri {
 
 pub(crate) mod parser {
     use crate::parser::{
-        alpha, digit, escaped, is_reserved, is_unreserved, reserved, take1, unreserved,
-        ParserResult,
+        escaped, is_reserved, is_unreserved, reserved, take1, unreserved, ParserResult,
     };
+    use crate::uris::uri_scheme::parser::scheme;
     use crate::{AbsoluteUri, UriHeaders, UriParameters, UriScheme};
     use nom::{
         branch::alt,
@@ -80,17 +80,6 @@ pub(crate) mod parser {
         })(input)
     }
 
-    fn scheme_special_char(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| "+-.".contains(*c))(input)
-    }
-
-    fn scheme(input: &str) -> ParserResult<&str, &str> {
-        context(
-            "scheme",
-            recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
-        )(input)
-    }
-
     fn opaque_part(input: &str) -> ParserResult<&str, &str> {
         recognize(pair(uric_no_slash, many0(uric)))(input)
     }
@@ -102,7 +91,7 @@ pub(crate) mod parser {
                 separated_pair(scheme, tag(":"), opaque_part),
                 |(scheme, opaque_part)| {
                     AbsoluteUri::new(
-                        UriScheme::Other(scheme.to_string()),
+                        UriScheme::Other(scheme),
                         opaque_part,
                         UriParameters::default(),
                         UriHeaders::default(),

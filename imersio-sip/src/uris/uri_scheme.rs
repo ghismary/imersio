@@ -1,8 +1,47 @@
-//! Parsing and generation of the scheme of a SIP URI..
+//! Parsing and generation of the scheme of a SIP URI.
 
 use std::hash::Hash;
 
-/// Representation of the scheme of an URI.
+use derive_more::Deref;
+use nom::error::convert_error;
+
+use crate::uris::uri_scheme::parser::scheme;
+use crate::SipError;
+
+/// Representation of a URI scheme value accepting only the valid characters.
+#[derive(Clone, Debug, Deref, Eq, PartialEq)]
+pub struct UriSchemeToken(String);
+
+impl UriSchemeToken {
+    pub(crate) fn new<S: Into<String>>(value: S) -> Self {
+        Self(value.into())
+    }
+}
+
+impl TryFrom<&str> for UriSchemeToken {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match scheme(value) {
+            Ok((rest, scheme_token)) => {
+                if !rest.is_empty() {
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(scheme_token)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(SipError::InvalidUriScheme(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidUriScheme(format!(
+                "Incomplete uri scheme `{}`",
+                value
+            ))),
+        }
+    }
+}
+
+/// Representation of the scheme of a URI.
 #[derive(Clone, Debug, Eq)]
 pub enum UriScheme {
     /// SIP protocol scheme.
@@ -10,7 +49,7 @@ pub enum UriScheme {
     /// SIPS protocol scheme.
     Sips,
     /// Any other protocol scheme.
-    Other(String),
+    Other(UriSchemeToken),
 }
 
 impl UriScheme {
@@ -86,5 +125,94 @@ impl Hash for UriScheme {
                 value.to_ascii_lowercase().hash(state);
             }
         }
+    }
+}
+
+impl TryFrom<&str> for UriScheme {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let lowercase_value = value.to_lowercase();
+        match lowercase_value.as_str() {
+            "sip" => Ok(UriScheme::Sip),
+            "sips" => Ok(UriScheme::Sips),
+            _ => UriSchemeToken::try_from(value).map(UriScheme::Other),
+        }
+    }
+}
+
+pub(crate) mod parser {
+    use crate::parser::{alpha, digit, take1, ParserResult};
+    use crate::UriSchemeToken;
+    use nom::{
+        branch::alt,
+        combinator::{map, recognize, verify},
+        error::context,
+        multi::many0,
+        sequence::pair,
+    };
+
+    #[inline]
+    fn scheme_special_char(input: &str) -> ParserResult<&str, char> {
+        verify(take1, |c| "+-.".contains(*c))(input)
+    }
+
+    pub(crate) fn scheme(input: &str) -> ParserResult<&str, UriSchemeToken> {
+        context(
+            "scheme",
+            map(
+                recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
+                UriSchemeToken::new,
+            ),
+        )(input)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{UriScheme, UriSchemeToken};
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn test_valid_uri_scheme_token() {
+        let scheme_token = UriSchemeToken::try_from("http");
+        assert_ok!(&scheme_token);
+        assert_eq!(scheme_token.unwrap().as_str(), "http");
+    }
+
+    #[test]
+    fn test_invalid_uri_scheme_token() {
+        let scheme_token = UriSchemeToken::try_from("my_scheme");
+        assert_err!(scheme_token);
+    }
+
+    #[test]
+    fn test_valid_uri_scheme_sip() {
+        let scheme = UriScheme::try_from("sip");
+        assert_ok!(&scheme);
+        assert_eq!(scheme.unwrap(), UriScheme::Sip);
+    }
+
+    #[test]
+    fn test_valid_uri_scheme_sips() {
+        let scheme = UriScheme::try_from("SIPS");
+        assert_ok!(&scheme);
+        assert_eq!(scheme.unwrap(), UriScheme::Sips);
+    }
+
+    #[test]
+    fn test_valid_uri_scheme_http() {
+        let scheme = UriScheme::try_from("http");
+        assert_ok!(&scheme);
+        assert_eq!(
+            scheme.unwrap(),
+            UriScheme::Other(UriSchemeToken::try_from("http").unwrap())
+        );
+    }
+
+    #[test]
+    fn test_invalid_uri_scheme() {
+        let scheme = UriScheme::try_from("@sch&me");
+        assert_err!(scheme);
     }
 }
