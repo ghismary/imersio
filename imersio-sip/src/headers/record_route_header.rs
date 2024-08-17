@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{Route, Routes};
@@ -13,7 +12,7 @@ use crate::{Route, Routes};
 /// the dialog to be routed through the proxy.
 ///
 /// [[RFC3261, Section 20.30](https://datatracker.ietf.org/doc/html/rfc3261#section-20.30)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct RecordRouteHeader {
     #[partial_eq_ignore]

@@ -1,6 +1,5 @@
 use derive_more::{Deref, From, IntoIterator, IsVariant};
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -10,7 +9,7 @@ use crate::GenericParameter;
 /// Representation of the list of from parameters of a `From` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Deref, Eq, From, IntoIterator, PartialEqRefs)]
+#[derive(Clone, Debug, Deref, Eq, From, IntoIterator)]
 pub struct FromParameters(Vec<FromParameter>);
 
 impl std::fmt::Display for FromParameters {
@@ -26,7 +25,7 @@ impl PartialEq for FromParameters {
 }
 
 /// Representation of a parameter founded in a `From` header.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum FromParameter {
     /// A `tag` parameter.
     Tag(String),

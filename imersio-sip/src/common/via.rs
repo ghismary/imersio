@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -12,7 +11,7 @@ use crate::{Host, Protocol, ViaParameter};
 pub type Vias = ValueCollection<Via>;
 
 /// Representation of a via contained in a `Via` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct Via {
     protocol: Protocol,
     host: Host,

@@ -1,5 +1,4 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -11,7 +10,7 @@ use crate::Product;
 pub type ServerValues = ValueCollection<ServerValue>;
 
 /// Representation of an server value contained in a `Server` or `User-Agent` header.
-#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
 pub enum ServerValue {
     /// A product name and version
     Product(Product),

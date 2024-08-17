@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{ContentLanguage, ContentLanguages};
@@ -10,7 +9,7 @@ use crate::{ContentLanguage, ContentLanguages};
 /// Representation of a Content-Language header.
 ///
 /// [[RFC3261, Section 20.13](https://datatracker.ietf.org/doc/html/rfc3261#section-20.13)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContentLanguageHeader {
     #[partial_eq_ignore]

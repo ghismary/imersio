@@ -1,6 +1,5 @@
 use derive_more::Display;
 use nom::error::convert_error;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -13,7 +12,7 @@ use crate::SipError;
 pub type ContentEncodings = ValueCollection<ContentEncoding>;
 
 /// Representation of an encoding in a `Content-Encoding` header.
-#[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq)]
 #[display("{}", self.0.to_ascii_lowercase())]
 pub struct ContentEncoding(String);
 

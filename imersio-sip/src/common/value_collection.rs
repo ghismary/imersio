@@ -56,24 +56,6 @@ where
     }
 }
 
-impl<T> PartialEq<&ValueCollection<T>> for ValueCollection<T>
-where
-    T: Eq + PartialEq + Hash,
-{
-    fn eq(&self, other: &&ValueCollection<T>) -> bool {
-        self == *other
-    }
-}
-
-impl<T> PartialEq<ValueCollection<T>> for &ValueCollection<T>
-where
-    T: Eq + PartialEq + Hash,
-{
-    fn eq(&self, other: &ValueCollection<T>) -> bool {
-        *self == other
-    }
-}
-
 impl<T> Default for ValueCollection<T>
 where
     T: Eq + PartialEq + Hash,

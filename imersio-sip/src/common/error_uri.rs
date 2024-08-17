@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 use std::ops::Deref;
 
@@ -25,7 +24,7 @@ impl ErrorUris {
 }
 
 /// Representation of an error uri contained in an `Error-Info` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct ErrorUri {
     uri: Uri,
     parameters: Vec<GenericParameter>,

@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -25,7 +24,7 @@ impl AcceptEncodings {
 }
 
 /// Representation of an encoding from an `Accept-Encoding` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct AcceptEncoding {
     encoding: ContentEncoding,
     parameters: Vec<AcceptParameter>,

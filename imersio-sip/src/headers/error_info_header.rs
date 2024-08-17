@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{ErrorUri, ErrorUris};
@@ -12,7 +11,7 @@ use crate::{ErrorUri, ErrorUris};
 /// The Error-Info header field provides a pointer to additional information about the error status
 /// response.
 /// [[RFC3261, Section 20.18](https://datatracker.ietf.org/doc/html/rfc3261#section-20.18)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ErrorInfoHeader {
     #[partial_eq_ignore]

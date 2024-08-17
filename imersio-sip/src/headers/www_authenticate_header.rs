@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Challenge;
@@ -12,7 +11,7 @@ use crate::Challenge;
 /// A WWW-Authenticate header field value contains an authentication challenge.
 ///
 /// [[RFC3261, Section 20.44](https://datatracker.ietf.org/doc/html/rfc3261#section-20.44)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct WWWAuthenticateHeader {
     #[partial_eq_ignore]
@@ -112,7 +111,7 @@ mod tests {
                 );
                 assert!(challenge.has_qop());
                 assert_eq!(challenge.qop().unwrap().len(), 1);
-                assert_eq!(challenge.qop().unwrap().first().unwrap(), MessageQop::Auth);
+                assert_eq!(challenge.qop().unwrap().first().unwrap(), &MessageQop::Auth);
                 assert!(challenge.has_nonce());
                 assert_eq!(challenge.nonce(), Some("f84f1cec41e6cbe5aea9c8e88d359"));
                 assert!(challenge.has_opaque());

@@ -1,11 +1,10 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::{cmp::Ordering, hash::Hash};
 
 use crate::GenericParameter;
 
 /// Representation of a parameter for a contact contained in an `Accept` header.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum AcceptParameter {
     /// q parameter
     Q(String),

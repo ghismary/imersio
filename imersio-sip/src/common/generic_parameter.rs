@@ -1,14 +1,13 @@
 use crate::utils::compare_vectors;
 use derive_more::{Deref, From, IntoIterator};
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
 /// Representation of the list of generic parameters.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Deref, Eq, From, IntoIterator, PartialEqRefs)]
+#[derive(Clone, Debug, Deref, Eq, From, IntoIterator)]
 pub struct GenericParameters(Vec<GenericParameter>);
 
 impl std::fmt::Display for GenericParameters {
@@ -24,7 +23,7 @@ impl PartialEq for GenericParameters {
 }
 
 /// Representation of a generic parameter.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct GenericParameter {
     key: String,
     value: Option<String>,

@@ -1,7 +1,6 @@
 //! SIP Call-Info header parsing and generation.
 
 use derive_more::Display;
-use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -15,7 +14,7 @@ use crate::{CallInfo, CallInfos};
 /// response.
 ///
 /// [[RFC3261, Section 20.9](https://datatracker.ietf.org/doc/html/rfc3261#section-20.9)]
-#[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq)]
 #[display("{}", header)]
 pub struct CallInfoHeader {
     header: GenericHeader,
@@ -119,7 +118,7 @@ mod tests {
             assert_eq!(first_call_info.parameters().len(), 1);
             assert_eq!(
                 first_call_info.parameters().first().unwrap(),
-                CallInfoParameter::IconPurpose
+                &CallInfoParameter::IconPurpose
             );
             let second_uri = Uri::try_from("http://www.example.com/alice/").unwrap();
             let second_uri = second_uri.as_absolute_uri().unwrap();
@@ -130,7 +129,7 @@ mod tests {
             assert_eq!(second_call_info.parameters().len(), 1);
             assert_eq!(
                 second_call_info.parameters().first().unwrap(),
-                CallInfoParameter::InfoPurpose
+                &CallInfoParameter::InfoPurpose
             );
             let third_uri = Uri::try_from("http://www.example.com/bob/").unwrap();
             let third_uri = third_uri.as_absolute_uri().unwrap();
@@ -153,7 +152,7 @@ mod tests {
                 assert_eq!(first_call_info.parameters().len(), 1);
                 assert_eq!(
                     first_call_info.parameters().first().unwrap(),
-                    CallInfoParameter::OtherPurpose("photo".to_string())
+                    &CallInfoParameter::OtherPurpose("photo".to_string())
                 );
             },
         );
@@ -174,7 +173,7 @@ mod tests {
                 assert_eq!(first_call_info.parameters().len(), 1);
                 assert_eq!(
                     first_call_info.parameters().first().unwrap(),
-                    CallInfoParameter::Other(GenericParameter::new("info", Some("photo")))
+                    &CallInfoParameter::Other(GenericParameter::new("info", Some("photo")))
                 );
             },
         );
@@ -195,7 +194,7 @@ mod tests {
                 assert_eq!(first_call_info.parameters().len(), 1);
                 assert_eq!(
                     first_call_info.parameters().first().unwrap(),
-                    CallInfoParameter::Other(GenericParameter::new("info", None))
+                    &CallInfoParameter::Other(GenericParameter::new("info", None))
                 );
             },
         );

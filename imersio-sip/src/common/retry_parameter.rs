@@ -1,11 +1,10 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::{cmp::Ordering, hash::Hash};
 
 use crate::GenericParameter;
 
 /// Representation of a parameter contained in a `Retry-After` header.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum RetryParameter {
     /// duration parameter
     Duration(String),

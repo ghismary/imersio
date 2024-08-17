@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{AcceptRange, AcceptRanges};
@@ -14,7 +13,7 @@ use crate::{AcceptRange, AcceptRanges};
 /// present, the server SHOULD assume a default value of `application/sdp`.
 ///
 /// [[RFC3261, Section 20.1](https://datatracker.ietf.org/doc/html/rfc3261#section-20.1)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AcceptHeader {
     #[partial_eq_ignore]
@@ -134,7 +133,7 @@ mod tests {
                 assert_eq!(accept_range.parameters().len(), 1);
                 assert_eq!(
                     accept_range.parameters().first().unwrap(),
-                    AcceptParameter::new("level", Some("1"))
+                    &AcceptParameter::new("level", Some("1"))
                 );
                 let accept_range = header.ranges().get(&MediaRange::new("text", "html"));
                 assert!(accept_range.is_some());

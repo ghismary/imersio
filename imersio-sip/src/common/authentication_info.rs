@@ -1,5 +1,4 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -13,7 +12,7 @@ use crate::MessageQop;
 pub type AuthenticationInfos = ValueCollection<AuthenticationInfo>;
 
 /// Representation of an info from an `AuthenticationInfoHeader`.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 #[non_exhaustive]
 pub enum AuthenticationInfo {
     /// A `nextnonce` authentication info.

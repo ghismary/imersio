@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 
@@ -14,7 +13,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// The field MAY be used by client software to filter calls.
 ///
 /// [[RFC3261, Section 20.25](https://datatracker.ietf.org/doc/html/rfc3261#section-20.25)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct OrganizationHeader {
     #[partial_eq_ignore]

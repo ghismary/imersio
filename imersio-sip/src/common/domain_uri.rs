@@ -1,6 +1,5 @@
 use derive_more::{Deref, From};
 use itertools::{join, Itertools};
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -10,7 +9,7 @@ use crate::Uri;
 /// Representation of the list of uris in a `domain` parameter of a `Proxy-Authenticate` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Deref, Eq, From, PartialEqRefs)]
+#[derive(Clone, Debug, Deref, Eq, From)]
 pub struct DomainUris(Vec<DomainUri>);
 
 impl std::fmt::Display for DomainUris {
@@ -32,7 +31,7 @@ impl Hash for DomainUris {
 }
 
 /// Representation of an uri contained in a `domain` parameter of a `Proxy-Authenticate` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub enum DomainUri {
     /// A full uri for the domain.
     Uri(Uri),

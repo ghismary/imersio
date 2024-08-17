@@ -1,12 +1,11 @@
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use super::wrapped_string::WrappedString;
 use crate::Uri;
 
 /// Representation of name address, that is the conjunction of a display name and an uri.
-#[derive(Clone, Debug, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, PartialEqExtras)]
 pub struct NameAddress {
     #[partial_eq_ignore]
     display_name: Option<WrappedString>,

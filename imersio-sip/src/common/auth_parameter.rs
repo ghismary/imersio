@@ -1,5 +1,4 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::hash::Hash;
@@ -21,7 +20,7 @@ pub type AuthParameters = ValueCollection<AuthParameter>;
 
 /// Representation of the authentication parameters used in an `AuthorizationHeader` or in a
 /// `ProxyAuthenticateHeader`.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum AuthParameter {
     /// A `username` parameter.
     Username(WrappedString),

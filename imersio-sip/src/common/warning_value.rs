@@ -1,4 +1,3 @@
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -11,7 +10,7 @@ use crate::WarnAgent;
 pub type WarningValues = ValueCollection<WarningValue>;
 
 /// Representation of a warning value contained in a `Warning` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct WarningValue {
     code: WarnCode,
     agent: WarnAgent,

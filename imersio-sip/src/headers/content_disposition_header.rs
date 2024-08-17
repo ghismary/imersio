@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -16,7 +15,7 @@ use crate::{DispositionParameter, DispositionType};
 /// UAC or UAS.
 ///
 /// [[RFC3261, Section 20.11](https://datatracker.ietf.org/doc/html/rfc3261#section-20.11)]
-#[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq)]
 #[display("{}", header)]
 pub struct ContentDispositionHeader {
     header: GenericHeader,
@@ -131,7 +130,7 @@ mod tests {
     #[test]
     fn test_valid_content_disposition_header() {
         valid_header("Content-Disposition: session", |header| {
-            assert_eq!(header.r#type(), DispositionType::Session);
+            assert_eq!(header.r#type(), &DispositionType::Session);
             assert!(header.parameters().is_empty());
         });
     }
@@ -139,7 +138,7 @@ mod tests {
     #[test]
     fn test_valid_content_disposition_header_with_parameter() {
         valid_header("Content-Disposition: session;handling=optional", |header| {
-            assert_eq!(header.r#type(), DispositionType::Session);
+            assert_eq!(header.r#type(), &DispositionType::Session);
             assert_eq!(header.parameters().len(), 1);
             assert_eq!(
                 header.parameters().first().unwrap().handling(),
@@ -153,7 +152,7 @@ mod tests {
         valid_header("Content-Disposition: custom", |header| {
             assert_eq!(
                 header.r#type(),
-                DispositionType::Other("custom".to_string())
+                &DispositionType::Other("custom".to_string())
             );
             assert!(header.parameters().is_empty());
         });

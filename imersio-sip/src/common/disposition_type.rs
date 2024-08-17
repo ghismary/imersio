@@ -1,9 +1,8 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 
 /// Representation of a disposition type from a `Content-Disposition` header.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum DispositionType {
     /// The value `render` indicates that the body part should be displayed or
     /// otherwise rendered to the user.

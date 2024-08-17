@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{Route, Routes};
@@ -12,7 +11,7 @@ use crate::{Route, Routes};
 /// The Route header field is used to force routing for a request through the listed set of proxies.
 ///
 /// [[RFC3261, Section 20.34](https://datatracker.ietf.org/doc/html/rfc3261#section-20.34)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct RouteHeader {
     #[partial_eq_ignore]

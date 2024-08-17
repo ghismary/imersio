@@ -1,11 +1,10 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 
 use crate::GenericParameter;
 
 /// Representation of a contact parameter.
-#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
 pub enum ContactParameter {
     /// A `q` parameter.
     Q(String),

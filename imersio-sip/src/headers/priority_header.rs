@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Priority;
@@ -21,7 +20,7 @@ use crate::Priority;
 /// Otherwise, there are no semantics defined for this header field.
 ///
 /// [[RFC3261, Section 20.26](https://datatracker.ietf.org/doc/html/rfc3261#section-20.26)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct PriorityHeader {
     #[partial_eq_ignore]
@@ -104,14 +103,14 @@ mod tests {
     #[test]
     fn test_valid_priority_header_1() {
         valid_header("Priority: emergency", |header| {
-            assert_eq!(header.priority(), Priority::Emergency);
+            assert_eq!(header.priority(), &Priority::Emergency);
         });
     }
 
     #[test]
     fn test_valid_priority_header_2() {
         valid_header("Priority: non-urgent", |header| {
-            assert_eq!(header.priority(), Priority::NonUrgent);
+            assert_eq!(header.priority(), &Priority::NonUrgent);
         });
     }
 
@@ -120,7 +119,7 @@ mod tests {
         valid_header("Priority: my-own-priority", |header| {
             assert_eq!(
                 header.priority(),
-                Priority::Other("my-own-priority".to_string())
+                &Priority::Other("my-own-priority".to_string())
             );
         });
     }

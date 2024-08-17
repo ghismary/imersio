@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{GenericParameter, GenericParameters, NameAddress};
@@ -15,7 +14,7 @@ use crate::{GenericParameter, GenericParameters, NameAddress};
 /// request or populated in such a way that does not reveal any private information.
 ///
 /// [[RFC3261, Section 20.31](https://datatracker.ietf.org/doc/html/rfc3261#section-20.31)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ReplyToHeader {
     #[partial_eq_ignore]

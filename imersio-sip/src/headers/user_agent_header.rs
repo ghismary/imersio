@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{ServerValue, ServerValues};
@@ -16,7 +15,7 @@ use crate::{ServerValue, ServerValues};
 /// Implementers SHOULD make the User-Agent header field a configurable option.
 ///
 /// [[RFC3261, Section 20.41](https://datatracker.ietf.org/doc/html/rfc3261#section-20.41)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct UserAgentHeader {
     #[partial_eq_ignore]
@@ -107,7 +106,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("Softphone", None))
+                &ServerValue::Product(Product::new("Softphone", None))
             );
         });
     }
@@ -118,7 +117,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("Softphone", Some("Beta1.5")))
+                &ServerValue::Product(Product::new("Softphone", Some("Beta1.5")))
             );
         });
     }
@@ -129,7 +128,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Comment("A comment".to_string())
+                &ServerValue::Comment("A comment".to_string())
             );
         });
     }
@@ -140,11 +139,11 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("Softphone", Some("Beta1.5")))
+                &ServerValue::Product(Product::new("Softphone", Some("Beta1.5")))
             );
             assert_eq!(
                 header.values().last().unwrap(),
-                ServerValue::Product(Product::new("OtherProduct", None))
+                &ServerValue::Product(Product::new("OtherProduct", None))
             );
         });
     }
@@ -155,11 +154,11 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("Softphone", None))
+                &ServerValue::Product(Product::new("Softphone", None))
             );
             assert_eq!(
                 header.values().last().unwrap(),
-                ServerValue::Comment("A comment".to_string())
+                &ServerValue::Comment("A comment".to_string())
             );
         });
     }

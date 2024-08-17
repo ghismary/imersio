@@ -1,5 +1,4 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::net::IpAddr;
 
@@ -7,7 +6,7 @@ use crate::uris::host::parser::host;
 use crate::{GenericParameter, Host};
 
 /// Representation of a via parameter.
-#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
 pub enum ViaParameter {
     /// A `ttl` parameter.
     Ttl(String),

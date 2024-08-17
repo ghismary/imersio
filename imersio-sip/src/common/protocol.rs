@@ -1,9 +1,8 @@
 use crate::Transport;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 /// Representation of a protocol, containing its name and version.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Protocol {
     name: String,
     version: String,

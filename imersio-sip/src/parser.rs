@@ -1,4 +1,4 @@
-//! TODO
+//! Generic parser rules used throughout the whole crate.
 
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take};

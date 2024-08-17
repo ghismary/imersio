@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -15,17 +14,17 @@ pub type Routes = ValueCollection<Route>;
 impl Routes {
     /// Tell whether the routes contain the given `NameAddress`.
     pub fn contains(&self, name_addr: &NameAddress) -> bool {
-        self.iter().any(|r| r.name_addr == name_addr)
+        self.iter().any(|r| &r.name_addr == name_addr)
     }
 
     /// Get the route corresponding to the given `NameAddress`.
     pub fn get(&self, name_addr: &NameAddress) -> Option<&Route> {
-        self.iter().find(|r| r.name_addr == name_addr)
+        self.iter().find(|r| &r.name_addr == name_addr)
     }
 }
 
 /// Representation of a route contained in a `Record-Route` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct Route {
     name_addr: NameAddress,
     parameters: Vec<GenericParameter>,

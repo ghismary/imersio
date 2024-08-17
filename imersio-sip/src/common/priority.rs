@@ -1,8 +1,7 @@
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 
 /// Representation of the priority from a `PriorityHeader`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub enum Priority {
     /// The `emergency` priority.
     Emergency,

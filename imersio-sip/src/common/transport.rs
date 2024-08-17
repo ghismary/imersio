@@ -2,10 +2,8 @@ use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use partial_eq_refs::PartialEqRefs;
-
 /// Representation of a transport contained in a Via header or in a transport uri parameter.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum Transport {
     /// UDP transport.
     Udp,

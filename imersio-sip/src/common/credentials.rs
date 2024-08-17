@@ -1,5 +1,4 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
 use crate::utils::compare_vectors;
@@ -9,7 +8,7 @@ use crate::Uri;
 use crate::{AuthParameter, AuthParameters};
 
 /// Representation of the credentials from an `AuthorizationHeader` or a `ProxyAuthorizationHeader`.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum Credentials {
     /// The Digest authentication scheme.
     ///

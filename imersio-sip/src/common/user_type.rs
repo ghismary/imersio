@@ -2,10 +2,8 @@ use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use partial_eq_refs::PartialEqRefs;
-
 /// Representation of a user type included in a `user` uri parameter.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum UserType {
     /// Phone user.
     Phone,

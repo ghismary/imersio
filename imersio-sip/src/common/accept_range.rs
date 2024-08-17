@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -15,17 +14,17 @@ pub type AcceptRanges = ValueCollection<AcceptRange>;
 impl AcceptRanges {
     /// Tell whether the ranges contain the given `MediaRange`.
     pub fn contains(&self, media_range: &MediaRange) -> bool {
-        self.iter().any(|ar| ar.media_range == media_range)
+        self.iter().any(|ar| &ar.media_range == media_range)
     }
 
     /// Get the `Accept-Range` corresponding to the given `MediaRange`.
     pub fn get(&self, media_range: &MediaRange) -> Option<&AcceptRange> {
-        self.iter().find(|ar| ar.media_range == media_range)
+        self.iter().find(|ar| &ar.media_range == media_range)
     }
 }
 
 /// Representation of a range contained in an `AcceptHeader`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct AcceptRange {
     media_range: MediaRange,
     parameters: Vec<AcceptParameter>,

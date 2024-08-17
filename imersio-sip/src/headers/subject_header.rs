@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 
@@ -13,7 +12,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// to use the same subject indication as the invitation.
 ///
 /// [[RFC3261, Section 20.36](https://datatracker.ietf.org/doc/html/rfc3261#section-20.36)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct SubjectHeader {
     #[partial_eq_ignore]

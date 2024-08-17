@@ -141,7 +141,7 @@ Content-Length: 0\r\n\
                         let via = via_header.vias().first().unwrap();
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
-                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.protocol().transport(), &Transport::Udp);
                         assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
@@ -219,7 +219,7 @@ Content-Length: 0\r\n\
                     Header::Accept(accept_header) => {
                         assert_eq!(accept_header.ranges().len(), 1);
                         let range = accept_header.ranges().first().unwrap();
-                        assert_eq!(range.media_range(), MediaRange::new("application", "sdp"));
+                        assert_eq!(range.media_range(), &MediaRange::new("application", "sdp"));
                         assert_eq!(range.parameters().len(), 0);
                     }
                     _ => panic!("Should be an Accept header!"),
@@ -276,7 +276,7 @@ Content-Length: 274\r\n\
                         let via = via_header.vias().first().unwrap();
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
-                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.protocol().transport(), &Transport::Udp);
                         assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 2);
@@ -377,7 +377,7 @@ Content-Length: 274\r\n\
                             Method::BYE,
                         ]
                         .into();
-                        assert_eq!(allow_header.methods(), expected_methods);
+                        assert_eq!(allow_header.methods(), &expected_methods);
                     }
                     _ => panic!("Should be an Allow header!"),
                 }
@@ -386,7 +386,7 @@ Content-Length: 274\r\n\
                     Header::Accept(accept_header) => {
                         assert_eq!(accept_header.ranges().len(), 1);
                         let range = accept_header.ranges().first().unwrap();
-                        assert_eq!(range.media_range(), MediaRange::new("application", "sdp"));
+                        assert_eq!(range.media_range(), &MediaRange::new("application", "sdp"));
                         assert_eq!(range.parameters().len(), 0);
                     }
                     _ => panic!("Should be an Accept header!"),
@@ -425,7 +425,7 @@ Content-Length: 274\r\n\
                     Header::ContentType(content_type_header) => {
                         assert_eq!(
                             content_type_header.media_type().media_range(),
-                            MediaRange::new("application", "sdp")
+                            &MediaRange::new("application", "sdp")
                         );
                         assert_eq!(content_type_header.media_type().parameters().len(), 0);
                     }
@@ -474,7 +474,7 @@ CSeq: 986759 INVITE\r\n\
                         let via = via_header.vias().first().unwrap();
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
-                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.protocol().transport(), &Transport::Udp);
                         assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
@@ -570,7 +570,7 @@ CSeq: 986759 ACK\r\n\
                         let via = via_header.vias().first().unwrap();
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
-                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.protocol().transport(), &Transport::Udp);
                         assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
@@ -706,7 +706,7 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
                         let via = via_header.vias().first().unwrap();
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
-                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.protocol().transport(), &Transport::Udp);
                         assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
@@ -794,7 +794,7 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
                     Header::ContentType(content_type_header) => {
                         assert_eq!(
                             content_type_header.media_type().media_range(),
-                            MediaRange::new("multipart", "signed")
+                            &MediaRange::new("multipart", "signed")
                         );
                         let params = content_type_header.media_type().parameters();
                         assert_eq!(params.len(), 3);
@@ -802,19 +802,19 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
                         assert_eq!(protocol_param.key(), "protocol");
                         assert_eq!(
                             protocol_param.value(),
-                            WrappedString::Quoted("application/pkcs7-signature".to_string())
+                            &WrappedString::Quoted("application/pkcs7-signature".to_string())
                         );
                         let micalg_param = params.get(1).unwrap();
                         assert_eq!(micalg_param.key(), "micalg");
                         assert_eq!(
                             micalg_param.value(),
-                            WrappedString::NotWrapped("sha1".to_string())
+                            &WrappedString::NotWrapped("sha1".to_string())
                         );
                         let boundary_param = params.last().unwrap();
                         assert_eq!(boundary_param.key(), "boundary");
                         assert_eq!(
                             boundary_param.value(),
-                            WrappedString::NotWrapped("boundary42".to_string())
+                            &WrappedString::NotWrapped("boundary42".to_string())
                         );
                     }
                     _ => panic!("Should be an Accept header!"),
@@ -869,7 +869,7 @@ Content-Length: 0\r\n\
                         let via = via_header.vias().first().unwrap();
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
-                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.protocol().transport(), &Transport::Udp);
                         assert_eq!(via.host(), &Host::Name("bobspc.biloxi.com".to_string()));
                         assert_eq!(via.port(), Some(5060));
                         assert_eq!(via.parameters().len(), 1);
@@ -995,7 +995,7 @@ Content-Length: 0\r\n\
                         let via = via_header.vias().first().unwrap();
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
-                        assert_eq!(via.protocol().transport(), Transport::Udp);
+                        assert_eq!(via.protocol().transport(), &Transport::Udp);
                         assert_eq!(via.host(), &Host::Name("bobspc.biloxi.com".to_string()));
                         assert_eq!(via.port(), Some(5060));
                         assert_eq!(via.parameters().len(), 2);

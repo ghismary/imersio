@@ -1,8 +1,7 @@
 use derive_more::Display;
-use partial_eq_refs::PartialEqRefs;
 
 /// Representation of a media range contained in an `AcceptRange` or a `Content-Type` header.
-#[derive(Clone, Debug, Display, Eq, Hash, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, Hash, PartialEq)]
 #[display("{}/{}", self.r#type, self.subtype)]
 pub struct MediaRange {
     r#type: String,

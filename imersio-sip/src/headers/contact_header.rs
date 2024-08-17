@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Contacts;
@@ -15,7 +14,7 @@ use crate::Contacts;
 /// in HTTP.
 ///
 /// [[RFC3261, Section 20.10](https://datatracker.ietf.org/doc/html/rfc3261#section-20.10)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContactHeader {
     #[partial_eq_ignore]
@@ -134,14 +133,14 @@ mod tests {
     #[test]
     fn test_valid_contact_header_wildcard() {
         valid_header("Contact: *", |header| {
-            assert_eq!(header.contacts(), Contacts::Any);
+            assert_eq!(header.contacts(), &Contacts::Any);
         });
     }
 
     #[test]
     fn test_valid_contact_header_compact_wildcard() {
         valid_header("m: *", |header| {
-            assert_eq!(header.contacts(), Contacts::Any);
+            assert_eq!(header.contacts(), &Contacts::Any);
         });
     }
 

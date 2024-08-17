@@ -1,6 +1,6 @@
 [workspace]
-members = ["imersio-sip", "imersio-sip/fuzz", "partial_eq_refs"]
-default-members = ["imersio-sip", "partial_eq_refs"]
+members = ["imersio-sip", "imersio-sip/fuzz"]
+default-members = ["imersio-sip"]
 resolver = "2"
 
 [workspace.package]
@@ -23,6 +23,3 @@ derive-partial-eq-extras = "0.2"
 itertools = "0.13"
 libfuzzer-sys = "0.4"
 nom = "7.1"
-partial_eq_refs = { path = "partial_eq_refs" }
-quote = "1.0"
-syn = "2.0"

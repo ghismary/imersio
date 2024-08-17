@@ -1,6 +1,5 @@
 use derive_more::{Deref, From, IsVariant};
 use itertools::{join, Itertools};
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -9,7 +8,7 @@ use crate::utils::compare_vectors;
 /// Representation of the list of qop in a `Proxy-Authenticate` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Deref, Eq, From, PartialEqRefs)]
+#[derive(Clone, Debug, Deref, Eq, From)]
 pub struct MessageQops(Vec<MessageQop>);
 
 impl std::fmt::Display for MessageQops {
@@ -31,7 +30,7 @@ impl Hash for MessageQops {
 }
 
 /// Representation of a Qop parameter value.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum MessageQop {
     /// auth qop.
     Auth,

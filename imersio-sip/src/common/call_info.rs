@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -25,7 +24,7 @@ impl CallInfos {
 }
 
 /// Representation of a call info, containing its uri and parameters.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct CallInfo {
     uri: AbsoluteUri,
     parameters: Vec<CallInfoParameter>,

@@ -1,5 +1,4 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -7,7 +6,7 @@ use crate::GenericParameter;
 use crate::Handling;
 
 /// Representation of a parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum DispositionParameter {
     /// The handling parameter describes how the UAS should react if it
     /// receives a message body whose content type or disposition type it

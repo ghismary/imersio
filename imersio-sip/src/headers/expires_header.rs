@@ -3,7 +3,6 @@
 use chrono::TimeDelta;
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 
@@ -16,7 +15,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// limits on the session duration, however.
 ///
 /// [[RFC3261, Section 20.19](https://datatracker.ietf.org/doc/html/rfc3261#section-20.19)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ExpiresHeader {
     #[partial_eq_ignore]

@@ -1,10 +1,9 @@
 use derive_more::{Deref, Display};
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::{Hash, Hasher};
 
 /// Representation of a stale parameter.
-#[derive(Debug, Clone, Deref, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Debug, Clone, Deref, Display, Eq, PartialEqExtras)]
 #[display("{}", str_value)]
 pub struct Stale {
     #[partial_eq_ignore]

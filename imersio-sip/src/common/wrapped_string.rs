@@ -1,4 +1,3 @@
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::{hash::Hash, ops::Deref};
 
@@ -6,7 +5,7 @@ use std::{hash::Hash, ops::Deref};
 ///
 /// This may get extended later on.
 #[non_exhaustive]
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub enum WrappedString {
     Quoted(String),
     NotWrapped(String),

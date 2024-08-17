@@ -1,12 +1,11 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::GenericParameter;
 
 /// Representation of an information about the caller or the callee.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum CallInfoParameter {
     /// The `icon` purpose parameter designates an image suitable as an iconic
     /// representation of the caller or callee.

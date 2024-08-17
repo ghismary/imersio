@@ -5,10 +5,9 @@ use std::hash::Hash;
 
 use crate::uris::host::parser::hostport;
 use crate::SipError;
-use partial_eq_refs::PartialEqRefs;
 
 /// Representation of a warning agent contained in a Warning header.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum WarnAgent {
     /// Host + port warning agent.
     HostPort(String),

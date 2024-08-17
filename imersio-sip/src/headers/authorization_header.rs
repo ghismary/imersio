@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Credentials;
@@ -12,7 +11,7 @@ use crate::Credentials;
 /// The Authorization header field contains authentication credentials of a UA.
 ///
 /// [[RFC3261, Section 20.7](https://datatracker.ietf.org/doc/html/rfc3261#section-20.7)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AuthorizationHeader {
     #[partial_eq_ignore]
@@ -178,7 +177,7 @@ mod tests {
             assert!(credentials.has_algorithm());
             assert_eq!(
                 credentials.parameters().first().unwrap(),
-                AuthParameter::Algorithm(Algorithm::Md5)
+                &AuthParameter::Algorithm(Algorithm::Md5)
             );
             assert!(credentials.contains("algorithm"));
             assert_eq!(

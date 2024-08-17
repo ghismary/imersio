@@ -1,10 +1,9 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
 /// Representation of the `handling` parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum Handling {
     /// The handling of the content type is optional.
     Optional,

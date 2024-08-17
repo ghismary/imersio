@@ -1,8 +1,7 @@
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 /// Representation of a product, containing its name and version.
-#[derive(Clone, Debug, Eq, Hash, PartialEq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Product {
     name: String,
     version: Option<String>,

@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::MediaType;
@@ -16,7 +15,7 @@ use crate::MediaType;
 /// zero length (for example, an empty audio file).
 ///
 /// [[RFC3261, Section 20.15](https://datatracker.ietf.org/doc/html/rfc3261#section-20.15)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContentTypeHeader {
     #[partial_eq_ignore]
@@ -116,7 +115,7 @@ mod tests {
             assert_eq!(media_type.parameters().len(), 1);
             assert_eq!(
                 media_type.parameters().first().unwrap(),
-                MediaParameter::new("charset", WrappedString::new_not_wrapped("ISO-8859-4"))
+                &MediaParameter::new("charset", WrappedString::new_not_wrapped("ISO-8859-4"))
             );
         });
     }

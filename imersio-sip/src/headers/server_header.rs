@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{ServerValue, ServerValues};
@@ -13,7 +12,7 @@ use crate::{ServerValue, ServerValues};
 /// request.
 ///
 /// [[RFC3261, Section 20.35](https://datatracker.ietf.org/doc/html/rfc3261#section-20.35)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ServerHeader {
     #[partial_eq_ignore]
@@ -104,7 +103,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("HomeServer", None))
+                &ServerValue::Product(Product::new("HomeServer", None))
             );
         });
     }
@@ -115,7 +114,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("HomeServer", Some("2")))
+                &ServerValue::Product(Product::new("HomeServer", Some("2")))
             );
         });
     }
@@ -126,7 +125,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Comment("A comment".to_string())
+                &ServerValue::Comment("A comment".to_string())
             );
         });
     }
@@ -137,11 +136,11 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("HomeServer", Some("2")))
+                &ServerValue::Product(Product::new("HomeServer", Some("2")))
             );
             assert_eq!(
                 header.values().last().unwrap(),
-                ServerValue::Product(Product::new("OtherServer", None))
+                &ServerValue::Product(Product::new("OtherServer", None))
             );
         });
     }
@@ -152,11 +151,11 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                ServerValue::Product(Product::new("HomeServer", None))
+                &ServerValue::Product(Product::new("HomeServer", None))
             );
             assert_eq!(
                 header.values().last().unwrap(),
-                ServerValue::Comment("A comment".to_string())
+                &ServerValue::Comment("A comment".to_string())
             );
         });
     }

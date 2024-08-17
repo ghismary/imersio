@@ -1,11 +1,10 @@
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::wrapped_string::WrappedString;
 
 /// Representation of a media parameter.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct MediaParameter {
     key: String,
     value: WrappedString,

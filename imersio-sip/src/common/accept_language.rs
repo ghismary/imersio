@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -24,7 +23,7 @@ impl AcceptLanguages {
 }
 
 /// Representation of a language contained in an `Accept-Language` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct AcceptLanguage {
     language: String,
     parameters: Vec<AcceptParameter>,

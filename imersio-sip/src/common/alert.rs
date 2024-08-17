@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -25,7 +24,7 @@ impl Alerts {
 }
 
 /// Representation of an alert contained in an `Alert-Info` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct Alert {
     uri: AbsoluteUri,
     parameters: Vec<AcceptParameter>,

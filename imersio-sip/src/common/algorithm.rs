@@ -2,10 +2,8 @@ use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use partial_eq_refs::PartialEqRefs;
-
 /// Representation of an algorithm parameter.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum Algorithm {
     /// MD5 algorithm.
     Md5,

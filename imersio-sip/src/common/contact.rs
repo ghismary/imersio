@@ -1,6 +1,5 @@
 use derive_more::IsVariant;
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 use std::ops::Deref;
 
@@ -13,7 +12,7 @@ static EMPTY_CONTACTS: Vec<Contact> = vec![];
 /// Representation of the list of contacts of a `Contact` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum Contacts {
     /// Any contacts.
     Any,
@@ -64,7 +63,7 @@ impl From<Vec<Contact>> for Contacts {
 }
 
 /// Representation of a contact in a `Contact` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct Contact {
     address: NameAddress,
     parameters: Vec<ContactParameter>,

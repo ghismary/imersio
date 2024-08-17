@@ -1,6 +1,5 @@
 use derive_more::Display;
 use nom::error::convert_error;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -15,7 +14,7 @@ pub type OptionTags = ValueCollection<OptionTag>;
 
 /// Representation of an option tag contained in a `Proxy-Require`, `Require`, `Supported` or
 /// `Unsupported` header.
-#[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq)]
 #[display("{}", self.0.to_ascii_lowercase())]
 pub struct OptionTag(String);
 

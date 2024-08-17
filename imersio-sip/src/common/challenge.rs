@@ -1,5 +1,4 @@
 use derive_more::IsVariant;
-use partial_eq_refs::PartialEqRefs;
 use std::ops::Deref;
 
 use crate::utils::compare_vectors;
@@ -10,7 +9,7 @@ use crate::Stale;
 use crate::{AuthParameter, AuthParameters};
 
 /// Representation of the challenge from an `ProxyAuthenticateHeader`.
-#[derive(Clone, Debug, Eq, IsVariant, PartialEqRefs)]
+#[derive(Clone, Debug, Eq, IsVariant)]
 pub enum Challenge {
     /// The Digest authentication scheme.
     ///

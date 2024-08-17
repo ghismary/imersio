@@ -3,7 +3,6 @@
 use chrono::{DateTime, TimeDelta, Utc};
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 
@@ -12,7 +11,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// The Timestamp header field describes when the UAC sent the request to the UAS.
 ///
 /// [[RFC3261, Section 20.38](https://datatracker.ietf.org/doc/html/rfc3261#section-20.38)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct TimestampHeader {
     #[partial_eq_ignore]

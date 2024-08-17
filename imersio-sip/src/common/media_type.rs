@@ -1,5 +1,4 @@
 use itertools::join;
-use partial_eq_refs::PartialEqRefs;
 use std::hash::Hash;
 use std::ops::Deref;
 
@@ -8,7 +7,7 @@ use crate::MediaParameter;
 use crate::MediaRange;
 
 /// Representation of a media type contained in a `ContentTypeHeader`.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct MediaType {
     media_range: MediaRange,
     parameters: Vec<MediaParameter>,

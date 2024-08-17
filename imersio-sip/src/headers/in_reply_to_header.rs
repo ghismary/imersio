@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{CallId, CallIds};
@@ -14,7 +13,7 @@ use crate::{CallId, CallIds};
 /// return call.
 ///
 /// [[RFC3261, Section 20.21](https://datatracker.ietf.org/doc/html/rfc3261#section-20.21)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct InReplyToHeader {
     #[partial_eq_ignore]

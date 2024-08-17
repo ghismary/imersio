@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{Via, Vias};
@@ -14,7 +13,7 @@ use crate::{Via, Vias};
 /// serves as a transaction identifier, and is used by proxies to detect loops.
 ///
 /// [[RFC3261, Section 20.42](https://datatracker.ietf.org/doc/html/rfc3261#section-20.42)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ViaHeader {
     #[partial_eq_ignore]
@@ -109,7 +108,7 @@ mod tests {
                 let first_via = header.vias().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
-                    Protocol::new("SIP", "2.0", Transport::Udp)
+                    &Protocol::new("SIP", "2.0", Transport::Udp)
                 );
                 assert_eq!(
                     first_via.host(),
@@ -133,7 +132,7 @@ mod tests {
                 let first_via = header.vias().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
-                    Protocol::new("SIP", "2.0", Transport::Udp)
+                    &Protocol::new("SIP", "2.0", Transport::Udp)
                 );
                 assert_eq!(
                     first_via.host(),
@@ -161,7 +160,7 @@ mod tests {
                 let first_via = header.vias().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
-                    Protocol::new("SIP", "2.0", Transport::Udp)
+                    &Protocol::new("SIP", "2.0", Transport::Udp)
                 );
                 assert_eq!(
                     first_via.host(),

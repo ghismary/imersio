@@ -1,6 +1,5 @@
 use derive_more::Display;
 use nom::error::convert_error;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -13,7 +12,7 @@ use crate::SipError;
 pub type CallIds = ValueCollection<CallId>;
 
 /// Representation of a call id contained in a `Call-Id` or `In-Reply-To` header.
-#[derive(Clone, Debug, Display, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq)]
 #[display("{}", self.0.to_ascii_lowercase())]
 pub struct CallId(String);
 

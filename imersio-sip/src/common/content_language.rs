@@ -1,5 +1,4 @@
 use nom::error::convert_error;
-use partial_eq_refs::PartialEqRefs;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -12,7 +11,7 @@ use crate::SipError;
 pub type ContentLanguages = ValueCollection<ContentLanguage>;
 
 /// Representation of a language contained in an `Content-Language` header.
-#[derive(Clone, Debug, Eq, PartialEqRefs)]
+#[derive(Clone, Debug, Eq)]
 pub struct ContentLanguage(String);
 
 impl ContentLanguage {

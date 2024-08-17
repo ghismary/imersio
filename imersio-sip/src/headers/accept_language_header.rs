@@ -2,7 +2,6 @@
 
 use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
-use partial_eq_refs::PartialEqRefs;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::{AcceptLanguage, AcceptLanguages};
@@ -16,7 +15,7 @@ use crate::{AcceptLanguage, AcceptLanguages};
 /// languages are acceptable to the client.
 ///
 /// [[RFC3261, Section 20.3](https://datatracker.ietf.org/doc/html/rfc3261#section-20.3)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras, PartialEqRefs)]
+#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AcceptLanguageHeader {
     #[partial_eq_ignore]
