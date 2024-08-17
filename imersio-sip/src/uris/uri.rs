@@ -188,6 +188,7 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::HostnameString;
     use claims::{assert_err, assert_ok};
     use std::net::{IpAddr, Ipv4Addr};
 
@@ -201,7 +202,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert!(uri.password().is_none());
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert!(uri.parameters().is_empty());
         assert!(uri.headers().is_empty());
@@ -218,7 +224,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert_eq!(uri.password(), Some("secretword"));
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
         assert_eq!(uri.parameter("transport"), Some("tcp"));
@@ -239,7 +250,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIPS);
         assert_eq!(uri.user(), Some("alice"));
         assert!(uri.password().is_none());
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert!(uri.parameters().is_empty());
         assert_eq!(uri.headers().len(), 2);
@@ -261,7 +277,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("+1-212-555-1212"));
         assert_eq!(uri.password(), Some("1234"));
-        assert_eq!(uri.host(), Some(&Host::Name("gateway.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("gateway.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
         assert_eq!(uri.parameter("user"), Some("phone"));
@@ -282,7 +303,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIPS);
         assert_eq!(uri.user(), Some("1212"));
         assert!(uri.password().is_none());
-        assert_eq!(uri.host(), Some(&Host::Name("gateway.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("gateway.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert!(uri.parameters().is_empty());
         assert!(uri.headers().is_empty());
@@ -319,7 +345,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert!(uri.user().is_none());
         assert!(uri.password().is_none());
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
         assert_eq!(uri.parameter("method"), Some("REGISTER"));
@@ -341,7 +372,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice;day=tuesday"));
         assert!(uri.password().is_none());
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert!(uri.parameters().is_empty());
         assert!(uri.headers().is_empty());
@@ -358,7 +394,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert_eq!(uri.password(), Some("secretword"));
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert!(uri.parameters().is_empty());
         assert!(uri.headers().is_empty());
@@ -376,7 +417,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert_eq!(uri.user(), Some("alice"));
         assert_eq!(uri.password(), Some("secretword"));
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
         assert_eq!(uri.parameter("transport"), Some("tcp"));
@@ -397,7 +443,12 @@ mod test {
         assert_eq!(uri.scheme(), &UriScheme::SIP);
         assert!(uri.user().is_none());
         assert!(uri.password().is_none());
-        assert_eq!(uri.host(), Some(&Host::Name("atlanta.com".to_string())));
+        assert_eq!(
+            uri.host(),
+            Some(&Host::Name(
+                HostnameString::try_from("atlanta.com").unwrap()
+            ))
+        );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
         assert_eq!(uri.parameter("method"), Some("REGISTER"));

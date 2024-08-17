@@ -100,7 +100,8 @@ mod parser {
 mod tests {
     use crate::common::wrapped_string::WrappedString;
     use crate::{
-        Header, Host, MediaRange, Message, Method, Methods, StatusCode, Transport, Uri, Version,
+        Header, Host, HostnameString, MediaRange, Message, Method, Methods, StatusCode, Transport,
+        Uri, Version,
     };
     use chrono::{TimeDelta, TimeZone, Utc};
     use std::net::{IpAddr, Ipv4Addr};
@@ -142,7 +143,10 @@ Content-Length: 0\r\n\
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
                         assert_eq!(via.protocol().transport(), &Transport::Udp);
-                        assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
+                        assert_eq!(
+                            via.host(),
+                            &Host::Name(HostnameString::try_from("pc33.atlanta.com").unwrap())
+                        );
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
                         assert!(via.parameters().first().unwrap().is_branch());
@@ -277,7 +281,10 @@ Content-Length: 274\r\n\
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
                         assert_eq!(via.protocol().transport(), &Transport::Udp);
-                        assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
+                        assert_eq!(
+                            via.host(),
+                            &Host::Name(HostnameString::try_from("pc33.atlanta.com").unwrap())
+                        );
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 2);
                         assert!(via.parameters().first().unwrap().is_branch());
@@ -475,7 +482,10 @@ CSeq: 986759 INVITE\r\n\
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
                         assert_eq!(via.protocol().transport(), &Transport::Udp);
-                        assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
+                        assert_eq!(
+                            via.host(),
+                            &Host::Name(HostnameString::try_from("pc33.atlanta.com").unwrap())
+                        );
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
                         assert!(via.parameters().first().unwrap().is_branch());
@@ -571,7 +581,10 @@ CSeq: 986759 ACK\r\n\
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
                         assert_eq!(via.protocol().transport(), &Transport::Udp);
-                        assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
+                        assert_eq!(
+                            via.host(),
+                            &Host::Name(HostnameString::try_from("pc33.atlanta.com").unwrap())
+                        );
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
                         assert!(via.parameters().first().unwrap().is_branch());
@@ -707,7 +720,10 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
                         assert_eq!(via.protocol().transport(), &Transport::Udp);
-                        assert_eq!(via.host(), &Host::Name("pc33.atlanta.com".to_string()));
+                        assert_eq!(
+                            via.host(),
+                            &Host::Name(HostnameString::try_from("pc33.atlanta.com").unwrap())
+                        );
                         assert_eq!(via.port(), None);
                         assert_eq!(via.parameters().len(), 1);
                         assert!(via.parameters().first().unwrap().is_branch());
@@ -870,7 +886,10 @@ Content-Length: 0\r\n\
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
                         assert_eq!(via.protocol().transport(), &Transport::Udp);
-                        assert_eq!(via.host(), &Host::Name("bobspc.biloxi.com".to_string()));
+                        assert_eq!(
+                            via.host(),
+                            &Host::Name(HostnameString::try_from("bobspc.biloxi.com").unwrap())
+                        );
                         assert_eq!(via.port(), Some(5060));
                         assert_eq!(via.parameters().len(), 1);
                         assert!(via.parameters().first().unwrap().is_branch());
@@ -996,7 +1015,10 @@ Content-Length: 0\r\n\
                         assert_eq!(via.protocol().name(), "SIP");
                         assert_eq!(via.protocol().version(), "2.0");
                         assert_eq!(via.protocol().transport(), &Transport::Udp);
-                        assert_eq!(via.host(), &Host::Name("bobspc.biloxi.com".to_string()));
+                        assert_eq!(
+                            via.host(),
+                            &Host::Name(HostnameString::try_from("bobspc.biloxi.com").unwrap())
+                        );
                         assert_eq!(via.port(), Some(5060));
                         assert_eq!(via.parameters().len(), 2);
                         assert!(via.parameters().first().unwrap().is_branch());

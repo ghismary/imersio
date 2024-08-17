@@ -1,14 +1,50 @@
 //! Parsing and generation of the host part of a SIP uri.
 
-use derive_more::IsVariant;
+use crate::uris::host::parser::{host, hostname};
+use crate::SipError;
+use derive_more::{Deref, Display, IsVariant};
+use nom::error::convert_error;
 use std::hash::Hash;
 use std::net::IpAddr;
+
+/// Representation of a hostname value accepting only the valid characters.
+#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+pub struct HostnameString(String);
+
+impl HostnameString {
+    pub(crate) fn new<S: Into<String>>(value: S) -> Self {
+        Self(value.into())
+    }
+}
+
+impl TryFrom<&str> for HostnameString {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match hostname(value) {
+            Ok((rest, hostname)) => {
+                if !rest.is_empty() {
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(hostname)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(SipError::InvalidHostname(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidHostname(format!(
+                "Incomplete hostname `{}`",
+                value
+            ))),
+        }
+    }
+}
 
 /// Representation of a host part of a SIP URI.
 #[derive(Clone, Debug, Eq, IsVariant)]
 pub enum Host {
     /// A hostname
-    Name(String),
+    Name(HostnameString),
     /// An Ip address.
     Ip(IpAddr),
 }
@@ -37,8 +73,13 @@ impl std::fmt::Display for Host {
             f,
             "{}",
             match self {
-                Self::Name(name) => name.clone(),
-                Self::Ip(ip) => ip.to_string(),
+                Self::Name(name) => name.as_str().to_string(),
+                Self::Ip(ip) => {
+                    match ip {
+                        IpAddr::V4(ip) => ip.to_string(),
+                        IpAddr::V6(ip) => format!("[{}]", ip),
+                    }
+                }
             }
         )
     }
@@ -46,7 +87,7 @@ impl std::fmt::Display for Host {
 
 impl Default for Host {
     fn default() -> Self {
-        Host::Name("localhost".to_string())
+        Host::Name(HostnameString::new("localhost"))
     }
 }
 
@@ -69,8 +110,32 @@ impl Hash for Host {
     }
 }
 
+impl TryFrom<&str> for Host {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match host(value) {
+            Ok((rest, host)) => {
+                if !rest.is_empty() {
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(host)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(SipError::InvalidHost(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidHost(format!(
+                "Incomplete host `{}`",
+                value
+            ))),
+        }
+    }
+}
+
 pub(crate) mod parser {
     use crate::parser::{digit, take1, ParserResult};
+    use crate::uris::host::HostnameString;
     use crate::Host;
     use nom::{
         branch::alt,
@@ -82,6 +147,7 @@ pub(crate) mod parser {
     };
     use std::net::IpAddr;
 
+    #[inline]
     fn is_valid_hostname(input: &str) -> bool {
         let mut labels: Vec<&str> = input.split('.').collect();
         // A valid hostname may end by '.', if this is the case the last label
@@ -101,7 +167,7 @@ pub(crate) mod parser {
         // label.
         if labels
             .iter()
-            .all(|label| label.starts_with('-') || label.ends_with('-'))
+            .any(|label| label.starts_with('-') || label.ends_with('-'))
         {
             return false;
         }
@@ -110,7 +176,7 @@ pub(crate) mod parser {
             .is_some_and(|label| label.as_bytes()[0].is_ascii_alphabetic())
     }
 
-    fn hostname(input: &str) -> ParserResult<&str, Host> {
+    pub(super) fn hostname(input: &str) -> ParserResult<&str, HostnameString> {
         context(
             "hostname",
             map(
@@ -120,7 +186,7 @@ pub(crate) mod parser {
                     }))),
                     is_valid_hostname,
                 ),
-                |name| Host::Name(name.into()),
+                HostnameString::new,
             ),
         )(input)
     }
@@ -149,6 +215,7 @@ pub(crate) mod parser {
         )(input)
     }
 
+    #[inline]
     fn ipv6_reference(input: &str) -> ParserResult<&str, IpAddr> {
         context(
             "ipv6_reference",
@@ -160,7 +227,7 @@ pub(crate) mod parser {
         context(
             "host",
             alt((
-                hostname,
+                map(hostname, Host::Name),
                 map(ipv4_address, Host::Ip),
                 map(ipv6_reference, Host::Ip),
             )),
@@ -176,5 +243,226 @@ pub(crate) mod parser {
 
     pub(crate) fn hostport(input: &str) -> ParserResult<&str, (Host, Option<u16>)> {
         context("hostport", pair(host, opt(preceded(tag(":"), port))))(input)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Host, HostnameString};
+    use claims::{assert_err, assert_ok};
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
+    #[test]
+    fn test_valid_hostname_string() {
+        let hostname_string = HostnameString::try_from("atlanta.com");
+        assert_ok!(&hostname_string);
+        if let Ok(hostname_string) = hostname_string {
+            assert_eq!(hostname_string.as_str(), "atlanta.com");
+            assert_eq!(format!("{}", hostname_string), "atlanta.com");
+        }
+    }
+
+    #[test]
+    fn test_invalid_hostname_string_invalid_character() {
+        assert_err!(HostnameString::try_from("atl_anta.com"));
+    }
+
+    #[test]
+    fn test_invalid_hostname_string_empty() {
+        assert_err!(HostnameString::try_from(""));
+    }
+
+    #[test]
+    fn test_invalid_hostname_string_dot_only() {
+        assert_err!(HostnameString::try_from("."));
+    }
+
+    #[test]
+    fn test_invalid_hostname_string_invalid_starting_dash() {
+        assert_err!(HostnameString::try_from("-atlanta.com"));
+    }
+
+    #[test]
+    fn test_invalid_hostname_string_invalid_trailing_dash() {
+        assert_err!(HostnameString::try_from("atlanta-.com"));
+    }
+
+    #[test]
+    fn test_valid_host_with_hostname() {
+        let host = Host::try_from("atlanta.com");
+        assert_ok!(&host);
+        if let Ok(host) = host {
+            assert_eq!(host, Host::Name(HostnameString::new("atlanta.com")));
+            assert_eq!(format!("{}", host), "atlanta.com");
+        }
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv4_address() {
+        let host = Host::try_from("192.168.0.1");
+        assert_ok!(&host);
+        if let Ok(host) = host {
+            assert_eq!(host, Host::Ip(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1))));
+            assert_eq!(format!("{}", host), "192.168.0.1");
+        }
+    }
+
+    fn test_valid_host_with_ipv6_address(
+        input: &str,
+        expected_ipv6_addr: Ipv6Addr,
+        expected_display: &str,
+    ) {
+        let host = Host::try_from(input);
+        assert_ok!(&host);
+        if let Ok(host) = host {
+            assert_eq!(host, Host::Ip(IpAddr::V6(expected_ipv6_addr)));
+            assert_eq!(format!("{}", host), expected_display);
+        }
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_01() {
+        test_valid_host_with_ipv6_address(
+            "[fe80::1]",
+            Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 0x0001),
+            "[fe80::1]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_02() {
+        test_valid_host_with_ipv6_address(
+            "[2a01:e35:1387:1020:6233:4bff:fe0b:5663]",
+            Ipv6Addr::new(
+                0x2a01, 0x0e35, 0x1387, 0x1020, 0x6233, 0x4bff, 0xfe0b, 0x5663,
+            ),
+            "[2a01:e35:1387:1020:6233:4bff:fe0b:5663]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_03() {
+        test_valid_host_with_ipv6_address(
+            "[2a01:e35:1387:1020:6233::5663]",
+            Ipv6Addr::new(0x2a01, 0x0e35, 0x1387, 0x1020, 0x6233, 0, 0, 0x5663),
+            "[2a01:e35:1387:1020:6233::5663]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_04() {
+        test_valid_host_with_ipv6_address(
+            "[2001:DB8:0:0:8:800:200C:417A]",
+            Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0x0008, 0x0800, 0x200c, 0x417a),
+            "[2001:db8::8:800:200c:417a]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_05() {
+        test_valid_host_with_ipv6_address(
+            "[FF01:0:0:0:0:0:0:101]", // A multicast address
+            Ipv6Addr::new(0xff01, 0, 0, 0, 0, 0, 0, 0x0101),
+            "[ff01::101]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_06() {
+        test_valid_host_with_ipv6_address(
+            "[0:0:0:0:0:0:0:1]", // The loopback address
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0x0001),
+            "[::1]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_07() {
+        test_valid_host_with_ipv6_address(
+            "[0:0:0:0:0:0:0:0]", // The unspecified address
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0),
+            "[::]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_08() {
+        test_valid_host_with_ipv6_address(
+            "[2001:DB8::8:800:200C:417A]",
+            Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0x008, 0x0800, 0x200c, 0x417a),
+            "[2001:db8::8:800:200c:417a]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_09() {
+        test_valid_host_with_ipv6_address(
+            "[FF01::101]",
+            Ipv6Addr::new(0xff01, 0, 0, 0, 0, 0, 0, 0x0101),
+            "[ff01::101]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_10() {
+        test_valid_host_with_ipv6_address(
+            "[::1]", // The loopback address
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0x0001),
+            "[::1]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_11() {
+        test_valid_host_with_ipv6_address(
+            "[::]", // The unspecified address
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0),
+            "[::]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_12() {
+        test_valid_host_with_ipv6_address(
+            "[0:0:0:0:0:0:13.1.68.3]",
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0x0d01, 0x4403),
+            "[::d01:4403]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_13() {
+        test_valid_host_with_ipv6_address(
+            "[0:0:0:0:0:FFFF:129.144.52.38]",
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x8190, 0x3426),
+            "[::ffff:129.144.52.38]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_14() {
+        test_valid_host_with_ipv6_address(
+            "[::13.1.68.3]",
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0x0d01, 0x4403),
+            "[::d01:4403]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_15() {
+        test_valid_host_with_ipv6_address(
+            "[::FFFF:129.144.52.38]",
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x8190, 0x3426),
+            "[::ffff:129.144.52.38]",
+        )
+    }
+
+    #[test]
+    fn test_valid_host_with_ipv6_address_16() {
+        test_valid_host_with_ipv6_address(
+            "[2a01:e35:1387:1020::192.168.1.1]",
+            Ipv6Addr::new(0x2a01, 0x0e35, 0x1387, 0x1020, 0, 0, 0xc0a8, 0x0101),
+            "[2a01:e35:1387:1020::c0a8:101]",
+        )
     }
 }

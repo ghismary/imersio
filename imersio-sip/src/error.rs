@@ -20,6 +20,12 @@ pub enum SipError {
     /// Invalid content language.
     #[display("Invalid content language: `{_0}`")]
     InvalidContentLanguage(String),
+    /// Invalid host.
+    #[display("Invalid host: `{_0}`")]
+    InvalidHost(String),
+    /// Invalid hostname.
+    #[display("Invalid hostname: `{_0}`")]
+    InvalidHostname(String),
     /// Invalid message.
     #[display("Invalid message:\n{_0}")]
     InvalidMessage(String),

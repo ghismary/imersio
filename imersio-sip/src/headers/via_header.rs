@@ -90,7 +90,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header, Host, Protocol, Transport, ViaHeader,
+        Header, Host, HostnameString, Protocol, Transport, ViaHeader,
     };
     use claims::assert_ok;
     use std::net::{IpAddr, Ipv4Addr};
@@ -112,7 +112,7 @@ mod tests {
                 );
                 assert_eq!(
                     first_via.host(),
-                    &Host::Name("erlang.bell-telephone.com".to_string())
+                    &Host::Name(HostnameString::try_from("erlang.bell-telephone.com").unwrap())
                 );
                 assert_eq!(first_via.port(), Some(5060));
                 assert_eq!(
@@ -164,7 +164,7 @@ mod tests {
                 );
                 assert_eq!(
                     first_via.host(),
-                    &Host::Name("first.example.com".to_string())
+                    &Host::Name(HostnameString::try_from("first.example.com").unwrap())
                 );
                 assert_eq!(first_via.port(), Some(4000));
                 let mut it = first_via.parameters().iter();
