@@ -5,6 +5,9 @@ use derive_more::Display;
 /// A generic error for SIP
 #[derive(Debug, Display, PartialEq)]
 pub enum SipError {
+    /// Duplicated URI parameters.
+    #[display("Duplicated URI parameters")]
+    DuplicatedUriParameters,
     /// Failed converting AInfo to AuthParam.
     #[display("Failed converting AInfo to AuthParam")]
     FailedConvertingAInfoToAuthParam,

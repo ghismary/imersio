@@ -55,6 +55,7 @@ pub use crate::common::{
     status_code::StatusCode,
     to_parameter::{ToParameter, ToParameters},
     transport::Transport,
+    user_type::UserType,
     version::Version,
     via::{Via, Vias},
     via_parameter::ViaParameter,
@@ -87,5 +88,5 @@ pub use crate::headers::{
 pub use crate::messages::{message::Message, request::Request, response::Response};
 pub use crate::uris::{
     absolute_uri::AbsoluteUri, host::Host, sip_uri::SipUri, uri::Uri, uri_headers::UriHeaders,
-    uri_parameters::UriParameters, uri_scheme::UriScheme, user_info::UserInfo,
+    uri_parameter::UriParameters, uri_scheme::UriScheme, user_info::UserInfo,
 };

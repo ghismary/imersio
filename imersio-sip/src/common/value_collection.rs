@@ -73,3 +73,15 @@ where
         *self == other
     }
 }
+
+impl<T> Default for ValueCollection<T>
+where
+    T: Eq + PartialEq + Hash,
+{
+    fn default() -> Self {
+        Self {
+            values: vec![],
+            separator: ", ",
+        }
+    }
+}

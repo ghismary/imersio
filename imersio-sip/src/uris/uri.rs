@@ -98,7 +98,7 @@ impl Uri {
     /// Get a parameter value of the URI given its name.
     pub fn parameter(&self, name: &str) -> Option<&str> {
         match self {
-            Uri::Sip(uri) => uri.parameters().get(name),
+            Uri::Sip(uri) => uri.parameters().get(name).and_then(|p| p.value()),
             Uri::Absolute(_) => None,
         }
     }

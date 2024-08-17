@@ -5,6 +5,6 @@ pub mod host;
 pub mod sip_uri;
 pub mod uri;
 pub mod uri_headers;
-pub mod uri_parameters;
+pub mod uri_parameter;
 pub mod uri_scheme;
 pub mod user_info;

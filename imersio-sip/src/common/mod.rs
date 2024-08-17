@@ -42,6 +42,7 @@ pub mod stale;
 pub mod status_code;
 pub mod to_parameter;
 pub mod transport;
+pub mod user_type;
 pub mod value_collection;
 pub mod version;
 pub mod via;

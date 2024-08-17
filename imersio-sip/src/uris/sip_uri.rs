@@ -90,14 +90,13 @@ pub(crate) mod parser {
     use crate::parser::ParserResult;
     use crate::uris::host::parser::hostport;
     use crate::uris::uri_headers::parser::headers;
-    use crate::uris::uri_parameters::parser::uri_parameters;
+    use crate::uris::uri_parameter::parser::uri_parameters;
     use crate::uris::user_info::parser::userinfo;
-    use crate::utils::has_unique_elements;
     use crate::{SipUri, Uri, UriScheme};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
-        combinator::{cut, map, opt, verify},
+        combinator::{cut, map, opt},
         error::context,
         sequence::{pair, tuple},
     };
@@ -114,9 +113,7 @@ pub(crate) mod parser {
                     cut(tuple((
                         opt(userinfo),
                         hostport,
-                        cut(verify(uri_parameters, |params| {
-                            has_unique_elements(params.iter().map(|p| &p.0))
-                        })),
+                        uri_parameters,
                         opt(headers),
                     ))),
                 ),
