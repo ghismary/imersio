@@ -47,9 +47,15 @@ pub enum SipError {
     /// Invalid URI.
     #[display("Invalid uri: `{_0}`")]
     InvalidUri(String),
+    /// Invalid URI password.
+    #[display("Invalid uri password: `{_0}`")]
+    InvalidUriPassword(String),
     /// Invalid URI scheme.
     #[display("Invalid uri scheme: `{_0}`")]
     InvalidUriScheme(String),
+    /// Invalid URI user.
+    #[display("Invalid uri user: `{_0}`")]
+    InvalidUriUser(String),
     /// Invalid SIP version.
     #[display("Invalid sip version: `{_0}`")]
     InvalidVersion(String),

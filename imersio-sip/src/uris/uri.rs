@@ -58,7 +58,7 @@ impl Uri {
     /// Get the user from the URI.
     pub fn user(&self) -> Option<&str> {
         match self {
-            Uri::Sip(uri) => uri.userinfo().map(|ui| ui.get_user()),
+            Uri::Sip(uri) => uri.userinfo().map(|ui| ui.user()),
             Uri::Absolute(_) => None,
         }
     }
@@ -66,7 +66,7 @@ impl Uri {
     /// Get the password from the URI.
     pub fn password(&self) -> Option<&str> {
         match self {
-            Uri::Sip(uri) => uri.userinfo().and_then(|ui| ui.get_password()),
+            Uri::Sip(uri) => uri.userinfo().and_then(|ui| ui.password()),
             Uri::Absolute(_) => None,
         }
     }

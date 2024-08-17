@@ -2,14 +2,14 @@
 
 use std::hash::Hash;
 
-use derive_more::Deref;
+use derive_more::{Deref, Display};
 use nom::error::convert_error;
 
 use crate::uris::uri_scheme::parser::scheme;
 use crate::SipError;
 
 /// Representation of a URI scheme value accepting only the valid characters.
-#[derive(Clone, Debug, Deref, Eq, PartialEq)]
+#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
 pub struct UriSchemeToken(String);
 
 impl UriSchemeToken {
@@ -177,42 +177,52 @@ mod tests {
     fn test_valid_uri_scheme_token() {
         let scheme_token = UriSchemeToken::try_from("http");
         assert_ok!(&scheme_token);
-        assert_eq!(scheme_token.unwrap().as_str(), "http");
+        if let Ok(scheme_token) = scheme_token {
+            assert_eq!(scheme_token.as_str(), "http");
+            assert_eq!(format!("{}", scheme_token), "http");
+        }
     }
 
     #[test]
     fn test_invalid_uri_scheme_token() {
-        let scheme_token = UriSchemeToken::try_from("my_scheme");
-        assert_err!(scheme_token);
+        assert_err!(UriSchemeToken::try_from("my_scheme"));
     }
 
     #[test]
     fn test_valid_uri_scheme_sip() {
         let scheme = UriScheme::try_from("sip");
         assert_ok!(&scheme);
-        assert_eq!(scheme.unwrap(), UriScheme::Sip);
+        if let Ok(scheme) = scheme {
+            assert_eq!(scheme, UriScheme::Sip);
+            assert_eq!(format!("{}", scheme), "sip");
+        }
     }
 
     #[test]
     fn test_valid_uri_scheme_sips() {
         let scheme = UriScheme::try_from("SIPS");
         assert_ok!(&scheme);
-        assert_eq!(scheme.unwrap(), UriScheme::Sips);
+        if let Ok(scheme) = scheme {
+            assert_eq!(scheme, UriScheme::Sips);
+            assert_eq!(format!("{}", scheme), "sips");
+        }
     }
 
     #[test]
     fn test_valid_uri_scheme_http() {
         let scheme = UriScheme::try_from("http");
         assert_ok!(&scheme);
-        assert_eq!(
-            scheme.unwrap(),
-            UriScheme::Other(UriSchemeToken::try_from("http").unwrap())
-        );
+        if let Ok(scheme) = scheme {
+            assert_eq!(
+                scheme,
+                UriScheme::Other(UriSchemeToken::try_from("http").unwrap())
+            );
+            assert_eq!(format!("{}", scheme), "http");
+        }
     }
 
     #[test]
     fn test_invalid_uri_scheme() {
-        let scheme = UriScheme::try_from("@sch&me");
-        assert_err!(scheme);
+        assert_err!(UriScheme::try_from("@sch&me"));
     }
 }
