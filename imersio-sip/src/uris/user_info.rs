@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Representation of a URI user value accepting only the valid characters.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Deref, Display, Eq, Hash, PartialEq)]
 pub struct UserString(String);
 
 impl UserString {
@@ -25,13 +25,15 @@ impl TryFrom<&str> for UserString {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         // Do not use the parser because of the escaped characters, instead check that each
         // character of the given value can be escaped.
-        if value.chars().all(|c| {
-            let idx: Result<u8, _> = c.try_into();
-            match idx {
-                Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
-                Err(_) => false,
-            }
-        }) {
+        if !value.is_empty()
+            && value.chars().all(|c| {
+                let idx: Result<u8, _> = c.try_into();
+                match idx {
+                    Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
+                    Err(_) => false,
+                }
+            })
+        {
             Ok(Self::new(value))
         } else {
             Err(SipError::InvalidUriUser(value.to_string()))
@@ -40,7 +42,7 @@ impl TryFrom<&str> for UserString {
 }
 
 /// Representation of a URI password value accepting only the valid characters.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Deref, Display, Eq, Hash, PartialEq)]
 pub struct PasswordString(String);
 
 impl PasswordString {
@@ -55,13 +57,15 @@ impl TryFrom<&str> for PasswordString {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         // Do not use the parser because of the escaped characters, instead check that each
         // character of the given value can be escaped.
-        if value.chars().all(|c| {
-            let idx: Result<u8, _> = c.try_into();
-            match idx {
-                Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
-                Err(_) => false,
-            }
-        }) {
+        if !value.is_empty()
+            && value.chars().all(|c| {
+                let idx: Result<u8, _> = c.try_into();
+                match idx {
+                    Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
+                    Err(_) => false,
+                }
+            })
+        {
             Ok(Self::new(value))
         } else {
             Err(SipError::InvalidUriPassword(value.to_string()))

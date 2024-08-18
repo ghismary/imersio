@@ -483,6 +483,11 @@ mod test {
     }
 
     #[test]
+    fn test_invalid_sip_uri_invalid_port() {
+        assert_err!(Uri::try_from("sip:alice@atlanta.com:67328"));
+    }
+
+    #[test]
     fn test_sip_uri_equality_case_differences() {
         assert_eq!(
             Uri::try_from("sip:%61lice@atlanta.com;transport=TCP").unwrap(),

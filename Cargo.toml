@@ -18,7 +18,7 @@ unsafe_code = "forbid"
 chrono = "0.4"
 claims = "0.7"
 criterion = { version = "0.5", features = ["html_reports"] }
-derive_more = { version = "1.0", features = ["deref", "display", "from", "into_iterator", "is_variant"] }
+derive_more = { version = "1.0", features = ["deref", "deref_mut", "display", "from", "into_iterator", "is_variant"] }
 derive-partial-eq-extras = "0.2"
 itertools = "0.13"
 libfuzzer-sys = "0.4"

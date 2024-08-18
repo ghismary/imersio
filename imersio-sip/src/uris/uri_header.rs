@@ -1,6 +1,6 @@
 //! Parsing and generation of the headers of a SIP URI.
 
-use derive_more::{Deref, Display};
+use derive_more::{Deref, DerefMut, Display};
 use itertools::join;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
@@ -9,17 +9,49 @@ use crate::parser::ESCAPED_CHARS;
 use crate::uris::uri_header::parser::is_hnv_unreserved;
 use crate::{parser::is_unreserved, utils::escape, SipError};
 
-/// Representation of a string with limited characters for URI header names and values.
+/// Representation of a string with limited characters for URI header names.
 #[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
-pub struct UriHeaderString(String);
+pub struct UriHeaderNameString(String);
 
-impl UriHeaderString {
+impl UriHeaderNameString {
     pub(crate) fn new<S: Into<String>>(value: S) -> Self {
         Self(value.into())
     }
 }
 
-impl TryFrom<&str> for UriHeaderString {
+impl TryFrom<&str> for UriHeaderNameString {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        // Do not use the parser because of the escaped characters, instead check that each
+        // character of the given value can be escaped.
+        if !value.is_empty()
+            && value.chars().all(|c| {
+                let idx: Result<u8, _> = c.try_into();
+                match idx {
+                    Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
+                    Err(_) => false,
+                }
+            })
+        {
+            Ok(Self::new(value))
+        } else {
+            Err(SipError::InvalidUriHeaderString(value.to_string()))
+        }
+    }
+}
+
+/// Representation of a string with limited characters for URI header values.
+#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+pub struct UriHeaderValueString(String);
+
+impl UriHeaderValueString {
+    pub(crate) fn new<S: Into<String>>(value: S) -> Self {
+        Self(value.into())
+    }
+}
+
+impl TryFrom<&str> for UriHeaderValueString {
     type Error = SipError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -42,12 +74,12 @@ impl TryFrom<&str> for UriHeaderString {
 /// Representation of a URI header list.
 #[derive(Clone, Debug, Eq)]
 pub struct UriHeader {
-    name: UriHeaderString,
-    value: UriHeaderString,
+    name: UriHeaderNameString,
+    value: UriHeaderValueString,
 }
 
 impl UriHeader {
-    pub(crate) fn new(name: UriHeaderString, value: UriHeaderString) -> Self {
+    pub(crate) fn new(name: UriHeaderNameString, value: UriHeaderValueString) -> Self {
         Self { name, value }
     }
 
@@ -118,7 +150,7 @@ impl Hash for UriHeader {
 /// Representation of a list of URI headers.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Default, Deref, Eq)]
+#[derive(Clone, Debug, Default, Deref, DerefMut, Eq)]
 pub struct UriHeaders(Vec<UriHeader>);
 
 impl crate::UriHeaders {
@@ -182,7 +214,7 @@ impl From<Vec<UriHeader>> for UriHeaders {
 
 pub(crate) mod parser {
     use crate::parser::{escaped, take1, unreserved, ParserResult};
-    use crate::{UriHeader, UriHeaderString, UriHeaders};
+    use crate::{UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -203,21 +235,21 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn hname(input: &str) -> ParserResult<&str, UriHeaderString> {
+    fn hname(input: &str) -> ParserResult<&str, UriHeaderNameString> {
         context(
             "hname",
             map(many1(alt((hnv_unreserved, unreserved, escaped))), |name| {
-                UriHeaderString::new(name.iter().collect::<String>())
+                UriHeaderNameString::new(name.iter().collect::<String>())
             }),
         )(input)
     }
 
     #[inline]
-    fn hvalue(input: &str) -> ParserResult<&str, UriHeaderString> {
+    fn hvalue(input: &str) -> ParserResult<&str, UriHeaderValueString> {
         context(
             "hvalue",
             map(many0(alt((hnv_unreserved, unreserved, escaped))), |value| {
-                UriHeaderString::new(value.iter().collect::<String>())
+                UriHeaderValueString::new(value.iter().collect::<String>())
             }),
         )(input)
     }

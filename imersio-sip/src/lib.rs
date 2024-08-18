@@ -4,6 +4,7 @@
 
 #![deny(warnings, missing_docs, missing_debug_implementations)]
 
+mod builder_helper;
 mod common;
 mod error;
 pub mod headers;
@@ -12,6 +13,9 @@ mod parser;
 mod uris;
 mod utils;
 
+pub use crate::builder_helper::{
+    IntoHost, IntoPasswordString, IntoUriHeaderNameString, IntoUriHeaderValueString, IntoUserString,
+};
 pub use crate::common::{
     accept_encoding::{AcceptEncoding, AcceptEncodings},
     accept_language::{AcceptLanguage, AcceptLanguages},
@@ -92,7 +96,7 @@ pub use crate::uris::{
     host::{Host, HostnameString},
     sip_uri::SipUri,
     uri::Uri,
-    uri_header::{UriHeader, UriHeaderString, UriHeaders},
+    uri_header::{UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders},
     uri_parameter::{UriParameter, UriParameterString, UriParameters},
     uri_scheme::{UriScheme, UriSchemeString},
     user_info::{PasswordString, UserInfo, UserString},
