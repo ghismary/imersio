@@ -116,7 +116,7 @@ mod tests {
     fn test_valid_cseq_header_1() {
         valid_header("CSeq: 4711 INVITE", |header| {
             assert_eq!(header.cseq(), 4711);
-            assert_eq!(header.method(), "INVITE");
+            assert_eq!(header.method().clone(), "INVITE");
         });
     }
 
@@ -124,7 +124,7 @@ mod tests {
     fn test_valid_cseq_header_2() {
         valid_header("CSeq: 89378 ACK", |header| {
             assert_eq!(header.cseq(), 89_378);
-            assert_eq!(header.method(), "ACK");
+            assert_eq!(header.method().clone(), "ACK");
         });
     }
 

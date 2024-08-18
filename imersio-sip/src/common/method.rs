@@ -9,17 +9,17 @@
 //! ```
 //! use imersio_sip::Method;
 //!
-//! assert_eq!(Method::INVITE, Method::try_from("INVITE").unwrap());
-//! assert_eq!(Method::BYE.as_str(), "BYE");
+//! assert_eq!(Method::Invite, Method::try_from("INVITE").unwrap());
+//! assert_eq!(Method::Bye.as_str(), "BYE");
 //! let method = Method::try_from("CANCEL");
-//! assert!(method.is_ok_and(|method| method == Method::CANCEL));
+//! assert!(method.is_ok_and(|method| method == Method::Cancel));
 //! ```
 
 use crate::common::value_collection::ValueCollection;
 use nom::error::convert_error;
-use std::{borrow::Cow, hash::Hash, str};
+use std::{hash::Hash, str};
 
-use crate::SipError;
+use crate::{SipError, TokenString};
 
 /// Representation of the list of methods from an `AllowHeader`.
 ///
@@ -36,16 +36,80 @@ pub type Methods = ValueCollection<Method>;
 /// ```
 /// use imersio_sip::Method;
 ///
-/// assert_eq!(Method::INVITE, Method::try_from("INVITE").unwrap());
-/// assert_eq!(Method::REGISTER.as_str(), "REGISTER");
+/// assert_eq!(Method::Invite, Method::try_from("INVITE").unwrap());
+/// assert_eq!(Method::Register.as_str(), "REGISTER");
 /// ```
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Method(Cow<'static, str>);
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+pub enum Method {
+    /// ACK method.
+    Ack,
+    /// BYE method.
+    Bye,
+    /// CANCEL method.
+    Cancel,
+    /// INVITE method.
+    #[default]
+    Invite,
+    /// OPTIONS method.
+    Options,
+    /// REGISTER method.
+    Register,
+    /// Any other method.
+    Other(TokenString),
+}
 
 impl Method {
+    pub(crate) fn new(method: TokenString) -> Self {
+        let method = method.to_ascii_uppercase();
+        match method.as_str() {
+            "ACK" => Self::Ack,
+            "BYE" => Self::Bye,
+            "CANCEL" => Self::Cancel,
+            "INVITE" => Self::Invite,
+            "OPTIONS" => Self::Options,
+            "REGISTER" => Self::Register,
+            _ => Self::Other(TokenString::new(method)),
+        }
+    }
+
     /// Return a &str representation of the SIP method.
     pub fn as_str(&self) -> &str {
-        self.0.as_ref()
+        match self {
+            Self::Ack => "ACK",
+            Self::Bye => "BYE",
+            Self::Cancel => "CANCEL",
+            Self::Invite => "INVITE",
+            Self::Options => "OPTIONS",
+            Self::Register => "REGISTER",
+            Self::Other(value) => value.as_str(),
+        }
+    }
+}
+
+impl std::fmt::Display for Method {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
+
+impl AsRef<str> for Method {
+    #[inline]
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl PartialEq<&str> for Method {
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        self.as_ref() == *other
+    }
+}
+
+impl PartialEq<Method> for &str {
+    #[inline]
+    fn eq(&self, other: &Method) -> bool {
+        *self == other.as_ref()
     }
 }
 
@@ -72,138 +136,45 @@ impl TryFrom<&str> for Method {
     }
 }
 
-impl std::fmt::Display for Method {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
-
-impl Default for Method {
-    #[inline]
-    fn default() -> Self {
-        Method::INVITE
-    }
-}
-
-impl AsRef<str> for Method {
-    #[inline]
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl PartialEq<&Method> for Method {
-    #[inline]
-    fn eq(&self, other: &&Method) -> bool {
-        self == *other
-    }
-}
-
-impl PartialEq<Method> for &Method {
-    #[inline]
-    fn eq(&self, other: &Method) -> bool {
-        *self == other
-    }
-}
-
-impl PartialEq<str> for Method {
-    #[inline]
-    fn eq(&self, other: &str) -> bool {
-        self.as_ref() == other
-    }
-}
-
-impl PartialEq<Method> for str {
-    #[inline]
-    fn eq(&self, other: &Method) -> bool {
-        self == other.as_ref()
-    }
-}
-
-impl PartialEq<&str> for Method {
-    #[inline]
-    fn eq(&self, other: &&str) -> bool {
-        self.as_ref() == *other
-    }
-}
-
-impl PartialEq<Method> for &str {
-    #[inline]
-    fn eq(&self, other: &Method) -> bool {
-        *self == other.as_ref()
-    }
-}
-
-macro_rules! methods {
-    (
-        $(
-            $(#[$docs:meta])*
-            ($konst:ident, $word:expr),
-        )+
-    ) => {
-        impl Method {
-            $(
-                $(#[$docs])*
-                pub const $konst: Method = Method(Cow::Borrowed($word));
-            )+
-        }
-    }
-}
-
-methods! {
-    /// ACK method
-    (ACK, "ACK"),
-    /// BYE method
-    (BYE, "BYE"),
-    /// CANCEL method
-    (CANCEL, "CANCEL"),
-    /// INVITE method
-    (INVITE, "INVITE"),
-    /// OPTIONS method
-    (OPTIONS, "OPTIONS"),
-    /// REGISTER method
-    (REGISTER, "REGISTER"),
-}
-
 pub(crate) mod parser {
     use super::Method;
     use crate::parser::{token, ParserResult};
+    use nom::combinator::value;
     use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context};
-    use std::borrow::Cow;
 
     #[inline]
     fn ack_method(input: &str) -> ParserResult<&str, Method> {
-        tag("ACK")(input).map(|(rest, _)| (rest, Method::ACK))
+        value(Method::Ack, tag("ACK"))(input)
     }
 
     #[inline]
     fn bye_method(input: &str) -> ParserResult<&str, Method> {
-        tag("BYE")(input).map(|(rest, _)| (rest, Method::BYE))
+        value(Method::Bye, tag("BYE"))(input)
     }
 
     #[inline]
     fn cancel_method(input: &str) -> ParserResult<&str, Method> {
-        tag("CANCEL")(input).map(|(rest, _)| (rest, Method::CANCEL))
+        value(Method::Cancel, tag("CANCEL"))(input)
     }
 
     #[inline]
     fn extension_method(input: &str) -> ParserResult<&str, Method> {
-        map(token, |result| Method(Cow::from(result.to_string())))(input)
+        map(token, Method::Other)(input)
     }
 
     #[inline]
     fn invite_method(input: &str) -> ParserResult<&str, Method> {
-        tag("INVITE")(input).map(|(rest, _)| (rest, Method::INVITE))
+        value(Method::Invite, tag("INVITE"))(input)
     }
 
     #[inline]
     fn options_method(input: &str) -> ParserResult<&str, Method> {
-        tag("OPTIONS")(input).map(|(rest, _)| (rest, Method::OPTIONS))
+        value(Method::Options, tag("OPTIONS"))(input)
     }
 
     #[inline]
     fn register_method(input: &str) -> ParserResult<&str, Method> {
-        tag("REGISTER")(input).map(|(rest, _)| (rest, Method::REGISTER))
+        value(Method::Register, tag("REGISTER"))(input)
     }
 
     pub(crate) fn method(input: &str) -> ParserResult<&str, Method> {
@@ -229,21 +200,15 @@ mod test {
 
     #[test]
     fn test_method_eq() {
-        assert_eq!(Method::INVITE, "INVITE");
-        assert_eq!(&Method::INVITE, "INVITE");
-
-        assert_eq!("INVITE", Method::INVITE);
-        assert_eq!("INVITE", &Method::INVITE);
-
-        assert_eq!(&Method::INVITE, Method::INVITE);
-        assert_eq!(Method::INVITE, &Method::INVITE);
+        assert_eq!(Method::Invite, "INVITE");
+        assert_eq!("INVITE", Method::Invite);
     }
 
     #[test]
     fn test_valid_method() {
-        assert!(Method::try_from("INVITE").is_ok_and(|method| method == Method::INVITE));
-        assert!(Method::try_from("CANCEL").is_ok_and(|method| method == Method::CANCEL));
-        assert_eq!(Method::INVITE.as_str(), "INVITE");
+        assert!(Method::try_from("INVITE").is_ok_and(|method| method == Method::Invite));
+        assert!(Method::try_from("CANCEL").is_ok_and(|method| method == Method::Cancel));
+        assert_eq!(Method::Invite.as_str(), "INVITE");
     }
 
     #[test]

@@ -150,9 +150,9 @@ mod test {
         let req = Request::try_from("INVITE sip:alice@atlanta.com SIP/2.0\r\n\r\n");
         assert_ok!(&req);
         let req = req.unwrap();
-        assert_eq!(req.method(), Method::INVITE);
+        assert_eq!(req.method(), &Method::Invite);
         assert_eq!(req.uri().to_string(), "sip:alice@atlanta.com");
-        assert_eq!(req.version(), Version::SIP_2);
+        assert_eq!(req.version(), &Version::Sip2);
         assert_eq!(req.headers().len(), 0);
     }
 

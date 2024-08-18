@@ -127,8 +127,8 @@ Content-Length: 0\r\n\
         let message = message.unwrap();
         match message {
             Message::Request(request) => {
-                assert_eq!(request.method(), Method::OPTIONS);
-                assert_eq!(request.version(), Version::SIP_2);
+                assert_eq!(request.method(), &Method::Options);
+                assert_eq!(request.version(), &Version::Sip2);
                 assert_eq!(
                     request.uri(),
                     Uri::try_from("sip:carol@chicago.com").unwrap()
@@ -200,7 +200,7 @@ Content-Length: 0\r\n\
                 match header {
                     Header::CSeq(cseq_header) => {
                         assert_eq!(cseq_header.cseq(), 63104);
-                        assert_eq!(cseq_header.method(), Method::OPTIONS);
+                        assert_eq!(cseq_header.method(), &Method::Options);
                     }
                     _ => panic!("Should be a CSeq header!"),
                 }
@@ -274,7 +274,7 @@ Content-Length: 274\r\n\
         let message = message.unwrap();
         match message {
             Message::Response(response) => {
-                assert_eq!(response.version(), Version::SIP_2);
+                assert_eq!(response.version(), &Version::Sip2);
                 assert_eq!(response.reason().status(), StatusCode::OK);
                 assert_eq!(response.reason().phrase(), "OK");
                 assert_eq!(response.headers().len(), 14);
@@ -347,7 +347,7 @@ Content-Length: 274\r\n\
                 match header {
                     Header::CSeq(cseq_header) => {
                         assert_eq!(cseq_header.cseq(), 63104);
-                        assert_eq!(cseq_header.method(), Method::OPTIONS);
+                        assert_eq!(cseq_header.method(), &Method::Options);
                     }
                     _ => panic!("Should be a CSeq header!"),
                 }
@@ -383,11 +383,11 @@ Content-Length: 274\r\n\
                 match header {
                     Header::Allow(allow_header) => {
                         let expected_methods: Methods = vec![
-                            Method::INVITE,
-                            Method::ACK,
-                            Method::CANCEL,
-                            Method::OPTIONS,
-                            Method::BYE,
+                            Method::Invite,
+                            Method::Ack,
+                            Method::Cancel,
+                            Method::Options,
+                            Method::Bye,
                         ]
                         .into();
                         assert_eq!(allow_header.methods(), &expected_methods);
@@ -484,8 +484,8 @@ CSeq: 986759 INVITE\r\n\
         let message = message.unwrap();
         match message {
             Message::Request(request) => {
-                assert_eq!(request.method(), Method::INVITE);
-                assert_eq!(request.version(), Version::SIP_2);
+                assert_eq!(request.method(), &Method::Invite);
+                assert_eq!(request.version(), &Version::Sip2);
                 assert_eq!(request.uri(), Uri::try_from("sip:bob@biloxi.com").unwrap());
                 assert_eq!(request.headers().len(), 6);
                 let mut it = request.headers().iter();
@@ -554,7 +554,7 @@ CSeq: 986759 INVITE\r\n\
                 match header {
                     Header::CSeq(cseq_header) => {
                         assert_eq!(cseq_header.cseq(), 986759);
-                        assert_eq!(cseq_header.method(), Method::INVITE);
+                        assert_eq!(cseq_header.method(), &Method::Invite);
                     }
                     _ => panic!("Should be a CSeq header!"),
                 }
@@ -583,8 +583,8 @@ CSeq: 986759 ACK\r\n\
         let message = message.unwrap();
         match message {
             Message::Request(request) => {
-                assert_eq!(request.method(), Method::ACK);
-                assert_eq!(request.version(), Version::SIP_2);
+                assert_eq!(request.method(), &Method::Ack);
+                assert_eq!(request.version(), &Version::Sip2);
                 assert_eq!(request.uri(), Uri::try_from("sip:bob@biloxi.com").unwrap());
                 assert_eq!(request.headers().len(), 6);
                 let mut it = request.headers().iter();
@@ -658,7 +658,7 @@ CSeq: 986759 ACK\r\n\
                 match header {
                     Header::CSeq(cseq_header) => {
                         assert_eq!(cseq_header.cseq(), 986759);
-                        assert_eq!(cseq_header.method(), Method::ACK);
+                        assert_eq!(cseq_header.method(), &Method::Ack);
                     }
                     _ => panic!("Should be a CSeq header!"),
                 }
@@ -722,8 +722,8 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
         let message = message.unwrap();
         match message {
             Message::Request(request) => {
-                assert_eq!(request.method(), Method::INVITE);
-                assert_eq!(request.version(), Version::SIP_2);
+                assert_eq!(request.method(), &Method::Invite);
+                assert_eq!(request.version(), &Version::Sip2);
                 assert_eq!(request.uri(), Uri::try_from("sip:bob@biloxi.com").unwrap());
                 assert_eq!(request.headers().len(), 10);
                 let mut it = request.headers().iter();
@@ -785,7 +785,7 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
                 match header {
                     Header::CSeq(cseq_header) => {
                         assert_eq!(cseq_header.cseq(), 314159);
-                        assert_eq!(cseq_header.method(), Method::INVITE);
+                        assert_eq!(cseq_header.method(), &Method::Invite);
                     }
                     _ => panic!("Should be a CSeq header!"),
                 }
@@ -888,8 +888,8 @@ Content-Length: 0\r\n\
         let message = message.unwrap();
         match message {
             Message::Request(request) => {
-                assert_eq!(request.method(), Method::REGISTER);
-                assert_eq!(request.version(), Version::SIP_2);
+                assert_eq!(request.method(), &Method::Register);
+                assert_eq!(request.version(), &Version::Sip2);
                 assert_eq!(
                     request.uri(),
                     Uri::try_from("sip:registrar.biloxi.com").unwrap()
@@ -961,7 +961,7 @@ Content-Length: 0\r\n\
                 match header {
                     Header::CSeq(cseq_header) => {
                         assert_eq!(cseq_header.cseq(), 1826);
-                        assert_eq!(cseq_header.method(), Method::REGISTER);
+                        assert_eq!(cseq_header.method(), &Method::Register);
                     }
                     _ => panic!("Should be a CSeq header!"),
                 }
@@ -1020,7 +1020,7 @@ Content-Length: 0\r\n\
         let message = message.unwrap();
         match message {
             Message::Response(response) => {
-                assert_eq!(response.version(), Version::SIP_2);
+                assert_eq!(response.version(), &Version::Sip2);
                 assert_eq!(response.reason().status(), StatusCode::OK);
                 assert_eq!(response.reason().phrase(), "OK");
                 assert_eq!(response.headers().len(), 8);
@@ -1093,7 +1093,7 @@ Content-Length: 0\r\n\
                 match header {
                     Header::CSeq(cseq_header) => {
                         assert_eq!(cseq_header.cseq(), 1826);
-                        assert_eq!(cseq_header.method(), Method::REGISTER);
+                        assert_eq!(cseq_header.method(), &Method::Register);
                     }
                     _ => panic!("Should be a CSeq header!"),
                 }

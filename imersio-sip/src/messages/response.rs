@@ -141,14 +141,14 @@ mod test {
         let ok = Response::try_from("SIP/2.0 200 OK\r\n\r\n");
         assert_ok!(&ok);
         let ok = ok.unwrap();
-        assert_eq!(ok.version(), Version::SIP_2);
+        assert_eq!(ok.version(), &Version::Sip2);
         assert_eq!(ok.reason(), Reason::OK);
         assert_eq!(ok.headers().len(), 0);
 
         let not_found = Response::try_from("SIP/2.0 404 Not Found\r\n\r\n");
         assert_ok!(&not_found);
         let not_found = not_found.unwrap();
-        assert_eq!(not_found.version(), Version::SIP_2);
+        assert_eq!(not_found.version(), &Version::Sip2);
         assert_eq!(not_found.reason(), Reason::NOT_FOUND);
         assert_eq!(not_found.reason().to_string(), "404 Not Found");
         assert_eq!(not_found.headers().len(), 0);
@@ -156,7 +156,7 @@ mod test {
         let unknown_status = Response::try_from("SIP/2.0 999 Mon Status 😁\r\n\r\n");
         assert_ok!(&unknown_status);
         let unknown_status = unknown_status.unwrap();
-        assert_eq!(unknown_status.version(), Version::SIP_2);
+        assert_eq!(unknown_status.version(), &Version::Sip2);
         assert_eq!(unknown_status.reason(), 999);
         assert_eq!(unknown_status.reason().phrase(), "Mon Status 😁");
         assert_eq!(unknown_status.headers().len(), 0);

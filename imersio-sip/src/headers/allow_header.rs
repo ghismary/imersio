@@ -35,7 +35,7 @@ impl AllowHeader {
 
     /// Tell whether Allow header contains the given method.
     pub fn contains(&self, method: Method) -> bool {
-        self.methods.iter().any(|m| m == method)
+        self.methods.iter().any(|m| m == &method)
     }
 }
 
@@ -104,12 +104,12 @@ mod tests {
         valid_header("Allow: INVITE, ACK, OPTIONS, CANCEL, BYE", |header| {
             assert!(!header.methods().is_empty());
             assert_eq!(header.methods().len(), 5);
-            assert!(header.contains(Method::INVITE));
-            assert!(header.contains(Method::ACK));
-            assert!(header.contains(Method::OPTIONS));
-            assert!(header.contains(Method::CANCEL));
-            assert!(header.contains(Method::BYE));
-            assert!(!header.contains(Method::REGISTER));
+            assert!(header.contains(Method::Invite));
+            assert!(header.contains(Method::Ack));
+            assert!(header.contains(Method::Options));
+            assert!(header.contains(Method::Cancel));
+            assert!(header.contains(Method::Bye));
+            assert!(!header.contains(Method::Register));
         });
     }
 
@@ -118,8 +118,8 @@ mod tests {
         valid_header("Allow:", |header| {
             assert!(header.methods().is_empty());
             assert_eq!(header.methods().len(), 0);
-            assert!(!header.contains(Method::INVITE));
-            assert!(!header.contains(Method::REGISTER));
+            assert!(!header.contains(Method::Invite));
+            assert!(!header.contains(Method::Register));
         });
     }
 
@@ -128,8 +128,8 @@ mod tests {
         valid_header("Allow:      ", |header| {
             assert!(header.methods().is_empty());
             assert_eq!(header.methods().len(), 0);
-            assert!(!header.contains(Method::CANCEL));
-            assert!(!header.contains(Method::BYE));
+            assert!(!header.contains(Method::Cancel));
+            assert!(!header.contains(Method::Bye));
         });
     }
 

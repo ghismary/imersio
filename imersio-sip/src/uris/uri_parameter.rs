@@ -9,8 +9,8 @@ use std::hash::{Hash, Hasher};
 use crate::parser::ESCAPED_CHARS;
 use crate::uris::uri_parameter::parser::is_param_unreserved;
 use crate::{
-    parser::is_unreserved, utils::escape, GenericParameter, Host, Method, SipError, TokenString,
-    Transport, UserType,
+    parser::is_unreserved, utils::escape, GenericParameter, Host, Method, SipError, Transport,
+    UserType,
 };
 
 /// Representation of a URI user value accepting only the valid characters.
@@ -57,7 +57,7 @@ pub enum UriParameter {
     /// A `user` parameter.
     User(UserType),
     /// A `method` parameter.
-    Method(TokenString),
+    Method(Method),
     /// A `ttl` parameter.
     Ttl(u8),
     /// A `maddr` parameter.
@@ -112,9 +112,9 @@ impl UriParameter {
     }
 
     /// Get the value of the `method` parameter if this is one.
-    pub fn method(&self) -> Option<Method> {
+    pub fn method(&self) -> Option<&Method> {
         match self {
-            Self::Method(value) => Some(value.as_str().try_into().unwrap()),
+            Self::Method(value) => Some(value),
             _ => None,
         }
     }
@@ -268,7 +268,8 @@ pub(crate) mod parser {
     use crate::parser::{escaped, take1, token, ttl, unreserved, ParserResult};
     use crate::uris::host::parser::host;
     use crate::{
-        GenericParameter, Transport, UriParameter, UriParameterString, UriParameters, UserType,
+        GenericParameter, Method, Transport, UriParameter, UriParameterString, UriParameters,
+        UserType,
     };
     use nom::{
         branch::alt,
@@ -304,7 +305,7 @@ pub(crate) mod parser {
             "method_param",
             map(
                 separated_pair(tag("method"), tag("="), token),
-                |(_, value)| UriParameter::Method(value),
+                |(_, value)| UriParameter::Method(Method::new(value)),
             ),
         )(input)
     }
