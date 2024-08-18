@@ -51,7 +51,7 @@ pub(crate) mod parser {
     use crate::common::contact::parser::contact_param;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, star, ParserResult};
-    use crate::{ContactHeader, Contacts, Header};
+    use crate::{ContactHeader, Contacts, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -66,7 +66,10 @@ pub(crate) mod parser {
             "Contact header",
             map(
                 tuple((
-                    alt((tag_no_case("Contact"), tag_no_case("m"))),
+                    map(
+                        alt((tag_no_case("Contact"), tag_no_case("m"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(alt((
                         map(star, |_| Contacts::Any),

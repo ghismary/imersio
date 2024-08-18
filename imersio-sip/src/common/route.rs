@@ -3,8 +3,8 @@ use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
-use crate::GenericParameter;
 use crate::NameAddress;
+use crate::{GenericParameter, TokenString};
 
 /// Representation of the list of routes from a `RecordRouteHeader`.
 ///
@@ -27,11 +27,14 @@ impl Routes {
 #[derive(Clone, Debug, Eq)]
 pub struct Route {
     name_addr: NameAddress,
-    parameters: Vec<GenericParameter>,
+    parameters: Vec<GenericParameter<TokenString>>,
 }
 
 impl Route {
-    pub(crate) fn new(name_addr: NameAddress, parameters: Vec<GenericParameter>) -> Self {
+    pub(crate) fn new(
+        name_addr: NameAddress,
+        parameters: Vec<GenericParameter<TokenString>>,
+    ) -> Self {
         Route {
             name_addr,
             parameters,
@@ -44,7 +47,7 @@ impl Route {
     }
 
     /// Get a reference to the parameters contained in the route.
-    pub fn parameters(&self) -> &Vec<GenericParameter> {
+    pub fn parameters(&self) -> &Vec<GenericParameter<TokenString>> {
         &self.parameters
     }
 }
@@ -80,11 +83,11 @@ pub(crate) mod parser {
     use crate::common::contact::parser::name_addr;
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::ParserResult;
-    use crate::{GenericParameter, Route};
+    use crate::{GenericParameter, Route, TokenString};
     use nom::{combinator::map, error::context, multi::many0, sequence::pair};
 
     #[inline]
-    fn route_param(input: &str) -> ParserResult<&str, GenericParameter> {
+    fn route_param(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
         generic_param(input)
     }
 

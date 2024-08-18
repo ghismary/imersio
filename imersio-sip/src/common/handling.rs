@@ -1,3 +1,4 @@
+use crate::TokenString;
 use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
@@ -10,12 +11,11 @@ pub enum Handling {
     /// The handling of the content type is required.
     Required,
     /// Any extension value.
-    Other(String),
+    Other(TokenString),
 }
 
 impl Handling {
-    pub(crate) fn new<S: Into<String>>(handling: S) -> Handling {
-        let handling: String = handling.into();
+    pub(crate) fn new(handling: TokenString) -> Handling {
         match handling.to_ascii_lowercase().as_str() {
             "optional" => Self::Optional,
             "required" => Self::Required,

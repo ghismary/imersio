@@ -63,7 +63,7 @@ pub(crate) mod parser {
     use crate::common::method::parser::method;
     use crate::headers::GenericHeader;
     use crate::parser::{digit, hcolon, lws, ParserResult};
-    use crate::{CSeqHeader, Header};
+    use crate::{CSeqHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
@@ -77,7 +77,7 @@ pub(crate) mod parser {
             "CSeq header",
             map(
                 tuple((
-                    tag_no_case("CSeq"),
+                    map(tag_no_case("CSeq"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_pair(
                         map(recognize(many1(digit)), |cseq| cseq.parse::<u32>().unwrap()),

@@ -1,3 +1,4 @@
+use crate::{SipError, TokenString};
 use std::cmp::Ordering;
 
 /// Representation of the priority from a `PriorityHeader`.
@@ -12,17 +13,17 @@ pub enum Priority {
     /// The `non-urgent` priority.
     NonUrgent,
     /// Any other extension priority.
-    Other(String),
+    Other(TokenString),
 }
 
 impl Priority {
-    pub(crate) fn new<S: Into<String>>(priority: S) -> Self {
-        match priority.into().to_ascii_lowercase().as_str() {
+    pub(crate) fn new(priority: TokenString) -> Self {
+        match priority.to_ascii_lowercase().as_str() {
             "emergency" => Self::Emergency,
             "urgent" => Self::Urgent,
             "normal" => Self::Normal,
             "non-urgent" => Self::NonUrgent,
-            value => Self::Other(value.into()),
+            value => Self::Other(TokenString::new(value)),
         }
     }
 }
@@ -68,19 +69,21 @@ impl Ord for Priority {
     }
 }
 
-impl From<&str> for Priority {
-    fn from(value: &str) -> Self {
-        Priority::new(value)
+impl TryFrom<&str> for Priority {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(Priority::new(TokenString::try_from(value)?))
     }
 }
 
 pub(crate) mod parser {
     use crate::parser::{token, ParserResult};
-    use crate::Priority;
+    use crate::{Priority, TokenString};
     use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
 
     #[inline]
-    fn other_priority(input: &str) -> ParserResult<&str, &str> {
+    fn other_priority(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 
@@ -89,10 +92,10 @@ pub(crate) mod parser {
             "priority_value",
             map(
                 alt((
-                    tag_no_case("emergency"),
-                    tag_no_case("urgent"),
-                    tag_no_case("normal"),
-                    tag_no_case("non-urgent"),
+                    map(tag_no_case("emergency"), TokenString::new),
+                    map(tag_no_case("urgent"), TokenString::new),
+                    map(tag_no_case("normal"), TokenString::new),
+                    map(tag_no_case("non-urgent"), TokenString::new),
                     other_priority,
                 )),
                 Priority::new,

@@ -137,7 +137,7 @@ pub(crate) mod parser {
     use crate::parser::{laquot, lws, quoted_string, raquot, semi, token, ParserResult};
     use crate::uris::absolute_uri::parser::absolute_uri;
     use crate::uris::sip_uri::parser::sip_uri;
-    use crate::{Contact, NameAddress, Uri};
+    use crate::{Contact, NameAddress, TokenString, Uri};
     use nom::{
         branch::alt,
         combinator::{map, opt, recognize},
@@ -153,13 +153,13 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn display_name(input: &str) -> ParserResult<&str, WrappedString> {
+    fn display_name(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         context(
             "display_name",
             alt((
                 quoted_string,
                 map(recognize(many0(pair(token, lws))), |v| {
-                    WrappedString::new_not_wrapped(v.to_string().trim_end())
+                    WrappedString::new_not_wrapped(TokenString::new(v.trim_end()))
                 }),
             )),
         )(input)

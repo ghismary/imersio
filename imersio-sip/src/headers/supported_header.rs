@@ -51,7 +51,7 @@ pub(crate) mod parser {
     use crate::common::option_tag::parser::option_tag;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, SupportedHeader};
+    use crate::{Header, SupportedHeader, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -66,7 +66,10 @@ pub(crate) mod parser {
             "Supported header",
             map(
                 tuple((
-                    alt((tag_no_case("Supported"), tag_no_case("k"))),
+                    map(
+                        alt((tag_no_case("Supported"), tag_no_case("k"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(separated_list1(comma, option_tag))),
                 )),

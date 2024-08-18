@@ -1,19 +1,19 @@
-use crate::Transport;
+use crate::{TokenString, Transport};
 use std::hash::Hash;
 
 /// Representation of a protocol, containing its name and version.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Protocol {
-    name: String,
-    version: String,
+    name: TokenString,
+    version: TokenString,
     transport: Transport,
 }
 
 impl Protocol {
-    pub(crate) fn new<S: Into<String>>(name: S, version: S, transport: Transport) -> Self {
+    pub(crate) fn new(name: TokenString, version: TokenString, transport: Transport) -> Self {
         Protocol {
-            name: name.into(),
-            version: version.into(),
+            name,
+            version,
             transport,
         }
     }
@@ -49,7 +49,7 @@ impl std::fmt::Display for Protocol {
 pub(crate) mod parser {
     use crate::common::transport::parser::transport;
     use crate::parser::{slash, token, ParserResult};
-    use crate::Protocol;
+    use crate::{Protocol, TokenString};
     use nom::{
         branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, sequence::tuple,
     };
@@ -59,19 +59,23 @@ pub(crate) mod parser {
             "sent_protocol",
             map(
                 tuple((protocol_name, slash, protocol_version, slash, transport)),
-                |(name, _, version, _, transport)| {
-                    Protocol::new(name.to_ascii_uppercase(), version.to_string(), transport)
-                },
+                |(name, _, version, _, transport)| Protocol::new(name, version, transport),
             ),
         )(input)
     }
 
-    fn protocol_name(input: &str) -> ParserResult<&str, &str> {
-        alt((tag_no_case("SIP"), token))(input)
+    #[inline]
+    fn protocol_name(input: &str) -> ParserResult<&str, TokenString> {
+        alt((
+            map(tag_no_case("SIP"), |p: &str| {
+                TokenString::new(p.to_ascii_uppercase())
+            }),
+            token,
+        ))(input)
     }
 
     #[inline]
-    fn protocol_version(input: &str) -> ParserResult<&str, &str> {
+    fn protocol_version(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 }

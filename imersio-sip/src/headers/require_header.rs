@@ -53,7 +53,7 @@ pub(crate) mod parser {
     use crate::common::option_tag::parser::option_tag;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, RequireHeader};
+    use crate::{Header, RequireHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -67,7 +67,7 @@ pub(crate) mod parser {
             "Require header",
             map(
                 tuple((
-                    tag_no_case("Require"),
+                    map(tag_no_case("Require"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, option_tag))),
                 )),

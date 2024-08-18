@@ -51,7 +51,7 @@ impl HeaderAccessor for SubjectHeader {
 pub(crate) mod parser {
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, text_utf8_trim, ParserResult};
-    use crate::{Header, SubjectHeader};
+    use crate::{Header, SubjectHeader, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -65,7 +65,10 @@ pub(crate) mod parser {
             "Subject header",
             map(
                 tuple((
-                    alt((tag_no_case("Subject"), tag_no_case("s"))),
+                    map(
+                        alt((tag_no_case("Subject"), tag_no_case("s"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(opt(text_utf8_trim))),
                 )),

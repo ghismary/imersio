@@ -52,7 +52,7 @@ impl HeaderAccessor for MaxForwardsHeader {
 pub(crate) mod parser {
     use crate::headers::GenericHeader;
     use crate::parser::{digit, hcolon, ParserResult};
-    use crate::{Header, MaxForwardsHeader};
+    use crate::{Header, MaxForwardsHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
@@ -66,7 +66,7 @@ pub(crate) mod parser {
             "Max-Forwards header",
             map(
                 tuple((
-                    tag_no_case("Max-Forwards"),
+                    map(tag_no_case("Max-Forwards"), TokenString::new),
                     hcolon,
                     cut(consumed(map(recognize(many1(digit)), |value| {
                         value.parse::<u8>().unwrap_or(u8::MAX)

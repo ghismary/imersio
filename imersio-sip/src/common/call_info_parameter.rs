@@ -2,7 +2,8 @@ use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::GenericParameter;
+use crate::common::wrapped_string::WrappedString;
+use crate::{GenericParameter, TokenString};
 
 /// Representation of an information about the caller or the callee.
 #[derive(Clone, Debug, Eq, IsVariant)]
@@ -17,22 +18,25 @@ pub enum CallInfoParameter {
     /// vCard or LDIF formats.
     CardPurpose,
     /// Any other purpose parameter.
-    OtherPurpose(String),
+    OtherPurpose(TokenString),
     /// Any extension parameter.
-    Other(GenericParameter),
+    Other(GenericParameter<TokenString>),
 }
 
 impl CallInfoParameter {
-    pub(crate) fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
+    pub(crate) fn new(key: TokenString, value: Option<TokenString>) -> Self {
         match (
-            key.into().to_ascii_lowercase().as_str(),
-            value.map(|v| v.into().to_ascii_lowercase()).as_deref(),
+            key.to_ascii_lowercase().as_str(),
+            value.map(|v| v.to_ascii_lowercase()).as_deref(),
         ) {
             ("purpose", Some("icon")) => Self::IconPurpose,
             ("purpose", Some("info")) => Self::InfoPurpose,
             ("purpose", Some("card")) => Self::CardPurpose,
-            ("purpose", Some(value)) => Self::OtherPurpose(value.to_string()),
-            (key, value) => Self::Other(GenericParameter::new(key, value)),
+            ("purpose", Some(value)) => Self::OtherPurpose(TokenString::new(value)),
+            (key, value) => Self::Other(GenericParameter::new(
+                TokenString::new(key),
+                value.map(|v| WrappedString::NotWrapped(TokenString::new(v))),
+            )),
         }
     }
 
@@ -106,16 +110,20 @@ impl Hash for CallInfoParameter {
     }
 }
 
-impl From<GenericParameter> for CallInfoParameter {
-    fn from(value: GenericParameter) -> Self {
-        CallInfoParameter::new(value.key(), value.value())
+impl From<GenericParameter<TokenString>> for CallInfoParameter {
+    fn from(value: GenericParameter<TokenString>) -> Self {
+        CallInfoParameter::new(
+            TokenString::new(value.key()),
+            value.value().map(TokenString::new),
+        )
     }
 }
 
 pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
+    use crate::common::wrapped_string::WrappedString;
     use crate::parser::{equal, token, ParserResult};
-    use crate::{CallInfoParameter, GenericParameter};
+    use crate::{CallInfoParameter, GenericParameter, TokenString};
     use nom::{
         branch::alt, bytes::complete::tag_no_case, combinator::map, error::context,
         sequence::separated_pair,
@@ -128,20 +136,20 @@ pub(crate) mod parser {
                 alt((
                     map(
                         separated_pair(
-                            tag_no_case("purpose"),
+                            map(tag_no_case("purpose"), TokenString::new),
                             equal,
                             map(
                                 alt((
-                                    tag_no_case("icon"),
-                                    tag_no_case("info"),
-                                    tag_no_case("card"),
+                                    map(tag_no_case("icon"), TokenString::new),
+                                    map(tag_no_case("info"), TokenString::new),
+                                    map(tag_no_case("card"), TokenString::new),
                                     token,
                                 )),
                                 Some,
                             ),
                         ),
                         |(key, value)| {
-                            GenericParameter::new(key.to_string(), value.map(Into::into))
+                            GenericParameter::new(key, value.map(WrappedString::new_not_wrapped))
                         },
                     ),
                     generic_param,

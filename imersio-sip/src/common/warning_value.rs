@@ -66,7 +66,7 @@ pub(crate) mod parser {
     use crate::common::warn_code::parser::warn_code;
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{quoted_string, sp, ParserResult};
-    use crate::WarningValue;
+    use crate::{TokenString, WarningValue};
     use nom::{combinator::map, error::context, sequence::tuple};
 
     pub(crate) fn warning_value(input: &str) -> ParserResult<&str, WarningValue> {
@@ -80,7 +80,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn warn_text(input: &str) -> ParserResult<&str, WrappedString> {
+    fn warn_text(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         quoted_string(input)
     }
 }

@@ -1,7 +1,7 @@
 use derive_more::IsVariant;
 use std::cmp::Ordering;
 
-use crate::GenericParameter;
+use crate::{GenericParameter, TokenString};
 
 /// Representation of a contact parameter.
 #[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
@@ -11,7 +11,7 @@ pub enum ContactParameter {
     /// An `expires` parameter.
     Expires(String),
     /// Any other parameter.
-    Other(GenericParameter),
+    Other(GenericParameter<TokenString>),
 }
 
 impl ContactParameter {
@@ -79,8 +79,8 @@ impl Ord for ContactParameter {
     }
 }
 
-impl From<GenericParameter> for ContactParameter {
-    fn from(value: GenericParameter) -> Self {
+impl From<GenericParameter<TokenString>> for ContactParameter {
+    fn from(value: GenericParameter<TokenString>) -> Self {
         Self::Other(value)
     }
 }
@@ -89,7 +89,7 @@ pub(crate) mod parser {
     use crate::common::accept_parameter::parser::qvalue;
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::{digit, equal, ParserResult};
-    use crate::{ContactParameter, GenericParameter};
+    use crate::{ContactParameter, GenericParameter, TokenString};
     use chrono::TimeDelta;
     use nom::{
         branch::alt,
@@ -125,7 +125,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn contact_extension(input: &str) -> ParserResult<&str, GenericParameter> {
+    fn contact_extension(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
         generic_param(input)
     }
 

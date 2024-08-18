@@ -49,7 +49,7 @@ impl HeaderAccessor for DateHeader {
 pub(crate) mod parser {
     use crate::headers::GenericHeader;
     use crate::parser::{digit, hcolon, sp, ParserResult};
-    use crate::{DateHeader, Header};
+    use crate::{DateHeader, Header, TokenString};
     use chrono::{DateTime, Utc};
     use nom::{
         branch::alt,
@@ -150,7 +150,11 @@ pub(crate) mod parser {
         context(
             "Date header",
             map(
-                tuple((tag_no_case("Date"), hcolon, cut(consumed(sip_date)))),
+                tuple((
+                    map(tag_no_case("Date"), TokenString::new),
+                    hcolon,
+                    cut(consumed(sip_date)),
+                )),
                 |(name, separator, (value, date))| {
                     Header::Date(DateHeader::new(
                         GenericHeader::new(name, separator, value),

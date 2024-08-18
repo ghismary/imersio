@@ -50,9 +50,18 @@ pub enum SipError {
     /// Invalid response status code.
     #[display("Invalid status code: `{_0}`")]
     InvalidStatusCode(String),
+    /// Invalid Token String.
+    #[display("Invalid token string: `{_0}`")]
+    InvalidTokenString(String),
     /// Invalid URI.
     #[display("Invalid uri: `{_0}`")]
     InvalidUri(String),
+    /// Invalid URI header string.
+    #[display("Invalid uri header string: `{_0}`")]
+    InvalidUriHeaderString(String),
+    /// Invalid URI parameter.
+    #[display("invalid uri parameter: `{_0}`")]
+    InvalidUriParameter(String),
     /// Invalid URI password.
     #[display("Invalid uri password: `{_0}`")]
     InvalidUriPassword(String),

@@ -61,7 +61,7 @@ pub(crate) mod parser {
     use crate::common::call_info::parser::info;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{CallInfoHeader, Header};
+    use crate::{CallInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -75,7 +75,7 @@ pub(crate) mod parser {
             "Call-Info header",
             map(
                 tuple((
-                    tag_no_case("Call-Info"),
+                    map(tag_no_case("Call-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, info))),
                 )),
@@ -92,12 +92,13 @@ pub(crate) mod parser {
 
 #[cfg(test)]
 mod tests {
+    use crate::common::wrapped_string::WrappedString;
     use crate::{
         headers::{
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        CallInfoHeader, CallInfoParameter, GenericParameter, Header, Uri,
+        CallInfoHeader, CallInfoParameter, GenericParameter, Header, TokenString, Uri,
     };
     use claims::assert_ok;
 
@@ -152,7 +153,7 @@ mod tests {
                 assert_eq!(first_call_info.parameters().len(), 1);
                 assert_eq!(
                     first_call_info.parameters().first().unwrap(),
-                    &CallInfoParameter::OtherPurpose("photo".to_string())
+                    &CallInfoParameter::OtherPurpose(TokenString::new("photo"))
                 );
             },
         );
@@ -173,7 +174,10 @@ mod tests {
                 assert_eq!(first_call_info.parameters().len(), 1);
                 assert_eq!(
                     first_call_info.parameters().first().unwrap(),
-                    &CallInfoParameter::Other(GenericParameter::new("info", Some("photo")))
+                    &CallInfoParameter::Other(GenericParameter::new(
+                        TokenString::new("info"),
+                        Some(WrappedString::new_not_wrapped(TokenString::new("photo")))
+                    ))
                 );
             },
         );
@@ -194,7 +198,10 @@ mod tests {
                 assert_eq!(first_call_info.parameters().len(), 1);
                 assert_eq!(
                     first_call_info.parameters().first().unwrap(),
-                    &CallInfoParameter::Other(GenericParameter::new("info", None))
+                    &CallInfoParameter::Other(GenericParameter::new(
+                        TokenString::new("info"),
+                        None
+                    ))
                 );
             },
         );

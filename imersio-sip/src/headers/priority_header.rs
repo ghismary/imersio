@@ -57,7 +57,7 @@ pub(crate) mod parser {
     use crate::common::priority::parser::priority_value;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, ParserResult};
-    use crate::{Header, PriorityHeader};
+    use crate::{Header, PriorityHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -70,7 +70,7 @@ pub(crate) mod parser {
             "Priority header",
             map(
                 tuple((
-                    tag_no_case("Priority"),
+                    map(tag_no_case("Priority"), TokenString::new),
                     hcolon,
                     cut(consumed(priority_value)),
                 )),
@@ -92,7 +92,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header, Priority, PriorityHeader,
+        Header, Priority, PriorityHeader, TokenString,
     };
     use claims::assert_ok;
 
@@ -119,7 +119,7 @@ mod tests {
         valid_header("Priority: my-own-priority", |header| {
             assert_eq!(
                 header.priority(),
-                &Priority::Other("my-own-priority".to_string())
+                &Priority::Other(TokenString::new("my-own-priority"))
             );
         });
     }

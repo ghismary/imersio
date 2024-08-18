@@ -52,7 +52,7 @@ impl HeaderAccessor for OrganizationHeader {
 pub(crate) mod parser {
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, text_utf8_trim, ParserResult};
-    use crate::{Header, OrganizationHeader};
+    use crate::{Header, OrganizationHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, opt},
@@ -65,7 +65,7 @@ pub(crate) mod parser {
             "Organization header",
             map(
                 tuple((
-                    tag_no_case("Organization"),
+                    map(tag_no_case("Organization"), TokenString::new),
                     hcolon,
                     cut(consumed(opt(text_utf8_trim))),
                 )),

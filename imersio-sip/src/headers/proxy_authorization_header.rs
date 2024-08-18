@@ -54,7 +54,7 @@ pub(crate) mod parser {
     use crate::common::credentials::parser::credentials;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, ParserResult};
-    use crate::{Header, ProxyAuthorizationHeader};
+    use crate::{Header, ProxyAuthorizationHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -67,7 +67,7 @@ pub(crate) mod parser {
             "Proxy-Authorization header",
             map(
                 tuple((
-                    tag_no_case("Proxy-Authorization"),
+                    map(tag_no_case("Proxy-Authorization"), TokenString::new),
                     hcolon,
                     cut(consumed(credentials)),
                 )),

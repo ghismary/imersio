@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::net::IpAddr;
 
 use crate::uris::host::parser::host;
-use crate::{GenericParameter, Host};
+use crate::{GenericParameter, Host, TokenString};
 
 /// Representation of a via parameter.
 #[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
@@ -17,7 +17,7 @@ pub enum ViaParameter {
     /// A `branch` parameter.
     Branch(String),
     /// Any other parameter.
-    Other(GenericParameter),
+    Other(GenericParameter<TokenString>),
 }
 
 impl ViaParameter {
@@ -104,8 +104,8 @@ impl Ord for ViaParameter {
     }
 }
 
-impl From<GenericParameter> for ViaParameter {
-    fn from(value: GenericParameter) -> Self {
+impl From<GenericParameter<TokenString>> for ViaParameter {
+    fn from(value: GenericParameter<TokenString>) -> Self {
         Self::Other(value)
     }
 }

@@ -76,9 +76,10 @@ impl HeaderAccessor for FromHeader {
 pub(crate) mod parser {
     use crate::common::contact::parser::{addr_spec, name_addr};
     use crate::common::generic_parameter::parser::generic_param;
+    use crate::common::wrapped_string::WrappedString;
     use crate::headers::GenericHeader;
     use crate::parser::{equal, hcolon, semi, token, ParserResult};
-    use crate::{FromHeader, FromParameter, GenericParameter, Header, NameAddress};
+    use crate::{FromHeader, FromParameter, GenericParameter, Header, NameAddress, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -88,12 +89,14 @@ pub(crate) mod parser {
         sequence::{pair, preceded, separated_pair, tuple},
     };
 
-    fn tag_param(input: &str) -> ParserResult<&str, GenericParameter> {
+    fn tag_param(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
         context(
             "tag_param",
             map(
-                separated_pair(tag_no_case("tag"), equal, token),
-                |(key, value)| GenericParameter::new(key, Some(value)),
+                separated_pair(map(tag_no_case("tag"), TokenString::new), equal, token),
+                |(key, value)| {
+                    GenericParameter::new(key, Some(WrappedString::new_not_wrapped(value)))
+                },
             ),
         )(input)
     }
@@ -120,7 +123,10 @@ pub(crate) mod parser {
             "From header",
             map(
                 tuple((
-                    alt((tag_no_case("From"), tag_no_case("f"))),
+                    map(
+                        alt((tag_no_case("From"), tag_no_case("f"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(from_spec)),
                 )),

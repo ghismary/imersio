@@ -78,7 +78,7 @@ pub(crate) mod parser {
     use crate::common::disposition_type::parser::disp_type;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, semi, ParserResult};
-    use crate::{ContentDispositionHeader, Header};
+    use crate::{ContentDispositionHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -92,7 +92,7 @@ pub(crate) mod parser {
             "Content-Disposition header",
             map(
                 tuple((
-                    tag_no_case("Content-Disposition"),
+                    map(tag_no_case("Content-Disposition"), TokenString::new),
                     hcolon,
                     cut(consumed(pair(disp_type, many0(preceded(semi, disp_param))))),
                 )),
@@ -115,7 +115,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        ContentDispositionHeader, DispositionType, Handling, Header,
+        ContentDispositionHeader, DispositionType, Handling, Header, TokenString,
     };
     use claims::assert_ok;
 
@@ -152,7 +152,7 @@ mod tests {
         valid_header("Content-Disposition: custom", |header| {
             assert_eq!(
                 header.r#type(),
-                &DispositionType::Other("custom".to_string())
+                &DispositionType::Other(TokenString::new("custom"))
             );
             assert!(header.parameters().is_empty());
         });

@@ -51,7 +51,7 @@ pub(crate) mod parser {
     use crate::common::error_uri::parser::error_uri;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{ErrorInfoHeader, Header};
+    use crate::{ErrorInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -65,7 +65,7 @@ pub(crate) mod parser {
             "Error-Info header",
             map(
                 tuple((
-                    tag_no_case("Error-Info"),
+                    map(tag_no_case("Error-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, error_uri))),
                 )),

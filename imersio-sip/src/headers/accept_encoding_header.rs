@@ -52,7 +52,7 @@ pub(crate) mod parser {
     use crate::common::accept_encoding::parser::encoding;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AcceptEncodingHeader, Header};
+    use crate::{AcceptEncodingHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -66,7 +66,7 @@ pub(crate) mod parser {
             "Accept-Encoding header",
             map(
                 tuple((
-                    tag_no_case("Accept-Encoding"),
+                    map(tag_no_case("Accept-Encoding"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list0(comma, encoding))),
                 )),

@@ -53,7 +53,7 @@ pub(crate) mod parser {
     use crate::common::via::parser::via_parm;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, ViaHeader};
+    use crate::{Header, TokenString, ViaHeader};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -68,7 +68,10 @@ pub(crate) mod parser {
             "Via header",
             map(
                 tuple((
-                    alt((tag_no_case("Via"), tag_no_case("v"))),
+                    map(
+                        alt((tag_no_case("Via"), tag_no_case("v"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(separated_list1(comma, via_parm))),
                 )),
@@ -90,7 +93,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header, Host, HostnameString, Protocol, Transport, ViaHeader,
+        Header, Host, HostnameString, Protocol, TokenString, Transport, ViaHeader,
     };
     use claims::assert_ok;
     use std::net::{IpAddr, Ipv4Addr};
@@ -108,7 +111,11 @@ mod tests {
                 let first_via = header.vias().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
-                    &Protocol::new("SIP", "2.0", Transport::Udp)
+                    &Protocol::new(
+                        TokenString::new("SIP"),
+                        TokenString::new("2.0"),
+                        Transport::Udp
+                    )
                 );
                 assert_eq!(
                     first_via.host(),
@@ -132,7 +139,11 @@ mod tests {
                 let first_via = header.vias().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
-                    &Protocol::new("SIP", "2.0", Transport::Udp)
+                    &Protocol::new(
+                        TokenString::new("SIP"),
+                        TokenString::new("2.0"),
+                        Transport::Udp
+                    )
                 );
                 assert_eq!(
                     first_via.host(),
@@ -160,7 +171,7 @@ mod tests {
                 let first_via = header.vias().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
-                    &Protocol::new("SIP", "2.0", Transport::Udp)
+                    &Protocol::new(TokenString::new("SIP"), TokenString::new("2.0"), Transport::Udp)
                 );
                 assert_eq!(
                     first_via.host(),

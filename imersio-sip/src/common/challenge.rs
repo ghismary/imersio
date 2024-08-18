@@ -325,8 +325,8 @@ pub(crate) mod parser {
                 |(_, values)| {
                     AuthParameter::QopOptions(
                         values
-                            .iter()
-                            .map(|v| MessageQop::new(v.to_string()))
+                            .into_iter()
+                            .map(MessageQop::new)
                             .collect::<Vec<MessageQop>>()
                             .into(),
                     )

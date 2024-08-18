@@ -111,7 +111,7 @@ pub(crate) mod parser {
     use crate::common::authentication_info::parser::ainfo;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AuthenticationInfoHeader, Header};
+    use crate::{AuthenticationInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -125,7 +125,7 @@ pub(crate) mod parser {
             "Authentication-Info header",
             map(
                 tuple((
-                    tag_no_case("Authentication-Info"),
+                    map(tag_no_case("Authentication-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, ainfo))),
                 )),

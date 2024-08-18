@@ -5,10 +5,10 @@ use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
 use crate::common::wrapped_string::WrappedString;
-use crate::Algorithm;
 use crate::AuthenticationInfo;
 use crate::DomainUris;
 use crate::Stale;
+use crate::{Algorithm, TokenString};
 use crate::{MessageQop, MessageQops};
 use crate::{SipError, Uri};
 
@@ -23,25 +23,25 @@ pub type AuthParameters = ValueCollection<AuthParameter>;
 #[derive(Clone, Debug, Eq, IsVariant)]
 pub enum AuthParameter {
     /// A `username` parameter.
-    Username(WrappedString),
+    Username(WrappedString<TokenString>),
     /// A `realm` parameter.
-    Realm(WrappedString),
+    Realm(WrappedString<TokenString>),
     /// A `nonce` parameter.
-    Nonce(WrappedString),
+    Nonce(WrappedString<TokenString>),
     /// An `uri` parameter.
     DigestUri(Uri),
     /// A `response` parameter.
-    DResponse(WrappedString),
+    DResponse(WrappedString<TokenString>),
     /// An `algorithm` parameter.
     Algorithm(Algorithm),
     /// A `cnonce` parameter.
-    CNonce(WrappedString),
+    CNonce(WrappedString<TokenString>),
     /// An `opaque` parameter.
-    Opaque(WrappedString),
+    Opaque(WrappedString<TokenString>),
     /// A `qop` parameter with a single value in an `AuthorizationHeader`.
     Qop(MessageQop),
     /// A `nc` parameter.
-    NonceCount(WrappedString),
+    NonceCount(WrappedString<TokenString>),
     /// A `domain` parameter in a `ProxyAuthenticateHeader`.
     Domain(DomainUris),
     /// A `stale` parameter in a `ProxyAuthenticateHeader`.
@@ -49,7 +49,7 @@ pub enum AuthParameter {
     /// A `qop` parameter in a `ProxyAuthenticateHeader`.
     QopOptions(MessageQops),
     /// Any other parameter.
-    Other(String, WrappedString),
+    Other(TokenString, WrappedString<TokenString>),
 }
 
 impl AuthParameter {
@@ -97,20 +97,20 @@ impl AuthParameter {
 impl std::fmt::Display for AuthParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (key, value) = match self {
-            Self::Username(value) => ("username".into(), value.to_string()),
-            Self::Realm(value) => ("realm".into(), value.to_string()),
-            Self::Nonce(value) => ("nonce".into(), value.to_string()),
-            Self::DigestUri(value) => ("uri".into(), format!("\"{value}\"")),
-            Self::DResponse(value) => ("response".into(), value.to_string()),
-            Self::Algorithm(value) => ("algorithm".into(), value.to_string()),
-            Self::CNonce(value) => ("cnonce".into(), value.to_string()),
-            Self::Opaque(value) => ("opaque".into(), value.to_string()),
-            Self::Qop(value) => ("qop".into(), value.to_string()),
-            Self::NonceCount(value) => ("nc".into(), value.to_string()),
-            Self::Domain(value) => ("domain".into(), value.to_string()),
-            Self::Stale(value) => ("stale".into(), value.to_string()),
-            Self::QopOptions(value) => ("qop".into(), value.to_string()),
-            Self::Other(key, value) => (key.clone(), value.to_string()),
+            Self::Username(value) => ("username", value.to_string()),
+            Self::Realm(value) => ("realm", value.to_string()),
+            Self::Nonce(value) => ("nonce", value.to_string()),
+            Self::DigestUri(value) => ("uri", format!("\"{value}\"")),
+            Self::DResponse(value) => ("response", value.to_string()),
+            Self::Algorithm(value) => ("algorithm", value.to_string()),
+            Self::CNonce(value) => ("cnonce", value.to_string()),
+            Self::Opaque(value) => ("opaque", value.to_string()),
+            Self::Qop(value) => ("qop", value.to_string()),
+            Self::NonceCount(value) => ("nc", value.to_string()),
+            Self::Domain(value) => ("domain", value.to_string()),
+            Self::Stale(value) => ("stale", value.to_string()),
+            Self::QopOptions(value) => ("qop", value.to_string()),
+            Self::Other(key, value) => (key.as_str(), value.to_string()),
         };
         write!(f, "{}={}", key, value)
     }
@@ -194,7 +194,7 @@ pub(crate) mod parser {
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{comma, equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult};
     use crate::uris::uri::parser::request_uri;
-    use crate::{Algorithm, AuthParameter, AuthParameters, Uri};
+    use crate::{Algorithm, AuthParameter, AuthParameters, TokenString, Uri};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -205,7 +205,7 @@ pub(crate) mod parser {
     };
 
     #[inline]
-    fn username_value(input: &str) -> ParserResult<&str, WrappedString> {
+    fn username_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         quoted_string(input)
     }
 
@@ -220,7 +220,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn realm_value(input: &str) -> ParserResult<&str, WrappedString> {
+    fn realm_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         quoted_string(input)
     }
 
@@ -258,7 +258,7 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn request_digest(input: &str) -> ParserResult<&str, WrappedString> {
+    fn request_digest(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         context(
             "request_digest",
             map(
@@ -285,7 +285,11 @@ pub(crate) mod parser {
                 separated_pair(
                     tag_no_case("algorithm"),
                     equal,
-                    cut(alt((tag_no_case("MD5"), tag_no_case("MD5-sess"), token))),
+                    cut(alt((
+                        map(tag_no_case("MD5"), TokenString::new),
+                        map(tag_no_case("MD5-sess"), TokenString::new),
+                        token,
+                    ))),
                 ),
                 |(_, value)| AuthParameter::Algorithm(Algorithm::new(value)),
             ),
@@ -303,7 +307,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn auth_param_name(input: &str) -> ParserResult<&str, &str> {
+    fn auth_param_name(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 
@@ -316,7 +320,7 @@ pub(crate) mod parser {
                     equal,
                     alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
                 ),
-                |(key, value)| AuthParameter::Other(key.to_string(), value),
+                |(key, value)| AuthParameter::Other(key, value),
             ),
         )(input)
     }
@@ -348,7 +352,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    pub(crate) fn auth_scheme(input: &str) -> ParserResult<&str, &str> {
+    pub(crate) fn auth_scheme(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 

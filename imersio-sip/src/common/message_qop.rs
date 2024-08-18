@@ -1,3 +1,4 @@
+use crate::{SipError, TokenString};
 use derive_more::{Deref, From, IsVariant};
 use itertools::{join, Itertools};
 use std::cmp::Ordering;
@@ -37,12 +38,11 @@ pub enum MessageQop {
     /// auth-int qop.
     AuthInt,
     /// Any other qop value.
-    Other(String),
+    Other(TokenString),
 }
 
 impl MessageQop {
-    pub(crate) fn new<S: Into<String>>(qop: S) -> Self {
-        let qop: String = qop.into();
+    pub(crate) fn new(qop: TokenString) -> Self {
         match qop.to_ascii_lowercase().as_str() {
             "auth" => Self::Auth,
             "auth-int" => Self::AuthInt,
@@ -94,8 +94,10 @@ impl Hash for MessageQop {
     }
 }
 
-impl From<&str> for MessageQop {
-    fn from(value: &str) -> Self {
-        MessageQop::new(value)
+impl TryFrom<&str> for MessageQop {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(MessageQop::new(TokenString::try_from(value)?))
     }
 }

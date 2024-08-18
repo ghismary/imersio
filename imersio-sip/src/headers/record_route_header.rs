@@ -52,7 +52,7 @@ pub(crate) mod parser {
     use crate::common::route::parser::route_spec;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, RecordRouteHeader};
+    use crate::{Header, RecordRouteHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -66,7 +66,7 @@ pub(crate) mod parser {
             "Record-Route header",
             map(
                 tuple((
-                    tag_no_case("Record-Route"),
+                    map(tag_no_case("Record-Route"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, route_spec))),
                 )),

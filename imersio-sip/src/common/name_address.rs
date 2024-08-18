@@ -2,18 +2,18 @@ use derive_partial_eq_extras::PartialEqExtras;
 use std::hash::Hash;
 
 use super::wrapped_string::WrappedString;
-use crate::Uri;
+use crate::{TokenString, Uri};
 
 /// Representation of name address, that is the conjunction of a display name and an uri.
 #[derive(Clone, Debug, Eq, PartialEqExtras)]
 pub struct NameAddress {
     #[partial_eq_ignore]
-    display_name: Option<WrappedString>,
+    display_name: Option<WrappedString<TokenString>>,
     uri: Uri,
 }
 
 impl NameAddress {
-    pub(crate) fn new(uri: Uri, display_name: Option<WrappedString>) -> Self {
+    pub(crate) fn new(uri: Uri, display_name: Option<WrappedString<TokenString>>) -> Self {
         let display_name = display_name.filter(|display_name| !display_name.is_empty());
         Self { display_name, uri }
     }

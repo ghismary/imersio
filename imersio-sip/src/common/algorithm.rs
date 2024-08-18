@@ -1,6 +1,9 @@
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
+
+use derive_more::IsVariant;
+
+use crate::{SipError, TokenString};
 
 /// Representation of an algorithm parameter.
 #[derive(Clone, Debug, Eq, IsVariant)]
@@ -10,12 +13,11 @@ pub enum Algorithm {
     /// MD5-sess algorithm.
     Md5Sess,
     /// Any other algorithm.
-    Other(String),
+    Other(TokenString),
 }
 
 impl Algorithm {
-    pub(crate) fn new<S: Into<String>>(algo: S) -> Self {
-        let algo: String = algo.into();
+    pub(crate) fn new(algo: TokenString) -> Self {
         match algo.to_ascii_lowercase().as_str() {
             "md5" => Self::Md5,
             "md5-sess" => Self::Md5Sess,
@@ -67,8 +69,10 @@ impl Hash for Algorithm {
     }
 }
 
-impl From<&str> for Algorithm {
-    fn from(value: &str) -> Self {
-        Algorithm::new(value)
+impl TryFrom<&str> for Algorithm {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(Algorithm::new(TokenString::try_from(value)?))
     }
 }

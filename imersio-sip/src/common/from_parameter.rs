@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::utils::compare_vectors;
-use crate::GenericParameter;
+use crate::{GenericParameter, TokenString};
 
 /// Representation of the list of from parameters of a `From` header.
 ///
@@ -30,7 +30,7 @@ pub enum FromParameter {
     /// A `tag` parameter.
     Tag(String),
     /// Any other parameters.
-    Other(GenericParameter),
+    Other(GenericParameter<TokenString>),
 }
 
 impl FromParameter {
@@ -126,8 +126,8 @@ impl Hash for FromParameter {
     }
 }
 
-impl From<GenericParameter> for FromParameter {
-    fn from(value: GenericParameter) -> Self {
+impl From<GenericParameter<TokenString>> for FromParameter {
+    fn from(value: GenericParameter<TokenString>) -> Self {
         match value.key().to_ascii_lowercase().as_str() {
             "tag" => Self::Tag(value.value().unwrap_or("").to_string()),
             _ => Self::Other(value),

@@ -2,8 +2,8 @@ use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::GenericParameter;
 use crate::Handling;
+use crate::{GenericParameter, TokenString};
 
 /// Representation of a parameter of a `DispositionType`.
 #[derive(Clone, Debug, Eq, IsVariant)]
@@ -13,7 +13,7 @@ pub enum DispositionParameter {
     /// does not understand.
     Handling(Handling),
     /// Any other parameter.
-    Other(GenericParameter),
+    Other(GenericParameter<TokenString>),
 }
 
 impl DispositionParameter {
@@ -88,8 +88,8 @@ impl Hash for DispositionParameter {
     }
 }
 
-impl From<GenericParameter> for DispositionParameter {
-    fn from(value: GenericParameter) -> Self {
+impl From<GenericParameter<TokenString>> for DispositionParameter {
+    fn from(value: GenericParameter<TokenString>) -> Self {
         Self::Other(value)
     }
 }
@@ -97,13 +97,13 @@ impl From<GenericParameter> for DispositionParameter {
 pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::{equal, token, ParserResult};
-    use crate::{DispositionParameter, Handling};
+    use crate::{DispositionParameter, Handling, TokenString};
     use nom::{
         branch::alt, bytes::complete::tag_no_case, combinator::map, sequence::separated_pair,
     };
 
     #[inline]
-    fn other_handling(input: &str) -> ParserResult<&str, &str> {
+    fn other_handling(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 
@@ -114,8 +114,8 @@ pub(crate) mod parser {
                 equal,
                 map(
                     alt((
-                        tag_no_case("optional"),
-                        tag_no_case("required"),
+                        map(tag_no_case("optional"), TokenString::new),
+                        map(tag_no_case("required"), TokenString::new),
                         other_handling,
                     )),
                     Handling::new,

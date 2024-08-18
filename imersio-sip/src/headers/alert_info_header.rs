@@ -55,7 +55,7 @@ pub(crate) mod parser {
     use crate::common::alert::parser::alert_param;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AlertInfoHeader, Header};
+    use crate::{AlertInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -69,7 +69,7 @@ pub(crate) mod parser {
             "Alert-Info header",
             map(
                 tuple((
-                    tag_no_case("Alert-Info"),
+                    map(tag_no_case("Alert-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, alert_param))),
                 )),

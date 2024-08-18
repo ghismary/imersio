@@ -53,7 +53,7 @@ pub(crate) mod parser {
     use crate::common::contact_parameter::parser::delta_seconds;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, ParserResult};
-    use crate::{Header, MinExpiresHeader};
+    use crate::{Header, MinExpiresHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -66,7 +66,7 @@ pub(crate) mod parser {
             "Min-Expires header",
             map(
                 tuple((
-                    tag_no_case("Min-Expires"),
+                    map(tag_no_case("Min-Expires"), TokenString::new),
                     hcolon,
                     cut(consumed(delta_seconds)),
                 )),

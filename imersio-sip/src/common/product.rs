@@ -1,18 +1,16 @@
+use crate::TokenString;
 use std::hash::Hash;
 
 /// Representation of a product, containing its name and version.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Product {
-    name: String,
-    version: Option<String>,
+    name: TokenString,
+    version: Option<TokenString>,
 }
 
 impl Product {
-    pub(crate) fn new<S: Into<String>>(name: S, version: Option<S>) -> Self {
-        Product {
-            name: name.into(),
-            version: version.map(Into::into),
-        }
+    pub(crate) fn new(name: TokenString, version: Option<TokenString>) -> Self {
+        Product { name, version }
     }
 
     /// Get the name of the product.
@@ -22,7 +20,7 @@ impl Product {
 
     /// Get the version of the product.
     pub fn version(&self) -> Option<&str> {
-        self.version.as_deref()
+        self.version.as_deref().map(|v| v.as_str())
     }
 }
 
@@ -40,7 +38,7 @@ impl std::fmt::Display for Product {
 
 pub(crate) mod parser {
     use crate::parser::{slash, token, ParserResult};
-    use crate::Product;
+    use crate::{Product, TokenString};
     use nom::{
         combinator::{map, opt},
         error::context,
@@ -58,7 +56,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn product_version(input: &str) -> ParserResult<&str, &str> {
+    fn product_version(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 }

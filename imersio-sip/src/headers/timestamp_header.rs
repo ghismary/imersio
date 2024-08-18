@@ -99,7 +99,7 @@ impl HeaderAccessor for TimestampHeader {
 pub(crate) mod parser {
     use crate::headers::GenericHeader;
     use crate::parser::{digit, hcolon, lws, ParserResult};
-    use crate::{Header, TimestampHeader};
+    use crate::{Header, TimestampHeader, TokenString};
     use chrono::{DateTime, TimeDelta};
     use nom::{
         bytes::complete::{tag, tag_no_case},
@@ -115,7 +115,7 @@ pub(crate) mod parser {
             "Timestamp header",
             map(
                 tuple((
-                    tag_no_case("Timestamp"),
+                    map(tag_no_case("Timestamp"), TokenString::new),
                     hcolon,
                     cut(consumed(tuple((
                         digit1,

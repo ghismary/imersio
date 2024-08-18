@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
-use crate::SipError;
+use crate::{SipError, TokenString};
 
 /// Representation of the list of encodings in a `Content-Encoding` header.
 ///
@@ -14,11 +14,11 @@ pub type ContentEncodings = ValueCollection<ContentEncoding>;
 /// Representation of an encoding in a `Content-Encoding` header.
 #[derive(Clone, Debug, Display, Eq)]
 #[display("{}", self.0.to_ascii_lowercase())]
-pub struct ContentEncoding(String);
+pub struct ContentEncoding(TokenString);
 
 impl ContentEncoding {
-    pub(crate) fn new<S: Into<String>>(encoding: S) -> Self {
-        Self(encoding.into())
+    pub(crate) fn new(encoding: TokenString) -> Self {
+        Self(encoding)
     }
 }
 
@@ -103,7 +103,7 @@ impl TryFrom<&str> for ContentEncoding {
 
 pub(crate) mod parser {
     use crate::parser::{token, ParserResult};
-    use crate::ContentEncoding;
+    use crate::{ContentEncoding, TokenString};
     use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context};
 
     #[inline]
@@ -114,7 +114,10 @@ pub(crate) mod parser {
     pub(crate) fn codings(input: &str) -> ParserResult<&str, ContentEncoding> {
         context(
             "codings",
-            alt((content_coding, map(tag("*"), ContentEncoding::new))),
+            alt((
+                content_coding,
+                map(tag("*"), |v| ContentEncoding::new(TokenString::new(v))),
+            )),
         )(input)
     }
 }

@@ -1,3 +1,4 @@
+use crate::TokenString;
 use derive_more::IsVariant;
 use std::cmp::Ordering;
 
@@ -20,12 +21,11 @@ pub enum DispositionType {
     /// attempt to alert the user to the receipt of a request.
     Alert,
     /// Any other extension disposition type.
-    Other(String),
+    Other(TokenString),
 }
 
 impl DispositionType {
-    pub(crate) fn new<S: Into<String>>(r#type: S) -> DispositionType {
-        let r#type: String = r#type.into();
+    pub(crate) fn new(r#type: TokenString) -> DispositionType {
         match r#type.to_ascii_lowercase().as_ref() {
             "render" => Self::Render,
             "session" => Self::Session,
@@ -79,21 +79,21 @@ impl Ord for DispositionType {
 
 pub(crate) mod parser {
     use crate::parser::{token, ParserResult};
-    use crate::DispositionType;
+    use crate::{DispositionType, TokenString};
     use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map};
 
     #[inline]
-    fn disp_extension_token(input: &str) -> ParserResult<&str, &str> {
+    fn disp_extension_token(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 
     pub(crate) fn disp_type(input: &str) -> ParserResult<&str, DispositionType> {
         map(
             alt((
-                tag_no_case("render"),
-                tag_no_case("session"),
-                tag_no_case("icon"),
-                tag_no_case("alert"),
+                map(tag_no_case("render"), TokenString::new),
+                map(tag_no_case("session"), TokenString::new),
+                map(tag_no_case("icon"), TokenString::new),
+                map(tag_no_case("alert"), TokenString::new),
                 disp_extension_token,
             )),
             DispositionType::new,

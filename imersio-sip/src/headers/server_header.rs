@@ -53,7 +53,7 @@ pub(crate) mod parser {
     use crate::common::server_value::parser::server_val;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, lws, ParserResult};
-    use crate::{Header, ServerHeader};
+    use crate::{Header, ServerHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -67,7 +67,7 @@ pub(crate) mod parser {
             "Server header",
             map(
                 tuple((
-                    tag_no_case("Server"),
+                    map(tag_no_case("Server"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(lws, server_val))),
                 )),
@@ -89,7 +89,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header, Product, ServerHeader, ServerValue,
+        Header, Product, ServerHeader, ServerValue, TokenString,
     };
     use claims::assert_ok;
 
@@ -103,7 +103,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("HomeServer", None))
+                &ServerValue::Product(Product::new(TokenString::new("HomeServer"), None))
             );
         });
     }
@@ -114,7 +114,10 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("HomeServer", Some("2")))
+                &ServerValue::Product(Product::new(
+                    TokenString::new("HomeServer"),
+                    Some(TokenString::new("2"))
+                ))
             );
         });
     }
@@ -136,11 +139,14 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("HomeServer", Some("2")))
+                &ServerValue::Product(Product::new(
+                    TokenString::new("HomeServer"),
+                    Some(TokenString::new("2"))
+                ))
             );
             assert_eq!(
                 header.values().last().unwrap(),
-                &ServerValue::Product(Product::new("OtherServer", None))
+                &ServerValue::Product(Product::new(TokenString::new("OtherServer"), None))
             );
         });
     }
@@ -151,7 +157,7 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("HomeServer", None))
+                &ServerValue::Product(Product::new(TokenString::new("HomeServer"), None))
             );
             assert_eq!(
                 header.values().last().unwrap(),

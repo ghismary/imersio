@@ -1,7 +1,8 @@
 use derive_more::IsVariant;
 use std::{cmp::Ordering, hash::Hash};
 
-use crate::GenericParameter;
+use crate::common::wrapped_string::WrappedString;
+use crate::{GenericParameter, TokenString};
 
 /// Representation of a parameter contained in a `Retry-After` header.
 #[derive(Clone, Debug, Eq, IsVariant)]
@@ -9,13 +10,11 @@ pub enum RetryParameter {
     /// duration parameter
     Duration(String),
     /// Any other parameter
-    Other(GenericParameter),
+    Other(GenericParameter<TokenString>),
 }
 
 impl RetryParameter {
-    pub(crate) fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
-        let key: String = key.into();
-        let value: Option<String> = value.map(Into::into);
+    pub(crate) fn new(key: TokenString, value: Option<WrappedString<TokenString>>) -> Self {
         match (key.to_lowercase().as_str(), &value) {
             ("duration", Some(value)) => Self::Duration(value.to_string()),
             _ => Self::Other(GenericParameter::new(key, value)),
@@ -95,9 +94,9 @@ impl Hash for RetryParameter {
     }
 }
 
-impl From<GenericParameter> for RetryParameter {
-    fn from(value: GenericParameter) -> Self {
-        Self::Other(GenericParameter::new(value.key(), value.value()))
+impl From<GenericParameter<TokenString>> for RetryParameter {
+    fn from(value: GenericParameter<TokenString>) -> Self {
+        Self::Other(value)
     }
 }
 
@@ -105,7 +104,9 @@ pub(crate) mod parser {
     use crate::common::contact_parameter::parser::delta_seconds;
     use crate::common::generic_parameter::parser::generic_param;
     use crate::common::retry_parameter::RetryParameter;
+    use crate::common::wrapped_string::WrappedString;
     use crate::parser::{equal, ParserResult};
+    use crate::TokenString;
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -120,7 +121,12 @@ pub(crate) mod parser {
             alt((
                 map(
                     separated_pair(tag_no_case("duration"), equal, recognize(delta_seconds)),
-                    |(name, value)| RetryParameter::new(name, Some(value)),
+                    |(name, value)| {
+                        RetryParameter::new(
+                            TokenString::new(name),
+                            Some(WrappedString::new_not_wrapped(TokenString::new(value))),
+                        )
+                    },
                 ),
                 map(generic_param, Into::into),
             )),

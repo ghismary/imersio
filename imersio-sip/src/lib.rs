@@ -54,6 +54,7 @@ pub use crate::common::{
     stale::Stale,
     status_code::StatusCode,
     to_parameter::{ToParameter, ToParameters},
+    token_string::TokenString,
     transport::Transport,
     user_type::UserType,
     version::Version,
@@ -91,8 +92,8 @@ pub use crate::uris::{
     host::{Host, HostnameString},
     sip_uri::SipUri,
     uri::Uri,
-    uri_header::{UriHeader, UriHeaders},
-    uri_parameter::{UriParameter, UriParameters},
+    uri_header::{UriHeader, UriHeaderString, UriHeaders},
+    uri_parameter::{UriParameter, UriParameterString, UriParameters},
     uri_scheme::{UriScheme, UriSchemeString},
     user_info::{PasswordString, UserInfo, UserString},
 };

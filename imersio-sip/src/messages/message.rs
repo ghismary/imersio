@@ -100,8 +100,8 @@ mod parser {
 mod tests {
     use crate::common::wrapped_string::WrappedString;
     use crate::{
-        Header, Host, HostnameString, MediaRange, Message, Method, Methods, StatusCode, Transport,
-        Uri, Version,
+        Header, Host, HostnameString, MediaRange, Message, Method, Methods, StatusCode,
+        TokenString, Transport, Uri, Version,
     };
     use chrono::{TimeDelta, TimeZone, Utc};
     use std::net::{IpAddr, Ipv4Addr};
@@ -223,7 +223,13 @@ Content-Length: 0\r\n\
                     Header::Accept(accept_header) => {
                         assert_eq!(accept_header.ranges().len(), 1);
                         let range = accept_header.ranges().first().unwrap();
-                        assert_eq!(range.media_range(), &MediaRange::new("application", "sdp"));
+                        assert_eq!(
+                            range.media_range(),
+                            &MediaRange::new(
+                                TokenString::new("application"),
+                                TokenString::new("sdp")
+                            )
+                        );
                         assert_eq!(range.parameters().len(), 0);
                     }
                     _ => panic!("Should be an Accept header!"),
@@ -393,7 +399,13 @@ Content-Length: 274\r\n\
                     Header::Accept(accept_header) => {
                         assert_eq!(accept_header.ranges().len(), 1);
                         let range = accept_header.ranges().first().unwrap();
-                        assert_eq!(range.media_range(), &MediaRange::new("application", "sdp"));
+                        assert_eq!(
+                            range.media_range(),
+                            &MediaRange::new(
+                                TokenString::new("application"),
+                                TokenString::new("sdp")
+                            )
+                        );
                         assert_eq!(range.parameters().len(), 0);
                     }
                     _ => panic!("Should be an Accept header!"),
@@ -432,7 +444,10 @@ Content-Length: 274\r\n\
                     Header::ContentType(content_type_header) => {
                         assert_eq!(
                             content_type_header.media_type().media_range(),
-                            &MediaRange::new("application", "sdp")
+                            &MediaRange::new(
+                                TokenString::new("application"),
+                                TokenString::new("sdp")
+                            )
                         );
                         assert_eq!(content_type_header.media_type().parameters().len(), 0);
                     }
@@ -810,7 +825,10 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
                     Header::ContentType(content_type_header) => {
                         assert_eq!(
                             content_type_header.media_type().media_range(),
-                            &MediaRange::new("multipart", "signed")
+                            &MediaRange::new(
+                                TokenString::new("multipart"),
+                                TokenString::new("signed")
+                            )
                         );
                         let params = content_type_header.media_type().parameters();
                         assert_eq!(params.len(), 3);
@@ -824,13 +842,13 @@ ghyHhHUujhJhjH77n8HHGTrfvbnj756tbB9HG4VQpfyF467GhIGfHfYT64VQpfyF467GhIGfHfYT6jH7
                         assert_eq!(micalg_param.key(), "micalg");
                         assert_eq!(
                             micalg_param.value(),
-                            &WrappedString::NotWrapped("sha1".to_string())
+                            &WrappedString::NotWrapped(TokenString::new("sha1"))
                         );
                         let boundary_param = params.last().unwrap();
                         assert_eq!(boundary_param.key(), "boundary");
                         assert_eq!(
                             boundary_param.value(),
-                            &WrappedString::NotWrapped("boundary42".to_string())
+                            &WrappedString::NotWrapped(TokenString::new("boundary42"))
                         );
                     }
                     _ => panic!("Should be an Accept header!"),

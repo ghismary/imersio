@@ -53,7 +53,7 @@ pub(crate) mod parser {
     use crate::common::accept_range::parser::accept_range;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AcceptHeader, Header};
+    use crate::{AcceptHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -67,7 +67,7 @@ pub(crate) mod parser {
             "Accept header",
             map(
                 tuple((
-                    tag_no_case("Accept"),
+                    map(tag_no_case("Accept"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list0(comma, accept_range))),
                 )),
@@ -90,7 +90,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        AcceptHeader, AcceptParameter, Header,
+        AcceptHeader, AcceptParameter, Header, TokenString,
     };
     use claims::assert_ok;
 
@@ -103,13 +103,18 @@ mod tests {
         valid_header("Accept: application/sdp", |header| {
             assert!(!header.ranges().is_empty());
             assert_eq!(header.ranges().len(), 1);
-            assert!(header
-                .ranges()
-                .contains(&MediaRange::new("application", "sdp")));
-            assert!(!header
-                .ranges()
-                .contains(&MediaRange::new("application", "x-private")));
-            assert!(!header.ranges().contains(&MediaRange::new("text", "html")));
+            assert!(header.ranges().contains(&MediaRange::new(
+                TokenString::new("application"),
+                TokenString::new("sdp")
+            )));
+            assert!(!header.ranges().contains(&MediaRange::new(
+                TokenString::new("application"),
+                TokenString::new("x-private")
+            )));
+            assert!(!header.ranges().contains(&MediaRange::new(
+                TokenString::new("text"),
+                TokenString::new("html")
+            )));
         });
     }
 
@@ -120,22 +125,33 @@ mod tests {
             |header| {
                 assert!(!header.ranges().is_empty());
                 assert_eq!(header.ranges().len(), 3);
-                assert!(header
-                    .ranges()
-                    .contains(&MediaRange::new("application", "sdp")));
-                assert!(header
-                    .ranges()
-                    .contains(&MediaRange::new("application", "x-private")));
-                assert!(header.ranges().contains(&MediaRange::new("text", "html")));
-                let accept_range = header.ranges().get(&MediaRange::new("application", "sdp"));
+                assert!(header.ranges().contains(&MediaRange::new(
+                    TokenString::new("application"),
+                    TokenString::new("sdp")
+                )));
+                assert!(header.ranges().contains(&MediaRange::new(
+                    TokenString::new("application"),
+                    TokenString::new("x-private")
+                )));
+                assert!(header.ranges().contains(&MediaRange::new(
+                    TokenString::new("text"),
+                    TokenString::new("html")
+                )));
+                let accept_range = header.ranges().get(&MediaRange::new(
+                    TokenString::new("application"),
+                    TokenString::new("sdp"),
+                ));
                 assert!(accept_range.is_some());
                 let accept_range = accept_range.unwrap();
                 assert_eq!(accept_range.parameters().len(), 1);
                 assert_eq!(
                     accept_range.parameters().first().unwrap(),
-                    &AcceptParameter::new("level", Some("1"))
+                    &AcceptParameter::new(TokenString::new("level"), Some(TokenString::new("1")))
                 );
-                let accept_range = header.ranges().get(&MediaRange::new("text", "html"));
+                let accept_range = header.ranges().get(&MediaRange::new(
+                    TokenString::new("text"),
+                    TokenString::new("html"),
+                ));
                 assert!(accept_range.is_some());
                 let accept_range = accept_range.unwrap();
                 assert!(accept_range.parameters().is_empty());
@@ -148,7 +164,10 @@ mod tests {
         valid_header("Accept: */*", |header| {
             assert!(!header.ranges().is_empty());
             assert_eq!(header.ranges().len(), 1);
-            assert!(header.ranges().contains(&MediaRange::new("*", "*")));
+            assert!(header.ranges().contains(&MediaRange::new(
+                TokenString::new("*"),
+                TokenString::new("*")
+            )));
         });
     }
 
@@ -157,7 +176,10 @@ mod tests {
         valid_header("Accept: text/*", |header| {
             assert!(!header.ranges().is_empty());
             assert_eq!(header.ranges().len(), 1);
-            assert!(header.ranges().contains(&MediaRange::new("text", "*")));
+            assert!(header.ranges().contains(&MediaRange::new(
+                TokenString::new("text"),
+                TokenString::new("*")
+            )));
         });
     }
 
@@ -166,10 +188,14 @@ mod tests {
         valid_header("Accept:", |header| {
             assert!(header.ranges().is_empty());
             assert_eq!(header.ranges().len(), 0);
-            assert!(!header
-                .ranges()
-                .contains(&MediaRange::new("application", "sdp")));
-            assert!(!header.ranges().contains(&MediaRange::new("text", "html")));
+            assert!(!header.ranges().contains(&MediaRange::new(
+                TokenString::new("application"),
+                TokenString::new("sdp")
+            )));
+            assert!(!header.ranges().contains(&MediaRange::new(
+                TokenString::new("text"),
+                TokenString::new("html")
+            )));
         });
     }
 
@@ -178,10 +204,14 @@ mod tests {
         valid_header("Accept:  ", |header| {
             assert!(header.ranges().is_empty());
             assert_eq!(header.ranges().len(), 0);
-            assert!(!header
-                .ranges()
-                .contains(&MediaRange::new("application", "sdp")));
-            assert!(!header.ranges().contains(&MediaRange::new("text", "html")));
+            assert!(!header.ranges().contains(&MediaRange::new(
+                TokenString::new("application"),
+                TokenString::new("sdp")
+            )));
+            assert!(!header.ranges().contains(&MediaRange::new(
+                TokenString::new("text"),
+                TokenString::new("html")
+            )));
         });
     }
 

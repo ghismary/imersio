@@ -4,7 +4,7 @@ use std::ops::Deref;
 
 use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
-use crate::{GenericParameter, Uri};
+use crate::{GenericParameter, TokenString, Uri};
 
 /// Representation of the list of error uris from an `ErrorInfoHeader`.
 ///
@@ -27,11 +27,11 @@ impl ErrorUris {
 #[derive(Clone, Debug, Eq)]
 pub struct ErrorUri {
     uri: Uri,
-    parameters: Vec<GenericParameter>,
+    parameters: Vec<GenericParameter<TokenString>>,
 }
 
 impl ErrorUri {
-    pub(crate) fn new(uri: Uri, parameters: Vec<GenericParameter>) -> Self {
+    pub(crate) fn new(uri: Uri, parameters: Vec<GenericParameter<TokenString>>) -> Self {
         ErrorUri { uri, parameters }
     }
 
@@ -41,7 +41,7 @@ impl ErrorUri {
     }
 
     /// Get a reference to the parameters contained in the `ErrorUri`.
-    pub fn parameters(&self) -> &Vec<GenericParameter> {
+    pub fn parameters(&self) -> &Vec<GenericParameter<TokenString>> {
         &self.parameters
     }
 }

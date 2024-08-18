@@ -2,21 +2,19 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::wrapped_string::WrappedString;
+use crate::TokenString;
 
 /// Representation of a media parameter.
 #[derive(Clone, Debug, Eq)]
 pub struct MediaParameter {
-    key: String,
-    value: WrappedString,
+    key: TokenString,
+    value: WrappedString<TokenString>,
 }
 
 impl MediaParameter {
     /// Create a `MediaParameter`.
-    pub fn new<S: Into<String>>(key: S, value: WrappedString) -> Self {
-        Self {
-            key: key.into(),
-            value,
-        }
+    pub fn new(key: TokenString, value: WrappedString<TokenString>) -> Self {
+        Self { key, value }
     }
 
     /// Get the key of the media parameter.
@@ -25,7 +23,7 @@ impl MediaParameter {
     }
 
     /// Get the value of the media parameter.
-    pub fn value(&self) -> &WrappedString {
+    pub fn value(&self) -> &WrappedString<TokenString> {
         &self.value
     }
 }

@@ -1,3 +1,4 @@
+use crate::{SipError, TokenString};
 use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
@@ -14,12 +15,11 @@ pub enum Transport {
     /// SCTP transport
     Sctp,
     /// Any other transport.
-    Other(String),
+    Other(TokenString),
 }
 
 impl Transport {
-    pub(crate) fn new<S: Into<String>>(transport: S) -> Self {
-        let transport: String = transport.into();
+    pub(crate) fn new(transport: TokenString) -> Self {
         match transport.to_ascii_lowercase().as_str() {
             "udp" => Self::Udp,
             "tcp" => Self::Tcp,
@@ -78,15 +78,17 @@ impl Hash for Transport {
     }
 }
 
-impl From<&str> for Transport {
-    fn from(value: &str) -> Self {
-        Transport::new(value)
+impl TryFrom<&str> for Transport {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(Transport::new(TokenString::try_from(value)?))
     }
 }
 
 pub(crate) mod parser {
     use crate::parser::{token, ParserResult};
-    use crate::Transport;
+    use crate::{TokenString, Transport};
     use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
 
     pub(crate) fn transport(input: &str) -> ParserResult<&str, Transport> {
@@ -94,10 +96,15 @@ pub(crate) mod parser {
             "transport",
             map(
                 alt((
-                    tag_no_case("UDP"),
-                    tag_no_case("TCP"),
-                    tag_no_case("TLS"),
-                    tag_no_case("SCTP"),
+                    map(
+                        alt((
+                            tag_no_case("UDP"),
+                            tag_no_case("TCP"),
+                            tag_no_case("TLS"),
+                            tag_no_case("SCTP"),
+                        )),
+                        TokenString::new,
+                    ),
                     other_transport,
                 )),
                 Transport::new,
@@ -106,7 +113,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn other_transport(input: &str) -> ParserResult<&str, &str> {
+    fn other_transport(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 }

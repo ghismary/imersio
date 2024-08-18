@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
-use crate::{GenericParameter, GenericParameters, NameAddress};
+use crate::{GenericParameter, GenericParameters, NameAddress, TokenString};
 
 /// Representation of a Reply-To header.
 ///
@@ -20,14 +20,14 @@ pub struct ReplyToHeader {
     #[partial_eq_ignore]
     header: GenericHeader,
     address: NameAddress,
-    parameters: GenericParameters,
+    parameters: GenericParameters<TokenString>,
 }
 
 impl ReplyToHeader {
     pub(crate) fn new(
         header: GenericHeader,
         address: NameAddress,
-        parameters: Vec<GenericParameter>,
+        parameters: Vec<GenericParameter<TokenString>>,
     ) -> Self {
         Self {
             header,
@@ -42,7 +42,7 @@ impl ReplyToHeader {
     }
 
     /// Get a reference to the parameters from the Reply-To header.
-    pub fn parameters(&self) -> &GenericParameters {
+    pub fn parameters(&self) -> &GenericParameters<TokenString> {
         &self.parameters
     }
 }
@@ -71,7 +71,7 @@ pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, semi, ParserResult};
-    use crate::{GenericParameter, Header, NameAddress, ReplyToHeader};
+    use crate::{GenericParameter, Header, NameAddress, ReplyToHeader, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -82,11 +82,13 @@ pub(crate) mod parser {
     };
 
     #[inline]
-    fn rplyto_param(input: &str) -> ParserResult<&str, GenericParameter> {
+    fn rplyto_param(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
         generic_param(input)
     }
 
-    fn rplyto_spec(input: &str) -> ParserResult<&str, (NameAddress, Vec<GenericParameter>)> {
+    fn rplyto_spec(
+        input: &str,
+    ) -> ParserResult<&str, (NameAddress, Vec<GenericParameter<TokenString>>)> {
         context(
             "rplyto_spec",
             pair(
@@ -100,7 +102,11 @@ pub(crate) mod parser {
         context(
             "Reply-To header",
             map(
-                tuple((tag_no_case("Reply-To"), hcolon, cut(consumed(rplyto_spec)))),
+                tuple((
+                    map(tag_no_case("Reply-To"), TokenString::new),
+                    hcolon,
+                    cut(consumed(rplyto_spec)),
+                )),
                 |(name, separator, (value, (address, parameters)))| {
                     Header::ReplyTo(ReplyToHeader::new(
                         GenericHeader::new(name, separator, value),

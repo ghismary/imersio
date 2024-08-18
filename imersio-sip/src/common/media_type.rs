@@ -67,7 +67,7 @@ pub(crate) mod parser {
     use crate::common::media_range::parser::{m_subtype, m_type};
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{equal, quoted_string, semi, slash, token, ParserResult};
-    use crate::{MediaParameter, MediaRange, MediaType};
+    use crate::{MediaParameter, MediaRange, MediaType, TokenString};
     use nom::{
         branch::alt,
         combinator::map,
@@ -77,17 +77,19 @@ pub(crate) mod parser {
     };
 
     #[inline]
-    fn m_attribute(input: &str) -> ParserResult<&str, &str> {
+    fn m_attribute(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 
-    fn m_value(input: &str) -> ParserResult<&str, WrappedString> {
+    #[inline]
+    fn m_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         context(
             "m_value",
             alt((map(token, WrappedString::new_not_wrapped), quoted_string)),
         )(input)
     }
 
+    #[inline]
     fn m_parameter(input: &str) -> ParserResult<&str, MediaParameter> {
         context(
             "m_parameter",

@@ -56,7 +56,7 @@ pub(crate) mod parser {
     use crate::common::server_value::parser::server_val;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, lws, ParserResult};
-    use crate::{Header, UserAgentHeader};
+    use crate::{Header, TokenString, UserAgentHeader};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -70,7 +70,7 @@ pub(crate) mod parser {
             "User-Agent header",
             map(
                 tuple((
-                    tag_no_case("User-Agent"),
+                    map(tag_no_case("User-Agent"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(lws, server_val))),
                 )),
@@ -92,7 +92,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        Header, Product, ServerValue, UserAgentHeader,
+        Header, Product, ServerValue, TokenString, UserAgentHeader,
     };
     use claims::assert_ok;
 
@@ -106,7 +106,7 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("Softphone", None))
+                &ServerValue::Product(Product::new(TokenString::new("Softphone"), None))
             );
         });
     }
@@ -117,7 +117,10 @@ mod tests {
             assert_eq!(header.values().len(), 1);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("Softphone", Some("Beta1.5")))
+                &ServerValue::Product(Product::new(
+                    TokenString::new("Softphone"),
+                    Some(TokenString::new("Beta1.5"))
+                ))
             );
         });
     }
@@ -139,11 +142,14 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("Softphone", Some("Beta1.5")))
+                &ServerValue::Product(Product::new(
+                    TokenString::new("Softphone"),
+                    Some(TokenString::new("Beta1.5"))
+                ))
             );
             assert_eq!(
                 header.values().last().unwrap(),
-                &ServerValue::Product(Product::new("OtherProduct", None))
+                &ServerValue::Product(Product::new(TokenString::new("OtherProduct"), None))
             );
         });
     }
@@ -154,7 +160,7 @@ mod tests {
             assert_eq!(header.values().len(), 2);
             assert_eq!(
                 header.values().first().unwrap(),
-                &ServerValue::Product(Product::new("Softphone", None))
+                &ServerValue::Product(Product::new(TokenString::new("Softphone"), None))
             );
             assert_eq!(
                 header.values().last().unwrap(),

@@ -60,7 +60,7 @@ pub(crate) mod parser {
     use crate::common::content_encoding::parser::content_coding;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{ContentEncodingHeader, Header};
+    use crate::{ContentEncodingHeader, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::{tag, tag_no_case},
@@ -75,7 +75,10 @@ pub(crate) mod parser {
             "Content-Encoding header",
             map(
                 tuple((
-                    alt((tag_no_case("Content-Encoding"), tag("e"))),
+                    map(
+                        alt((tag_no_case("Content-Encoding"), tag("e"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(separated_list1(comma, content_coding))),
                 )),

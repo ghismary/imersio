@@ -1,24 +1,26 @@
 use derive_more::IsVariant;
 use std::{cmp::Ordering, hash::Hash};
 
-use crate::GenericParameter;
+use crate::common::wrapped_string::WrappedString;
+use crate::{GenericParameter, TokenString};
 
 /// Representation of a parameter for a contact contained in an `Accept` header.
 #[derive(Clone, Debug, Eq, IsVariant)]
 pub enum AcceptParameter {
     /// q parameter
-    Q(String),
+    Q(TokenString),
     /// Any other parameter
-    Other(GenericParameter),
+    Other(GenericParameter<TokenString>),
 }
 
 impl AcceptParameter {
-    pub(crate) fn new<S: Into<String>>(key: S, value: Option<S>) -> Self {
-        let key: String = key.into();
-        let value: Option<String> = value.map(Into::into);
+    pub(crate) fn new(key: TokenString, value: Option<TokenString>) -> Self {
         match (key.to_lowercase().as_str(), &value) {
-            ("q", Some(value)) => Self::Q(value.to_string()),
-            _ => Self::Other(GenericParameter::new(key, value)),
+            ("q", Some(value)) => Self::Q(value.clone()),
+            _ => Self::Other(GenericParameter::new(
+                key,
+                value.map(WrappedString::new_not_wrapped),
+            )),
         }
     }
 
@@ -95,16 +97,16 @@ impl Hash for AcceptParameter {
     }
 }
 
-impl From<GenericParameter> for AcceptParameter {
-    fn from(value: GenericParameter) -> Self {
-        Self::Other(GenericParameter::new(value.key(), value.value()))
+impl From<GenericParameter<TokenString>> for AcceptParameter {
+    fn from(value: GenericParameter<TokenString>) -> Self {
+        Self::Other(value)
     }
 }
 
 pub(crate) mod parser {
     use crate::common::generic_parameter::parser::generic_param;
     use crate::parser::{digit, equal, ParserResult};
-    use crate::AcceptParameter;
+    use crate::{AcceptParameter, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -114,25 +116,29 @@ pub(crate) mod parser {
         sequence::{pair, separated_pair},
     };
 
-    pub(crate) fn qvalue(input: &str) -> ParserResult<&str, &str> {
+    pub(crate) fn qvalue(input: &str) -> ParserResult<&str, TokenString> {
         context(
             "qvalue",
-            recognize(alt((
-                pair(
-                    tag("0"),
-                    opt(pair(tag("."), many_m_n(0, 3, recognize(digit)))),
-                ),
-                pair(tag("1"), opt(pair(tag("."), many_m_n(0, 3, tag("0"))))),
-            ))),
+            map(
+                recognize(alt((
+                    pair(
+                        tag("0"),
+                        opt(pair(tag("."), many_m_n(0, 3, recognize(digit)))),
+                    ),
+                    pair(tag("1"), opt(pair(tag("."), many_m_n(0, 3, tag("0"))))),
+                ))),
+                TokenString::new,
+            ),
         )(input)
     }
 
     fn q_param(input: &str) -> ParserResult<&str, AcceptParameter> {
         context(
             "q_param",
-            map(separated_pair(tag("q"), equal, qvalue), |(key, value)| {
-                AcceptParameter::new(key, Some(value))
-            }),
+            map(
+                separated_pair(map(tag("q"), TokenString::new), equal, qvalue),
+                |(key, value)| AcceptParameter::new(key, Some(value)),
+            ),
         )(input)
     }
 

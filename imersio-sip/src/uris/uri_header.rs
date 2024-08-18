@@ -1,35 +1,63 @@
 //! Parsing and generation of the headers of a SIP URI.
 
-use derive_more::Deref;
+use derive_more::{Deref, Display};
 use itertools::join;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
+use crate::parser::ESCAPED_CHARS;
 use crate::uris::uri_header::parser::is_hnv_unreserved;
-use crate::{parser::is_unreserved, utils::escape};
+use crate::{parser::is_unreserved, utils::escape, SipError};
+
+/// Representation of a string with limited characters for URI header names and values.
+#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+pub struct UriHeaderString(String);
+
+impl UriHeaderString {
+    pub(crate) fn new<S: Into<String>>(value: S) -> Self {
+        Self(value.into())
+    }
+}
+
+impl TryFrom<&str> for UriHeaderString {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        // Do not use the parser because of the escaped characters, instead check that each
+        // character of the given value can be escaped.
+        if value.chars().all(|c| {
+            let idx: Result<u8, _> = c.try_into();
+            match idx {
+                Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
+                Err(_) => false,
+            }
+        }) {
+            Ok(Self::new(value))
+        } else {
+            Err(SipError::InvalidUriHeaderString(value.to_string()))
+        }
+    }
+}
 
 /// Representation of a URI header list.
 #[derive(Clone, Debug, Eq)]
 pub struct UriHeader {
-    name: String,
-    value: String,
+    name: UriHeaderString,
+    value: UriHeaderString,
 }
 
 impl UriHeader {
-    pub(crate) fn new<S: Into<String>>(name: S, value: S) -> Self {
-        Self {
-            name: name.into(),
-            value: value.into(),
-        }
+    pub(crate) fn new(name: UriHeaderString, value: UriHeaderString) -> Self {
+        Self { name, value }
     }
 
-    /// Get the name of the header.
+    /// Get the name of the header as a string slice.
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// Get the value of the header.
+    /// Get the value of the header as a string slice.
     #[inline]
     pub fn value(&self) -> &str {
         &self.value
@@ -154,7 +182,7 @@ impl From<Vec<UriHeader>> for UriHeaders {
 
 pub(crate) mod parser {
     use crate::parser::{escaped, take1, unreserved, ParserResult};
-    use crate::{UriHeader, UriHeaders};
+    use crate::{UriHeader, UriHeaderString, UriHeaders};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -169,24 +197,27 @@ pub(crate) mod parser {
         "[]/?:+$".contains(c)
     }
 
+    #[inline]
     fn hnv_unreserved(input: &str) -> ParserResult<&str, char> {
         verify(take1, |c| is_hnv_unreserved(*c))(input)
     }
 
-    fn hname(input: &str) -> ParserResult<&str, String> {
+    #[inline]
+    fn hname(input: &str) -> ParserResult<&str, UriHeaderString> {
         context(
             "hname",
             map(many1(alt((hnv_unreserved, unreserved, escaped))), |name| {
-                name.iter().collect::<String>()
+                UriHeaderString::new(name.iter().collect::<String>())
             }),
         )(input)
     }
 
-    fn hvalue(input: &str) -> ParserResult<&str, String> {
+    #[inline]
+    fn hvalue(input: &str) -> ParserResult<&str, UriHeaderString> {
         context(
             "hvalue",
             map(many0(alt((hnv_unreserved, unreserved, escaped))), |value| {
-                value.iter().collect::<String>()
+                UriHeaderString::new(value.iter().collect::<String>())
             }),
         )(input)
     }

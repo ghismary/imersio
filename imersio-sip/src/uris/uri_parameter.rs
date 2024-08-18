@@ -1,27 +1,64 @@
 //! Parsing and generation of the parameters of a SIP URI.
 
-use derive_more::{Deref, IsVariant};
+use derive_more::{Deref, Display, IsVariant};
 use itertools::join;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
+use crate::parser::ESCAPED_CHARS;
 use crate::uris::host::parser::host;
 use crate::uris::uri_parameter::parser::is_param_unreserved;
 use crate::{
-    parser::is_unreserved, utils::escape, GenericParameter, Host, Method, SipError, Transport,
-    UserType,
+    parser::is_unreserved, utils::escape, GenericParameter, Host, Method, SipError, TokenString,
+    Transport, UserType,
 };
+
+/// Representation of a URI user value accepting only the valid characters.
+#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+pub struct UriParameterString(String);
+
+impl UriParameterString {
+    pub(crate) fn new<S: Into<String>>(value: S) -> Self {
+        Self(value.into())
+    }
+}
+
+impl AsRef<str> for UriParameterString {
+    fn as_ref(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl TryFrom<&str> for UriParameterString {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        // Do not use the parser because of the escaped characters, instead check that each
+        // character of the given value can be escaped.
+        if value.chars().all(|c| {
+            let idx: Result<u8, _> = c.try_into();
+            match idx {
+                Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
+                Err(_) => false,
+            }
+        }) {
+            Ok(Self::new(value))
+        } else {
+            Err(SipError::InvalidUriParameter(value.to_string()))
+        }
+    }
+}
 
 /// Representation of a SIP URI parameter.
 #[derive(Clone, Debug, Eq, IsVariant)]
 pub enum UriParameter {
     /// A `transport` parameter.
-    Transport(String),
+    Transport(TokenString),
     /// A `user` parameter.
-    User(String),
+    User(TokenString),
     /// A `method` parameter.
-    Method(String),
+    Method(TokenString),
     /// A `ttl` parameter.
     Ttl(String),
     /// A `maddr` parameter.
@@ -29,7 +66,7 @@ pub enum UriParameter {
     /// A `lr` parameter.
     Lr,
     /// Any other parameter.
-    Other(GenericParameter),
+    Other(GenericParameter<UriParameterString>),
 }
 
 impl UriParameter {
@@ -62,7 +99,7 @@ impl UriParameter {
     /// Get the value of the `transport` parameter if this is one.
     pub fn transport(&self) -> Option<Transport> {
         match self {
-            Self::Transport(value) => Some(value.as_str().into()),
+            Self::Transport(value) => Some(value.as_str().try_into().unwrap()),
             _ => None,
         }
     }
@@ -154,8 +191,8 @@ impl Hash for UriParameter {
     }
 }
 
-impl From<GenericParameter> for UriParameter {
-    fn from(value: GenericParameter) -> Self {
+impl From<GenericParameter<UriParameterString>> for UriParameter {
+    fn from(value: GenericParameter<UriParameterString>) -> Self {
         Self::Other(value)
     }
 }
@@ -228,9 +265,10 @@ impl TryFrom<Vec<UriParameter>> for UriParameters {
 }
 
 pub(crate) mod parser {
+    use crate::common::wrapped_string::WrappedString;
     use crate::parser::{escaped, take1, token, ttl, unreserved, ParserResult};
     use crate::uris::host::parser::host;
-    use crate::{GenericParameter, UriParameter, UriParameters};
+    use crate::{GenericParameter, UriParameter, UriParameterString, UriParameters};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -245,7 +283,7 @@ pub(crate) mod parser {
             "transport_param",
             map(
                 separated_pair(tag("transport"), tag("="), token),
-                |(_, value)| UriParameter::Transport(value.to_string()),
+                |(_, value)| UriParameter::Transport(value),
             ),
         )(input)
     }
@@ -255,7 +293,7 @@ pub(crate) mod parser {
             "user_param",
             map(
                 separated_pair(tag("user"), tag("="), token),
-                |(_, value)| UriParameter::User(value.to_string()),
+                |(_, value)| UriParameter::User(value),
             ),
         )(input)
     }
@@ -265,7 +303,7 @@ pub(crate) mod parser {
             "method_param",
             map(
                 separated_pair(tag("method"), tag("="), token),
-                |(_, value)| UriParameter::Method(value.to_string()),
+                |(_, value)| UriParameter::Method(value),
             ),
         )(input)
     }
@@ -307,17 +345,21 @@ pub(crate) mod parser {
         alt((param_unreserved, unreserved, escaped))(input)
     }
 
-    fn pname(input: &str) -> ParserResult<&str, String> {
+    fn pname(input: &str) -> ParserResult<&str, UriParameterString> {
         context(
             "pname",
-            map(many1(paramchar), |pname| pname.iter().collect::<String>()),
+            map(many1(paramchar), |pname| {
+                UriParameterString::new(pname.iter().collect::<String>())
+            }),
         )(input)
     }
 
-    fn pvalue(input: &str) -> ParserResult<&str, String> {
+    fn pvalue(input: &str) -> ParserResult<&str, UriParameterString> {
         context(
             "pvalue",
-            map(many1(paramchar), |pvalue| pvalue.iter().collect::<String>()),
+            map(many1(paramchar), |pvalue| {
+                UriParameterString::new(pvalue.iter().collect::<String>())
+            }),
         )(input)
     }
 
@@ -326,7 +368,12 @@ pub(crate) mod parser {
             "other_param",
             map(
                 pair(pname, opt(preceded(tag("="), pvalue))),
-                |(name, value)| UriParameter::Other(GenericParameter::new(name, value)),
+                |(name, value)| {
+                    UriParameter::Other(GenericParameter::new(
+                        name,
+                        value.map(WrappedString::new_not_wrapped),
+                    ))
+                },
             ),
         )(input)
     }

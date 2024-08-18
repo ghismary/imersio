@@ -49,7 +49,7 @@ pub(crate) mod parser {
     use crate::common::call_id::parser::callid;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, ParserResult};
-    use crate::{CallIdHeader, Header};
+    use crate::{CallIdHeader, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -63,7 +63,10 @@ pub(crate) mod parser {
             "Call-ID header",
             map(
                 tuple((
-                    alt((tag_no_case("Call-ID"), tag_no_case("i"))),
+                    map(
+                        alt((tag_no_case("Call-ID"), tag_no_case("i"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(callid)),
                 )),

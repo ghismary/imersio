@@ -52,7 +52,7 @@ pub(crate) mod parser {
     use crate::common::contact_parameter::parser::delta_seconds;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, ParserResult};
-    use crate::{ExpiresHeader, Header};
+    use crate::{ExpiresHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -64,7 +64,11 @@ pub(crate) mod parser {
         context(
             "Expires header",
             map(
-                tuple((tag_no_case("Expires"), hcolon, cut(consumed(delta_seconds)))),
+                tuple((
+                    map(tag_no_case("Expires"), TokenString::new),
+                    hcolon,
+                    cut(consumed(delta_seconds)),
+                )),
                 |(name, separator, (value, expires))| {
                     Header::Expires(ExpiresHeader::new(
                         GenericHeader::new(name, separator, value),

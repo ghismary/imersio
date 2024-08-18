@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::uris::host::parser::hostport;
-use crate::SipError;
+use crate::{SipError, TokenString};
 
 /// Representation of a warning agent contained in a Warning header.
 #[derive(Clone, Debug, Eq, IsVariant)]
@@ -12,7 +12,7 @@ pub enum WarnAgent {
     /// Host + port warning agent.
     HostPort(String),
     /// Pseudonym warning agent.
-    Pseudonym(String),
+    Pseudonym(TokenString),
 }
 
 impl WarnAgent {
@@ -85,7 +85,7 @@ impl TryFrom<&str> for WarnAgent {
 pub(crate) mod parser {
     use crate::parser::{token, ParserResult};
     use crate::uris::host::parser::hostport;
-    use crate::WarnAgent;
+    use crate::{TokenString, WarnAgent};
     use nom::combinator::consumed;
     use nom::{branch::alt, combinator::map, error::context};
 
@@ -96,13 +96,13 @@ pub(crate) mod parser {
                 map(consumed(hostport), |(hostport, (_, _))| {
                     WarnAgent::HostPort(hostport.to_string())
                 }),
-                map(pseudonym, |pseudo| WarnAgent::Pseudonym(pseudo.to_string())),
+                map(pseudonym, WarnAgent::Pseudonym),
             )),
         )(input)
     }
 
     #[inline]
-    fn pseudonym(input: &str) -> ParserResult<&str, &str> {
+    fn pseudonym(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 }

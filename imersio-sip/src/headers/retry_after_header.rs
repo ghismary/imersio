@@ -89,7 +89,7 @@ pub(crate) mod parser {
     use crate::common::retry_parameter::parser::retry_param;
     use crate::headers::GenericHeader;
     use crate::parser::{comment, hcolon, semi, ParserResult};
-    use crate::{Header, RetryAfterHeader};
+    use crate::{Header, RetryAfterHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::opt,
@@ -104,7 +104,7 @@ pub(crate) mod parser {
             "Retry-After header",
             map(
                 tuple((
-                    tag_no_case("Retry-After"),
+                    map(tag_no_case("Retry-After"), TokenString::new),
                     hcolon,
                     cut(consumed(tuple((
                         delta_seconds,

@@ -49,7 +49,7 @@ pub(crate) mod parser {
     use crate::common::content_language::parser::language_tag;
     use crate::headers::GenericHeader;
     use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{ContentLanguageHeader, Header};
+    use crate::{ContentLanguageHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
@@ -63,7 +63,7 @@ pub(crate) mod parser {
             "Content-Language header",
             map(
                 tuple((
-                    tag_no_case("Content-Language"),
+                    map(tag_no_case("Content-Language"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, language_tag))),
                 )),

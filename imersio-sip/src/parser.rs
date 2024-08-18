@@ -10,6 +10,7 @@ use nom::sequence::{delimited, pair, preceded, terminated, tuple};
 use nom::{IResult, InputTakeAtPosition};
 
 use crate::common::wrapped_string::WrappedString;
+use crate::TokenString;
 
 pub(crate) type ParserResult<T, U> = IResult<T, U, VerboseError<T>>;
 
@@ -249,7 +250,7 @@ fn ctext(input: &str) -> ParserResult<&str, &str> {
     )))(input)
 }
 
-pub(crate) fn quoted_string(input: &str) -> ParserResult<&str, WrappedString> {
+pub(crate) fn quoted_string(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
     context(
         "quoted_string",
         map(
@@ -307,11 +308,13 @@ pub(crate) fn utf8_nonascii(input: &str) -> ParserResult<&str, char> {
     verify(take1, |c| is_utf8nonascii(*c))(input)
 }
 
-pub(crate) fn token(input: &str) -> ParserResult<&str, &str> {
-    input.split_at_position1_complete(
-        |item| !(item.is_alphanumeric() || "-.!%*_+`'~".contains(item)),
-        ErrorKind::AlphaNumeric,
-    )
+pub(crate) fn token(input: &str) -> ParserResult<&str, TokenString> {
+    input
+        .split_at_position1_complete(
+            |item| !(item.is_alphanumeric() || "-.!%*_+`'~".contains(item)),
+            ErrorKind::AlphaNumeric,
+        )
+        .map(|(rest, token)| (rest, TokenString::new(token)))
 }
 
 pub(crate) fn word(input: &str) -> ParserResult<&str, &str> {

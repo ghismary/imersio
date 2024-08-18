@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
-use crate::SipError;
+use crate::{SipError, TokenString};
 
 /// Representation of the list of option tags in a `Proxy-Require`, `Require`, `Supported` or
 /// `Unsupported` header.
@@ -16,11 +16,11 @@ pub type OptionTags = ValueCollection<OptionTag>;
 /// `Unsupported` header.
 #[derive(Clone, Debug, Display, Eq)]
 #[display("{}", self.0.to_ascii_lowercase())]
-pub struct OptionTag(String);
+pub struct OptionTag(TokenString);
 
 impl OptionTag {
-    pub(crate) fn new<S: Into<String>>(tag: S) -> Self {
-        Self(tag.into())
+    pub(crate) fn new(tag: TokenString) -> Self {
+        Self(tag)
     }
 
     /// Get the value of the option tag.

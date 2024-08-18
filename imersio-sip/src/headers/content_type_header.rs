@@ -52,7 +52,7 @@ pub(crate) mod parser {
     use crate::common::media_type::parser::media_type;
     use crate::headers::GenericHeader;
     use crate::parser::{hcolon, ParserResult};
-    use crate::{ContentTypeHeader, Header};
+    use crate::{ContentTypeHeader, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -66,7 +66,10 @@ pub(crate) mod parser {
             "Content-Type header",
             map(
                 tuple((
-                    alt((tag_no_case("Content-Type"), tag_no_case("c"))),
+                    map(
+                        alt((tag_no_case("Content-Type"), tag_no_case("c"))),
+                        TokenString::new,
+                    ),
                     hcolon,
                     cut(consumed(media_type)),
                 )),
@@ -89,7 +92,7 @@ mod tests {
             tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
         },
-        ContentTypeHeader, Header, MediaParameter, MediaRange,
+        ContentTypeHeader, Header, MediaParameter, MediaRange, TokenString,
     };
     use claims::assert_ok;
 
@@ -102,7 +105,7 @@ mod tests {
         valid_header("Content-Type: application/sdp", |header| {
             assert_eq!(
                 header.media_type().media_range(),
-                &MediaRange::new("application", "sdp")
+                &MediaRange::new(TokenString::new("application"), TokenString::new("sdp"))
             );
         });
     }
@@ -111,11 +114,17 @@ mod tests {
     fn test_valid_content_type_header_with_parameters() {
         valid_header("c: text/html; charset=ISO-8859-4", |header| {
             let media_type = header.media_type();
-            assert_eq!(media_type.media_range(), &MediaRange::new("text", "html"));
+            assert_eq!(
+                media_type.media_range(),
+                &MediaRange::new(TokenString::new("text"), TokenString::new("html"))
+            );
             assert_eq!(media_type.parameters().len(), 1);
             assert_eq!(
                 media_type.parameters().first().unwrap(),
-                &MediaParameter::new("charset", WrappedString::new_not_wrapped("ISO-8859-4"))
+                &MediaParameter::new(
+                    TokenString::new("charset"),
+                    WrappedString::new_not_wrapped(TokenString::new("ISO-8859-4"))
+                )
             );
         });
     }

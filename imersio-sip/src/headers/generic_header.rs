@@ -1,18 +1,19 @@
 use std::cmp::Ordering;
 
 use crate::headers::HeaderAccessor;
+use crate::TokenString;
 
 #[derive(Clone, Debug, Eq)]
 pub struct GenericHeader {
-    name: String,
+    name: TokenString,
     separator: String,
     value: String,
 }
 
 impl GenericHeader {
-    pub(crate) fn new<S: Into<String>>(name: S, separator: S, value: S) -> Self {
+    pub(crate) fn new<S: Into<String>>(name: TokenString, separator: S, value: S) -> Self {
         Self {
-            name: name.into(),
+            name,
             separator: separator.into(),
             value: value.into(),
         }
@@ -79,7 +80,7 @@ pub(crate) mod parser {
     use crate::{
         headers::GenericHeader,
         parser::{hcolon, lws, text_utf8char, token, ParserResult},
-        Header,
+        Header, TokenString,
     };
     use nom::{
         branch::alt,
@@ -90,10 +91,11 @@ pub(crate) mod parser {
     };
 
     #[inline]
-    fn header_name(input: &str) -> ParserResult<&str, &str> {
+    fn header_name(input: &str) -> ParserResult<&str, TokenString> {
         token(input)
     }
 
+    #[inline]
     fn header_value(input: &str) -> ParserResult<&str, &str> {
         context(
             "header_value",

@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
 use crate::common::wrapped_string::WrappedString;
-use crate::MessageQop;
+use crate::{MessageQop, TokenString};
 
 /// Representation of the list of authentication infos from an
 /// `AuthenticationInfoHeader`.
@@ -16,15 +16,15 @@ pub type AuthenticationInfos = ValueCollection<AuthenticationInfo>;
 #[non_exhaustive]
 pub enum AuthenticationInfo {
     /// A `nextnonce` authentication info.
-    NextNonce(WrappedString),
+    NextNonce(WrappedString<TokenString>),
     /// A `qop` authentication info.
     Qop(MessageQop),
     /// A `rspauth` authentication info.
-    ResponseAuth(WrappedString),
+    ResponseAuth(WrappedString<TokenString>),
     /// A `cnonce` authentication info.
-    CNonce(WrappedString),
+    CNonce(WrappedString<TokenString>),
     /// A `nonce` authentication info.
-    NonceCount(WrappedString),
+    NonceCount(WrappedString<TokenString>),
 }
 
 impl AuthenticationInfo {
@@ -93,7 +93,8 @@ impl Hash for AuthenticationInfo {
 pub(crate) mod parser {
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult};
-    use crate::{AuthenticationInfo, MessageQop};
+    use crate::{AuthenticationInfo, MessageQop, TokenString};
+    use nom::combinator::recognize;
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -104,7 +105,7 @@ pub(crate) mod parser {
     };
 
     #[inline]
-    pub(crate) fn nonce_value(input: &str) -> ParserResult<&str, WrappedString> {
+    pub(crate) fn nonce_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         quoted_string(input)
     }
 
@@ -118,8 +119,12 @@ pub(crate) mod parser {
         )(input)
     }
 
-    pub(crate) fn qop_value(input: &str) -> ParserResult<&str, &str> {
-        alt((tag_no_case("auth-int"), tag_no_case("auth"), token))(input)
+    pub(crate) fn qop_value(input: &str) -> ParserResult<&str, TokenString> {
+        alt((
+            map(tag_no_case("auth-int"), TokenString::new),
+            map(tag_no_case("auth"), TokenString::new),
+            token,
+        ))(input)
     }
 
     pub(crate) fn message_qop(input: &str) -> ParserResult<&str, AuthenticationInfo> {
@@ -132,7 +137,7 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn response_digest(input: &str) -> ParserResult<&str, WrappedString> {
+    fn response_digest(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         map(delimited(ldquot, many0(lhex), rdquot), |digits| {
             WrappedString::new_quoted(
                 digits
@@ -155,7 +160,7 @@ pub(crate) mod parser {
     }
 
     #[inline]
-    fn cnonce_value(input: &str) -> ParserResult<&str, WrappedString> {
+    fn cnonce_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         nonce_value(input)
     }
 
@@ -169,15 +174,9 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn nc_value(input: &str) -> ParserResult<&str, WrappedString> {
-        map(count(lhex, 8), |digits| {
-            WrappedString::new_not_wrapped(
-                digits
-                    .into_iter()
-                    .map(Into::into)
-                    .collect::<Vec<String>>()
-                    .join(""),
-            )
+    fn nc_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
+        map(recognize(count(lhex, 8)), |digits| {
+            WrappedString::new_not_wrapped(TokenString::new(digits))
         })(input)
     }
 
