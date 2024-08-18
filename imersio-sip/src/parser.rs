@@ -324,8 +324,8 @@ pub(crate) fn word(input: &str) -> ParserResult<&str, &str> {
     )
 }
 
-pub(crate) fn ttl(input: &str) -> ParserResult<&str, &str> {
-    recognize(many_m_n(1, 3, digit))(input)
+pub(crate) fn ttl(input: &str) -> ParserResult<&str, u8> {
+    map_res(recognize(many_m_n(1, 3, digit)), |v| v.parse())(input)
 }
 
 pub(crate) fn pchar(input: &str) -> ParserResult<&str, char> {

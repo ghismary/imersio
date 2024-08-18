@@ -7,7 +7,6 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 use crate::parser::ESCAPED_CHARS;
-use crate::uris::host::parser::host;
 use crate::uris::uri_parameter::parser::is_param_unreserved;
 use crate::{
     parser::is_unreserved, utils::escape, GenericParameter, Host, Method, SipError, TokenString,
@@ -54,15 +53,15 @@ impl TryFrom<&str> for UriParameterString {
 #[derive(Clone, Debug, Eq, IsVariant)]
 pub enum UriParameter {
     /// A `transport` parameter.
-    Transport(TokenString),
+    Transport(Transport),
     /// A `user` parameter.
-    User(TokenString),
+    User(UserType),
     /// A `method` parameter.
     Method(TokenString),
     /// A `ttl` parameter.
-    Ttl(String),
+    Ttl(u8),
     /// A `maddr` parameter.
-    MAddr(String),
+    MAddr(Host),
     /// A `lr` parameter.
     Lr,
     /// Any other parameter.
@@ -70,7 +69,7 @@ pub enum UriParameter {
 }
 
 impl UriParameter {
-    /// Get the name of the parameter.
+    /// Get the name of the parameter as a string slice.
     pub fn name(&self) -> &str {
         match self {
             Self::Transport(_) => "transport",
@@ -83,31 +82,31 @@ impl UriParameter {
         }
     }
 
-    /// Get the value of the parameter.
-    pub fn value(&self) -> Option<&str> {
+    /// Get the value of the parameter as a string.
+    pub fn value(&self) -> Option<String> {
         match self {
-            Self::Transport(value) => Some(value),
-            Self::User(value) => Some(value),
-            Self::Method(value) => Some(value),
-            Self::Ttl(value) => Some(value),
-            Self::MAddr(value) => Some(value),
+            Self::Transport(value) => Some(value.value().to_string().to_ascii_lowercase()),
+            Self::User(value) => Some(value.value().to_string()),
+            Self::Method(value) => Some(value.to_string()),
+            Self::Ttl(value) => Some(format!("{value}")),
+            Self::MAddr(value) => Some(value.to_string()),
             Self::Lr => None,
-            Self::Other(value) => value.value(),
+            Self::Other(value) => value.value().map(Into::into),
         }
     }
 
     /// Get the value of the `transport` parameter if this is one.
-    pub fn transport(&self) -> Option<Transport> {
+    pub fn transport(&self) -> Option<&Transport> {
         match self {
-            Self::Transport(value) => Some(value.as_str().try_into().unwrap()),
+            Self::Transport(value) => Some(value),
             _ => None,
         }
     }
 
     /// Get the value of the `user` parameter if this is one.
-    pub fn user(&self) -> Option<UserType> {
+    pub fn user(&self) -> Option<&UserType> {
         match self {
-            Self::User(value) => Some(value.as_str().into()),
+            Self::User(value) => Some(value),
             _ => None,
         }
     }
@@ -123,15 +122,15 @@ impl UriParameter {
     /// Get the value of the `ttl` parameter if this is one.
     pub fn ttl(&self) -> Option<u8> {
         match self {
-            Self::Ttl(value) => value.parse().ok(),
+            Self::Ttl(value) => Some(*value),
             _ => None,
         }
     }
 
     /// Get the value of the `maddr` parameter if this one.
-    pub fn maddr(&self) -> Option<Host> {
+    pub fn maddr(&self) -> Option<&Host> {
         match self {
-            Self::MAddr(value) => host(value).ok().map(|(_, host)| host),
+            Self::MAddr(value) => Some(value),
             _ => None,
         }
     }
@@ -146,7 +145,7 @@ impl std::fmt::Display for UriParameter {
                 is_unreserved(b) || is_param_unreserved(b)
             }),
             if self.value().is_some() { "=" } else { "" },
-            escape(self.value().unwrap_or_default(), |b| {
+            escape(self.value().unwrap_or_default().as_str(), |b| {
                 is_unreserved(b) || is_param_unreserved(b)
             })
         )
@@ -268,7 +267,9 @@ pub(crate) mod parser {
     use crate::common::wrapped_string::WrappedString;
     use crate::parser::{escaped, take1, token, ttl, unreserved, ParserResult};
     use crate::uris::host::parser::host;
-    use crate::{GenericParameter, UriParameter, UriParameterString, UriParameters};
+    use crate::{
+        GenericParameter, Transport, UriParameter, UriParameterString, UriParameters, UserType,
+    };
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -283,7 +284,7 @@ pub(crate) mod parser {
             "transport_param",
             map(
                 separated_pair(tag("transport"), tag("="), token),
-                |(_, value)| UriParameter::Transport(value),
+                |(_, value)| UriParameter::Transport(Transport::new(value)),
             ),
         )(input)
     }
@@ -293,7 +294,7 @@ pub(crate) mod parser {
             "user_param",
             map(
                 separated_pair(tag("user"), tag("="), token),
-                |(_, value)| UriParameter::User(value),
+                |(_, value)| UriParameter::User(UserType::new(value)),
             ),
         )(input)
     }
@@ -312,7 +313,7 @@ pub(crate) mod parser {
         context(
             "ttl_param",
             map(separated_pair(tag("ttl"), tag("="), ttl), |(_, value)| {
-                UriParameter::Ttl(value.to_string())
+                UriParameter::Ttl(value)
             }),
         )(input)
     }
@@ -322,7 +323,7 @@ pub(crate) mod parser {
             "maddr_param",
             map(
                 separated_pair(tag("maddr"), tag("="), host),
-                |(_, value)| UriParameter::MAddr(value.to_string()),
+                |(_, value)| UriParameter::MAddr(value),
             ),
         )(input)
     }

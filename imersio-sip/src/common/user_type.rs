@@ -1,3 +1,4 @@
+use crate::{SipError, TokenString};
 use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
@@ -10,12 +11,11 @@ pub enum UserType {
     /// IP user.
     Ip,
     /// Any other user type.
-    Other(String),
+    Other(TokenString),
 }
 
 impl UserType {
-    pub(crate) fn new<S: Into<String>>(user_type: S) -> Self {
-        let user_type: String = user_type.into();
+    pub(crate) fn new(user_type: TokenString) -> Self {
         match user_type.to_ascii_lowercase().as_str() {
             "phone" => Self::Phone,
             "ip" => Self::Ip,
@@ -67,8 +67,10 @@ impl Hash for UserType {
     }
 }
 
-impl From<&str> for UserType {
-    fn from(value: &str) -> Self {
-        UserType::new(value)
+impl TryFrom<&str> for UserType {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(UserType::new(TokenString::try_from(value)?))
     }
 }

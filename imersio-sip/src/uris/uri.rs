@@ -96,7 +96,7 @@ impl Uri {
     }
 
     /// Get a parameter value of the URI given its name.
-    pub fn parameter(&self, name: &str) -> Option<&str> {
+    pub fn parameter(&self, name: &str) -> Option<String> {
         match self {
             Uri::Sip(uri) => uri.parameters().get(name).and_then(|p| p.value()),
             Uri::Absolute(_) => None,
@@ -232,7 +232,7 @@ mod test {
         );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
-        assert_eq!(uri.parameter("transport"), Some("tcp"));
+        assert_eq!(uri.parameter("transport"), Some("tcp".to_string()));
         assert!(uri.headers().is_empty());
         assert_eq!(
             uri.to_string(),
@@ -285,7 +285,7 @@ mod test {
         );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
-        assert_eq!(uri.parameter("user"), Some("phone"));
+        assert_eq!(uri.parameter("user"), Some("phone".to_string()));
         assert!(uri.headers().is_empty());
         assert_eq!(
             uri.to_string(),
@@ -353,7 +353,7 @@ mod test {
         );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
-        assert_eq!(uri.parameter("method"), Some("REGISTER"));
+        assert_eq!(uri.parameter("method"), Some("REGISTER".to_string()));
         assert_eq!(uri.headers().len(), 1);
         assert_eq!(uri.header("to"), Some("alice@atlanta.com"));
         assert_eq!(
@@ -425,7 +425,7 @@ mod test {
         );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
-        assert_eq!(uri.parameter("transport"), Some("tcp"));
+        assert_eq!(uri.parameter("transport"), Some("tcp".to_string()));
         assert!(uri.headers().is_empty());
         assert_eq!(
             uri.to_string(),
@@ -451,7 +451,7 @@ mod test {
         );
         assert!(uri.port().is_none());
         assert_eq!(uri.parameters().len(), 1);
-        assert_eq!(uri.parameter("method"), Some("REGISTER"));
+        assert_eq!(uri.parameter("method"), Some("REGISTER".to_string()));
         assert_eq!(uri.headers().len(), 1);
         assert_eq!(uri.header("to"), Some("alice@atlanta.com"));
         assert_eq!(
