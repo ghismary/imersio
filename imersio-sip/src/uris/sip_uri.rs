@@ -1,8 +1,8 @@
 //! Parsing and generation of a SIP URI.
 
 use crate::{
-    Host, IntoHost, IntoPort, IntoSpecificString, Method, PasswordString, SipError, Transport,
-    UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders, UriParameter,
+    Host, IntoHost, IntoPort, IntoSpecificString, IntoUriScheme, Method, PasswordString, SipError,
+    Transport, UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders, UriParameter,
     UriParameterString, UriParameters, UriScheme, UserInfo, UserString, UserType,
 };
 
@@ -107,7 +107,9 @@ pub struct SipUriBuilder {
 }
 
 impl SipUriBuilder {
-    pub fn scheme(&mut self, scheme: UriScheme) -> Result<&mut Self, SipError> {
+    pub fn try_scheme<S: Into<IntoUriScheme>>(&mut self, scheme: S) -> Result<&mut Self, SipError> {
+        let scheme = scheme.into();
+        let scheme = scheme.try_into()?;
         match scheme {
             UriScheme::Sip | UriScheme::Sips => {
                 self.scheme = scheme;
@@ -117,7 +119,7 @@ impl SipUriBuilder {
         }
     }
 
-    pub fn user<U: Into<IntoSpecificString<UserString>>>(
+    pub fn try_user<U: Into<IntoSpecificString<UserString>>>(
         &mut self,
         user: U,
     ) -> Result<&mut Self, SipError> {
@@ -126,7 +128,7 @@ impl SipUriBuilder {
         Ok(self)
     }
 
-    pub fn password<P: Into<IntoSpecificString<PasswordString>>>(
+    pub fn try_password<P: Into<IntoSpecificString<PasswordString>>>(
         &mut self,
         password: P,
     ) -> Result<&mut Self, SipError> {
@@ -135,7 +137,7 @@ impl SipUriBuilder {
         Ok(self)
     }
 
-    pub fn host<H: Into<IntoHost>>(&mut self, host: H) -> Result<&mut Self, SipError> {
+    pub fn try_host<H: Into<IntoHost>>(&mut self, host: H) -> Result<&mut Self, SipError> {
         let host = host.into();
         self.host = host.try_into()?;
         Ok(self)
@@ -168,14 +170,17 @@ impl SipUriBuilder {
         self
     }
 
-    pub fn maddr_parameter<H: Into<IntoHost>>(&mut self, maddr: H) -> Result<&mut Self, SipError> {
+    pub fn try_maddr_parameter<H: Into<IntoHost>>(
+        &mut self,
+        maddr: H,
+    ) -> Result<&mut Self, SipError> {
         let maddr = maddr.into();
         self.parameters
             .add_parameter(UriParameter::MAddr(maddr.try_into()?));
         Ok(self)
     }
 
-    pub fn parameter<P: Into<IntoSpecificString<UriParameterString>>>(
+    pub fn try_parameter<P: Into<IntoSpecificString<UriParameterString>>>(
         &mut self,
         name: P,
         value: Option<P>,
@@ -206,7 +211,7 @@ impl SipUriBuilder {
         self
     }
 
-    pub fn header<
+    pub fn try_header<
         N: Into<IntoSpecificString<UriHeaderNameString>>,
         V: Into<IntoSpecificString<UriHeaderValueString>>,
     >(
@@ -309,6 +314,7 @@ mod tests {
         assert_eq!(uri.userinfo(), None);
         assert_eq!(uri.host(), &Host::Name(HostnameString::new("localhost")));
         assert_eq!(uri.port(), None);
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 0);
         assert_eq!(uri.to_string(), "sip:localhost");
     }
@@ -316,7 +322,7 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_hostname_builder() {
         let uri = SipUri::builder()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
             .port(5060)
             .build();
@@ -324,6 +330,7 @@ mod tests {
         assert_eq!(uri.userinfo(), None);
         assert_eq!(uri.host(), &Host::Name(HostnameString::new("atlanta.com")));
         assert_eq!(uri.port(), Some(5060));
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 0);
         assert_eq!(uri.to_string(), "sip:atlanta.com:5060");
     }
@@ -331,7 +338,7 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_ipv4_builder() {
         let uri = SipUri::builder()
-            .host(Ipv4Addr::new(192, 168, 0, 1))
+            .try_host(Ipv4Addr::new(192, 168, 0, 1))
             .unwrap()
             .port(Some(1234))
             .build();
@@ -342,6 +349,7 @@ mod tests {
             &Host::Ip(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))
         );
         assert_eq!(uri.port(), Some(1234));
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 0);
         assert_eq!(uri.to_string(), "sip:192.168.0.1:1234");
     }
@@ -349,7 +357,7 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_ipv6_builder() {
         let uri = SipUri::builder()
-            .host(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x8190, 0x3426))
+            .try_host(Ipv6Addr::new(0, 0, 0, 0, 0, 0xffff, 0x8190, 0x3426))
             .unwrap()
             .port(8012)
             .build();
@@ -362,6 +370,7 @@ mod tests {
             )))
         );
         assert_eq!(uri.port(), Some(8012));
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 0);
         assert_eq!(uri.to_string(), "sip:[::ffff:129.144.52.38]:8012");
     }
@@ -369,9 +378,9 @@ mod tests {
     #[test]
     fn test_valid_sips_uri_with_ip_builder() {
         let uri = SipUri::builder()
-            .scheme(UriScheme::Sips)
+            .try_scheme(UriScheme::Sips)
             .unwrap()
-            .host(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))
+            .try_host(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))
             .unwrap()
             .port(Some(1234))
             .build();
@@ -382,6 +391,7 @@ mod tests {
             &Host::Ip(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 1)))
         );
         assert_eq!(uri.port(), Some(1234));
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 0);
         assert_eq!(uri.to_string(), "sips:192.168.0.1:1234");
     }
@@ -389,9 +399,9 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_user_builder() {
         let uri = SipUri::builder()
-            .user("alice")
+            .try_user("alice")
             .unwrap()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
             .port(None)
             .build();
@@ -401,6 +411,7 @@ mod tests {
         assert_eq!(uri.userinfo().unwrap().password(), None);
         assert_eq!(uri.host(), &Host::Name(HostnameString::new("atlanta.com")));
         assert_eq!(uri.port(), None);
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 0);
         assert_eq!(uri.to_string(), "sip:alice@atlanta.com");
     }
@@ -408,11 +419,11 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_user_and_password_builder() {
         let uri = SipUri::builder()
-            .user("alice")
+            .try_user("alice")
             .unwrap()
-            .password("secret word")
+            .try_password("secret word")
             .unwrap()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
             .build();
         assert_eq!(uri.scheme(), &UriScheme::Sip);
@@ -421,6 +432,7 @@ mod tests {
         assert_eq!(uri.userinfo().unwrap().password(), Some("secret word"));
         assert_eq!(uri.host(), &Host::Name(HostnameString::new("atlanta.com")));
         assert_eq!(uri.port(), None);
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 0);
         assert_eq!(uri.to_string(), "sip:alice:secret%20word@atlanta.com");
     }
@@ -428,13 +440,13 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_headers_builder() {
         let uri = SipUri::builder()
-            .user("alice")
+            .try_user("alice")
             .unwrap()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
-            .header("subject", "project")
+            .try_header("subject", "project")
             .unwrap()
-            .header("priority", "urgent")
+            .try_header("priority", "urgent")
             .unwrap()
             .build();
         assert_eq!(uri.scheme(), &UriScheme::Sip);
@@ -443,6 +455,7 @@ mod tests {
         assert_eq!(uri.userinfo().unwrap().password(), None);
         assert_eq!(uri.host(), &Host::Name(HostnameString::new("atlanta.com")));
         assert_eq!(uri.port(), None);
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 2);
         let mut headers_it = uri.headers().iter();
         let header = headers_it.next().unwrap();
@@ -470,11 +483,11 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_header_with_empty_value_builder() {
         let uri = SipUri::builder()
-            .user("alice")
+            .try_user("alice")
             .unwrap()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
-            .header("subject", "")
+            .try_header("subject", "")
             .unwrap()
             .build();
         assert_eq!(uri.scheme(), &UriScheme::Sip);
@@ -483,6 +496,7 @@ mod tests {
         assert_eq!(uri.userinfo().unwrap().password(), None);
         assert_eq!(uri.host(), &Host::Name(HostnameString::new("atlanta.com")));
         assert_eq!(uri.port(), None);
+        assert_eq!(uri.parameters().len(), 0);
         assert_eq!(uri.headers().len(), 1);
         assert_eq!(
             uri.headers.iter().next().unwrap(),
@@ -497,15 +511,15 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_parameters_builder() {
         let uri = SipUri::builder()
-            .user("+33612345678")
+            .try_user("+33612345678")
             .unwrap()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
             .transport_parameter(Transport::Tcp)
             .user_parameter(UserType::Phone)
             .method_parameter(Method::Invite)
             .ttl_parameter(25)
-            .maddr_parameter(Ipv4Addr::new(192, 168, 0, 1))
+            .try_maddr_parameter(Ipv4Addr::new(192, 168, 0, 1))
             .unwrap()
             .build();
         assert_eq!(uri.scheme(), &UriScheme::Sip);
@@ -540,15 +554,15 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_custom_parameters_builder() {
         let uri = SipUri::builder()
-            .user("alice")
+            .try_user("alice")
             .unwrap()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
-            .parameter("myparam1", Some("foo"))
+            .try_parameter("myparam1", Some("foo"))
             .unwrap()
-            .parameter("myparam2", Some("bar"))
+            .try_parameter("myparam2", Some("bar"))
             .unwrap()
-            .parameter("transport", Some("TCP"))
+            .try_parameter("transport", Some("TCP"))
             .unwrap()
             .build();
         assert_eq!(uri.scheme(), &UriScheme::Sip);
@@ -588,12 +602,12 @@ mod tests {
     #[test]
     fn test_valid_sip_uri_with_duplicated_parameter_builder() {
         let uri = SipUri::builder()
-            .user("alice")
+            .try_user("alice")
             .unwrap()
-            .host("atlanta.com")
+            .try_host("atlanta.com")
             .unwrap()
             .user_parameter(UserType::Ip)
-            .parameter("user", Some("phone"))
+            .try_parameter("user", Some("phone"))
             .unwrap()
             .build();
         assert_eq!(uri.scheme(), &UriScheme::Sip);
@@ -616,37 +630,37 @@ mod tests {
         let scheme = UriSchemeString::try_from("http");
         assert_ok!(&scheme);
         if let Ok(scheme) = scheme {
-            assert_err!(SipUri::builder().scheme(UriScheme::Other(scheme)));
+            assert_err!(SipUri::builder().try_scheme(UriScheme::Other(scheme)));
         }
     }
 
     #[test]
     fn test_invalid_sip_uri_builder_invalid_hostname_with_trailing_dash() {
-        assert_err!(SipUri::builder().host("atlanta-.com"));
+        assert_err!(SipUri::builder().try_host("atlanta-.com"));
     }
 
     #[test]
     fn test_invalid_sip_uri_builder_invalid_hostname_with_utf8_char() {
-        assert_err!(SipUri::builder().host("électricité.fr"));
+        assert_err!(SipUri::builder().try_host("électricité.fr"));
     }
 
     #[test]
     fn test_invalid_sip_uri_builder_empty_hostname() {
-        assert_err!(SipUri::builder().host(""));
+        assert_err!(SipUri::builder().try_host(""));
     }
 
     #[test]
     fn test_invalid_sip_uri_builder_invalid_ip_addr() {
-        assert_err!(SipUri::builder().host("1928.68.1983.0"));
+        assert_err!(SipUri::builder().try_host("1928.68.1983.0"));
     }
 
     #[test]
     fn test_invalid_sip_uri_builder_empty_password() {
-        assert_err!(SipUri::builder().user(""));
+        assert_err!(SipUri::builder().try_user(""));
     }
 
     #[test]
     fn test_invalid_sip_uri_builder_with_empty_header_name() {
-        assert_err!(SipUri::builder().header("", ""));
+        assert_err!(SipUri::builder().try_header("", ""));
     }
 }

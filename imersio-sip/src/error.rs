@@ -59,6 +59,9 @@ pub enum SipError {
     /// Invalid URI header string.
     #[display("Invalid uri header string: `{_0}`")]
     InvalidUriHeaderString(String),
+    /// Invalid URI opaque part.
+    #[display("invalid uri opaque part: `{_0}`")]
+    InvalidUriOpaquePart(String),
     /// Invalid URI parameter.
     #[display("invalid uri parameter: `{_0}`")]
     InvalidUriParameter(String),

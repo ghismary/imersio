@@ -1,9 +1,47 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use crate::{
-    Host, HostnameString, PasswordString, SipError, UriHeaderNameString, UriHeaderValueString,
-    UriParameterString, UserString,
+    Host, HostnameString, OpaquePartString, PasswordString, SipError, UriHeaderNameString,
+    UriHeaderValueString, UriParameterString, UriScheme, UserString,
 };
+
+/// Helper enum to build `UriScheme` values.
+#[derive(Debug)]
+pub enum IntoUriScheme {
+    /// Input as a string.
+    String(String),
+    /// Input as a `UriScheme`.
+    UriScheme(UriScheme),
+}
+
+impl From<&str> for IntoUriScheme {
+    fn from(value: &str) -> Self {
+        IntoUriScheme::String(value.to_string())
+    }
+}
+
+impl From<String> for IntoUriScheme {
+    fn from(value: String) -> Self {
+        IntoUriScheme::String(value)
+    }
+}
+
+impl From<UriScheme> for IntoUriScheme {
+    fn from(value: UriScheme) -> Self {
+        IntoUriScheme::UriScheme(value)
+    }
+}
+
+impl TryFrom<IntoUriScheme> for UriScheme {
+    type Error = SipError;
+
+    fn try_from(value: IntoUriScheme) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoUriScheme::String(value) => UriScheme::try_from(value.as_str())?,
+            IntoUriScheme::UriScheme(value) => value,
+        })
+    }
+}
 
 /// Helper enum to build `Host` values.
 #[derive(Debug)]
@@ -185,6 +223,22 @@ impl TryFrom<IntoSpecificString<UriParameterString>> for UriParameterString {
     fn try_from(value: IntoSpecificString<UriParameterString>) -> Result<Self, Self::Error> {
         Ok(match value {
             IntoSpecificString::String(value) => UriParameterString::try_from(value.as_str())?,
+            IntoSpecificString::SpecificString(value) => value,
+        })
+    }
+}
+
+impl From<OpaquePartString> for IntoSpecificString<OpaquePartString> {
+    fn from(value: OpaquePartString) -> Self {
+        Self::SpecificString(value)
+    }
+}
+
+impl TryFrom<IntoSpecificString<OpaquePartString>> for OpaquePartString {
+    type Error = SipError;
+    fn try_from(value: IntoSpecificString<OpaquePartString>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoSpecificString::String(value) => OpaquePartString::try_from(value.as_str())?,
             IntoSpecificString::SpecificString(value) => value,
         })
     }

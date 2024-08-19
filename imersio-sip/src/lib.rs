@@ -13,7 +13,7 @@ mod parser;
 mod uris;
 mod utils;
 
-pub use crate::builder_helper::{IntoHost, IntoPort, IntoSpecificString};
+pub use crate::builder_helper::{IntoHost, IntoPort, IntoSpecificString, IntoUriScheme};
 pub use crate::common::{
     accept_encoding::{AcceptEncoding, AcceptEncodings},
     accept_language::{AcceptLanguage, AcceptLanguages},
@@ -90,7 +90,7 @@ pub use crate::headers::{
 };
 pub use crate::messages::{message::Message, request::Request, response::Response};
 pub use crate::uris::{
-    absolute_uri::AbsoluteUri,
+    absolute_uri::{AbsoluteUri, OpaquePartString},
     host::{Host, HostnameString},
     sip_uri::SipUri,
     uri::Uri,
