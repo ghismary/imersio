@@ -1,13 +1,14 @@
 //! Parsing and generation of the parameters of a SIP URI.
 
-use derive_more::{Deref, Display, IsVariant};
-use itertools::join;
+use derive_more::{Deref, DerefMut, Display, IsVariant};
+use itertools::{join, Itertools};
+use nom::error::convert_error;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 use crate::parser::ESCAPED_CHARS;
-use crate::uris::uri_parameter::parser::is_param_unreserved;
+use crate::uris::uri_parameter::parser::{is_param_unreserved, uri_parameter};
 use crate::{
     parser::is_unreserved, utils::escape, GenericParameter, Host, Method, SipError, Transport,
     UserType,
@@ -35,13 +36,15 @@ impl TryFrom<&str> for UriParameterString {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         // Do not use the parser because of the escaped characters, instead check that each
         // character of the given value can be escaped.
-        if value.chars().all(|c| {
-            let idx: Result<u8, _> = c.try_into();
-            match idx {
-                Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
-                Err(_) => false,
-            }
-        }) {
+        if !value.is_empty()
+            && value.chars().all(|c| {
+                let idx: Result<u8, _> = c.try_into();
+                match idx {
+                    Ok(idx) => ESCAPED_CHARS[idx as usize] != '\0',
+                    Err(_) => false,
+                }
+            })
+        {
             Ok(Self::new(value))
         } else {
             Err(SipError::InvalidUriParameter(value.to_string()))
@@ -196,16 +199,51 @@ impl From<GenericParameter<UriParameterString>> for UriParameter {
     }
 }
 
+impl TryFrom<&str> for UriParameter {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match uri_parameter(value) {
+            Ok((rest, parameter)) => {
+                if !rest.is_empty() {
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(parameter)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(SipError::InvalidUriParameter(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidUriParameter(format!(
+                "Incomplete uri parameter `{}`",
+                value
+            ))),
+        }
+    }
+}
+
 /// Representation of a list of URI parameters.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Default, Deref, Eq)]
+#[derive(Clone, Debug, Default, Deref, DerefMut, Eq)]
 pub struct UriParameters(Vec<UriParameter>);
 
 impl UriParameters {
     /// Get a URI parameter by its name.
     pub fn get(&self, name: &str) -> Option<&UriParameter> {
         self.iter().find(|p| p.name().eq_ignore_ascii_case(name))
+    }
+}
+
+impl UriParameters {
+    pub(crate) fn add_parameter(&mut self, parameter: UriParameter) {
+        let previous_parameter = self.iter().find_position(|p| {
+            p.name().to_ascii_lowercase() == parameter.name().to_ascii_lowercase()
+        });
+        if let Some((idx, _)) = previous_parameter {
+            self.remove(idx);
+        }
+        self.push(parameter);
     }
 }
 
@@ -380,7 +418,7 @@ pub(crate) mod parser {
         )(input)
     }
 
-    fn uri_parameter(input: &str) -> ParserResult<&str, UriParameter> {
+    pub(super) fn uri_parameter(input: &str) -> ParserResult<&str, UriParameter> {
         context(
             "uri_parameter",
             alt((

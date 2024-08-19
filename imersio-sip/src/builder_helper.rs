@@ -1,7 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use crate::{
-    Host, HostnameString, PasswordString, UriHeaderNameString, UriHeaderValueString, UserString,
+    Host, HostnameString, PasswordString, SipError, UriHeaderNameString, UriHeaderValueString,
+    UriParameterString, UserString,
 };
 
 /// Helper enum to build `Host` values.
@@ -53,110 +54,138 @@ impl From<HostnameString> for IntoHost {
     }
 }
 
-/// Helper enum to build `UserString` values.
+impl TryFrom<IntoHost> for Host {
+    type Error = SipError;
+
+    fn try_from(value: IntoHost) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoHost::String(value) => Host::try_from(value.as_str())?,
+            IntoHost::IpAddr(value) => Host::Ip(value),
+            IntoHost::HostnameString(value) => Host::Name(value),
+            IntoHost::Host(value) => value,
+        })
+    }
+}
+
+/// Helper struct to build u16 values for the port of a SIP URI.
 #[derive(Debug)]
-pub enum IntoUserString {
+pub struct IntoPort(Option<u16>);
+
+impl From<u16> for IntoPort {
+    fn from(value: u16) -> Self {
+        IntoPort(Some(value))
+    }
+}
+
+impl From<Option<u16>> for IntoPort {
+    fn from(value: Option<u16>) -> Self {
+        IntoPort(value)
+    }
+}
+
+impl From<IntoPort> for Option<u16> {
+    fn from(value: IntoPort) -> Self {
+        value.0
+    }
+}
+
+/// Helper enum to build specific string values such as `UserString`.
+#[derive(Debug)]
+pub enum IntoSpecificString<T> {
     /// Input as a string.
     String(String),
-    /// Input as a `UserString`.
-    UserString(UserString),
+    /// Input as a specific string.
+    SpecificString(T),
 }
 
-impl From<&str> for IntoUserString {
+impl<T> From<&str> for IntoSpecificString<T> {
     fn from(value: &str) -> Self {
-        IntoUserString::String(value.to_string())
+        Self::String(value.to_string())
     }
 }
 
-impl From<String> for IntoUserString {
+impl<T> From<String> for IntoSpecificString<T> {
     fn from(value: String) -> Self {
-        IntoUserString::String(value)
+        Self::String(value)
     }
 }
 
-impl From<UserString> for IntoUserString {
+impl From<UserString> for IntoSpecificString<UserString> {
     fn from(value: UserString) -> Self {
-        IntoUserString::UserString(value)
+        Self::SpecificString(value)
     }
 }
 
-/// Helper enum to build `PasswordString` values.
-#[derive(Debug)]
-pub enum IntoPasswordString {
-    /// Input as a string.
-    String(String),
-    /// Input as a `PasswordString`.
-    PasswordString(PasswordString),
-}
-
-impl From<&str> for IntoPasswordString {
-    fn from(value: &str) -> Self {
-        IntoPasswordString::String(value.to_string())
+impl TryFrom<IntoSpecificString<UserString>> for UserString {
+    type Error = SipError;
+    fn try_from(value: IntoSpecificString<UserString>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoSpecificString::String(value) => UserString::try_from(value.as_str())?,
+            IntoSpecificString::SpecificString(value) => value,
+        })
     }
 }
 
-impl From<String> for IntoPasswordString {
-    fn from(value: String) -> Self {
-        IntoPasswordString::String(value)
-    }
-}
-
-impl From<PasswordString> for IntoPasswordString {
+impl From<PasswordString> for IntoSpecificString<PasswordString> {
     fn from(value: PasswordString) -> Self {
-        IntoPasswordString::PasswordString(value)
+        Self::SpecificString(value)
     }
 }
 
-/// Helper enum to build `UriHeaderNameString` values.
-#[derive(Debug)]
-pub enum IntoUriHeaderNameString {
-    /// Input as a string.
-    String(String),
-    /// Input as a `UriHeaderString`.
-    UriHeaderNameString(UriHeaderNameString),
-}
-
-impl From<&str> for IntoUriHeaderNameString {
-    fn from(value: &str) -> Self {
-        IntoUriHeaderNameString::String(value.to_string())
+impl TryFrom<IntoSpecificString<PasswordString>> for PasswordString {
+    type Error = SipError;
+    fn try_from(value: IntoSpecificString<PasswordString>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoSpecificString::String(value) => PasswordString::try_from(value.as_str())?,
+            IntoSpecificString::SpecificString(value) => value,
+        })
     }
 }
 
-impl From<String> for IntoUriHeaderNameString {
-    fn from(value: String) -> Self {
-        IntoUriHeaderNameString::String(value)
-    }
-}
-
-impl From<UriHeaderNameString> for IntoUriHeaderNameString {
+impl From<UriHeaderNameString> for IntoSpecificString<UriHeaderNameString> {
     fn from(value: UriHeaderNameString) -> Self {
-        IntoUriHeaderNameString::UriHeaderNameString(value)
+        Self::SpecificString(value)
     }
 }
 
-/// Helper enum to build `UriHeaderValueString` values.
-#[derive(Debug)]
-pub enum IntoUriHeaderValueString {
-    /// Input as a string.
-    String(String),
-    /// Input as a `UriHeaderValueString`.
-    UriHeaderValueString(UriHeaderValueString),
-}
-
-impl From<&str> for IntoUriHeaderValueString {
-    fn from(value: &str) -> Self {
-        IntoUriHeaderValueString::String(value.to_string())
+impl TryFrom<IntoSpecificString<UriHeaderNameString>> for UriHeaderNameString {
+    type Error = SipError;
+    fn try_from(value: IntoSpecificString<UriHeaderNameString>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoSpecificString::String(value) => UriHeaderNameString::try_from(value.as_str())?,
+            IntoSpecificString::SpecificString(value) => value,
+        })
     }
 }
 
-impl From<String> for IntoUriHeaderValueString {
-    fn from(value: String) -> Self {
-        IntoUriHeaderValueString::String(value)
-    }
-}
-
-impl From<UriHeaderValueString> for IntoUriHeaderValueString {
+impl From<UriHeaderValueString> for IntoSpecificString<UriHeaderValueString> {
     fn from(value: UriHeaderValueString) -> Self {
-        IntoUriHeaderValueString::UriHeaderValueString(value)
+        Self::SpecificString(value)
+    }
+}
+
+impl TryFrom<IntoSpecificString<UriHeaderValueString>> for UriHeaderValueString {
+    type Error = SipError;
+    fn try_from(value: IntoSpecificString<UriHeaderValueString>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoSpecificString::String(value) => UriHeaderValueString::try_from(value.as_str())?,
+            IntoSpecificString::SpecificString(value) => value,
+        })
+    }
+}
+
+impl From<UriParameterString> for IntoSpecificString<UriParameterString> {
+    fn from(value: UriParameterString) -> Self {
+        Self::SpecificString(value)
+    }
+}
+
+impl TryFrom<IntoSpecificString<UriParameterString>> for UriParameterString {
+    type Error = SipError;
+    fn try_from(value: IntoSpecificString<UriParameterString>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoSpecificString::String(value) => UriParameterString::try_from(value.as_str())?,
+            IntoSpecificString::SpecificString(value) => value,
+        })
     }
 }

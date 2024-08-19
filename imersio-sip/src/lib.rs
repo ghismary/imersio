@@ -13,9 +13,7 @@ mod parser;
 mod uris;
 mod utils;
 
-pub use crate::builder_helper::{
-    IntoHost, IntoPasswordString, IntoUriHeaderNameString, IntoUriHeaderValueString, IntoUserString,
-};
+pub use crate::builder_helper::{IntoHost, IntoPort, IntoSpecificString};
 pub use crate::common::{
     accept_encoding::{AcceptEncoding, AcceptEncodings},
     accept_language::{AcceptLanguage, AcceptLanguages},
