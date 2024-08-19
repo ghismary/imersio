@@ -4,7 +4,7 @@ use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
-use crate::{Method, Methods};
+use crate::{IntoMethod, Method, Methods, SipError, TokenString};
 
 /// Representation of an Allow header.
 ///
@@ -37,6 +37,11 @@ impl AllowHeader {
     pub fn contains(&self, method: Method) -> bool {
         self.methods.iter().any(|m| m == &method)
     }
+
+    /// Get a `AllowHeader` builder.
+    pub fn builder() -> AllowHeaderBuilder {
+        AllowHeaderBuilder::default()
+    }
 }
 
 impl HeaderAccessor for AllowHeader {
@@ -50,6 +55,40 @@ impl HeaderAccessor for AllowHeader {
     }
     fn normalized_value(&self) -> String {
         self.methods.to_string()
+    }
+}
+
+/// Representation of a builder of `Allow` header.
+#[derive(Clone, Debug, Default)]
+pub struct AllowHeaderBuilder {
+    methods: Methods,
+}
+
+impl AllowHeaderBuilder {
+    /// Try to add a method.
+    pub fn try_method<M: Into<IntoMethod>>(&mut self, method: M) -> Result<&mut Self, SipError> {
+        let method = method.into();
+        let method = method.try_into()?;
+        self.methods.push(method);
+        Ok(self)
+    }
+
+    /// Clear the list of already added methods.
+    pub fn clear_methods(&mut self) -> &mut Self {
+        self.methods.clear();
+        self
+    }
+
+    /// Build the `AllowHeader`.
+    pub fn build(&self) -> AllowHeader {
+        AllowHeader {
+            header: GenericHeader::new(
+                TokenString::new("Allow"),
+                ": ".to_string(),
+                self.methods.to_string(),
+            ),
+            methods: Clone::clone(&self.methods),
+        }
     }
 }
 
@@ -93,7 +132,7 @@ mod tests {
         HeaderAccessor,
     };
     use crate::{AllowHeader, Header, Method};
-    use claims::assert_ok;
+    use claims::{assert_err, assert_ok};
 
     valid_header!(Allow, AllowHeader, "Allow");
     header_equality!(Allow, "Allow");
@@ -192,5 +231,39 @@ mod tests {
                 "Allow: INVITE, ACK, OPTIONS, CANCEL, BYE"
             );
         }
+    }
+
+    #[test]
+    fn test_valid_allow_header_without_methods_builder() {
+        let header = AllowHeader::builder().build();
+        assert_eq!(header.methods().len(), 0);
+        assert_eq!(header.to_string(), "Allow: ");
+        assert_eq!(header.to_normalized_string(), "Allow: ");
+        assert_eq!(header.to_compact_string(), "Allow: ");
+    }
+
+    #[test]
+    fn test_valid_allow_header_with_methods_builder() {
+        let header = AllowHeader::builder()
+            .try_method(Method::Invite)
+            .unwrap()
+            .try_method("cancel")
+            .unwrap()
+            .build();
+        assert_eq!(header.methods().len(), 2);
+        let mut methods_it = header.methods().iter();
+        let method = methods_it.next().unwrap();
+        assert_eq!(method, &Method::Invite);
+        let method = methods_it.next().unwrap();
+        assert_eq!(method, &Method::Cancel);
+        assert_eq!(methods_it.next(), None);
+        assert_eq!(header.to_string(), "Allow: INVITE, CANCEL");
+        assert_eq!(header.to_normalized_string(), "Allow: INVITE, CANCEL");
+        assert_eq!(header.to_compact_string(), "Allow: INVITE, CANCEL");
+    }
+
+    #[test]
+    fn test_invalid_allow_header_invalid_method_builder() {
+        assert_err!(AllowHeader::builder().try_method("In Vi Te"));
     }
 }

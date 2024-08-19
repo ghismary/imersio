@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use crate::{
-    Host, HostnameString, OpaquePartString, PasswordString, SipError, UriHeaderNameString,
+    Host, HostnameString, Method, OpaquePartString, PasswordString, SipError, UriHeaderNameString,
     UriHeaderValueString, UriParameterString, UriScheme, UserString,
 };
 
@@ -124,6 +124,44 @@ impl From<Option<u16>> for IntoPort {
 impl From<IntoPort> for Option<u16> {
     fn from(value: IntoPort) -> Self {
         value.0
+    }
+}
+
+/// Helper enum to build `Host` values.
+#[derive(Debug)]
+pub enum IntoMethod {
+    /// Input as a string.
+    String(String),
+    /// Input as a `Method`.
+    Method(Method),
+}
+
+impl From<&str> for IntoMethod {
+    fn from(value: &str) -> Self {
+        IntoMethod::String(value.to_string())
+    }
+}
+
+impl From<String> for IntoMethod {
+    fn from(value: String) -> Self {
+        IntoMethod::String(value)
+    }
+}
+
+impl From<Method> for IntoMethod {
+    fn from(value: Method) -> Self {
+        IntoMethod::Method(value)
+    }
+}
+
+impl TryFrom<IntoMethod> for Method {
+    type Error = SipError;
+
+    fn try_from(value: IntoMethod) -> Result<Self, Self::Error> {
+        Ok(match value {
+            IntoMethod::String(value) => Method::try_from(value.to_ascii_uppercase().as_str())?,
+            IntoMethod::Method(value) => value,
+        })
     }
 }
 
