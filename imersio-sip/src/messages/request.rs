@@ -3,7 +3,7 @@
 //! TODO
 
 use itertools::join;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::str::from_utf8;
 
 use crate::Method;
@@ -94,40 +94,39 @@ impl TryFrom<&str> for Request {
 }
 
 pub(crate) mod parser {
+    use nom::{
+        character::complete::crlf, combinator::map, error::context, multi::many0,
+        sequence::terminated, Parser,
+    };
+
     use super::*;
-    use crate::headers::header::parser::message_header;
-    use crate::uris::uri::parser::request_uri;
     use crate::{
         common::{method::parser::method, version::parser::sip_version},
+        headers::header::parser::message_header,
         parser::{sp, ParserResult},
-    };
-    use nom::{
-        character::complete::crlf,
-        combinator::map,
-        error::context,
-        multi::many0,
-        sequence::{terminated, tuple},
+        uris::uri::parser::request_uri,
     };
 
     fn request_line(input: &str) -> ParserResult<&str, (Method, Uri, Version)> {
         context(
             "request_line",
             map(
-                tuple((method, sp, request_uri, sp, sip_version)),
+                (method, sp, request_uri, sp, sip_version),
                 |(method, _, uri, _, version)| (method, uri, version),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn request(input: &str) -> ParserResult<&str, Request> {
         context(
             "request",
             map(
-                tuple((
+                (
                     terminated(request_line, crlf),
                     many0(terminated(message_header, crlf)),
                     crlf,
-                )),
+                ),
                 |((method, uri, version), headers, _)| Request {
                     method,
                     uri,
@@ -136,7 +135,8 @@ pub(crate) mod parser {
                     body: vec![],
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

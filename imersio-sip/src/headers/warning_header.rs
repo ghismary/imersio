@@ -1,6 +1,5 @@
 //! SIP Warning header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -13,12 +12,12 @@ use crate::{WarningValue, WarningValues};
 /// name, and warning text.
 ///
 /// The "warn-text" should be in a natural language that is most likely to be intelligible to the
-/// human user receiving the response. This  decision can be based on any available knowledge, such
+/// human user receiving the response. This decision can be based on any available knowledge, such
 /// as the location of the user, the Accept-Language field in a request, or the Content-Language
 /// field in a response.
 ///
 /// [[RFC3261, Section 20.43](https://datatracker.ietf.org/doc/html/rfc3261#section-20.43)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct WarningHeader {
     #[partial_eq_ignore]
@@ -55,27 +54,30 @@ impl HeaderAccessor for WarningHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::warning_value::parser::warning_value;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, TokenString, WarningHeader};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::warning_value::parser::warning_value,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        Header, TokenString, WarningHeader,
     };
 
     pub(crate) fn warning(input: &str) -> ParserResult<&str, Header> {
         context(
             "Warning header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Warning"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, warning_value))),
-                )),
+                ),
                 |(name, separator, (value, values))| {
                     Header::Warning(WarningHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -83,7 +85,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

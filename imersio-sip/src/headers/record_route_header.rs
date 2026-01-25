@@ -1,6 +1,5 @@
 //! SIP Record-Route header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -12,7 +11,7 @@ use crate::{Route, Routes};
 /// the dialog to be routed through the proxy.
 ///
 /// [[RFC3261, Section 20.30](https://datatracker.ietf.org/doc/html/rfc3261#section-20.30)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct RecordRouteHeader {
     #[partial_eq_ignore]
@@ -49,27 +48,30 @@ impl HeaderAccessor for RecordRouteHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::route::parser::route_spec;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, RecordRouteHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::route::parser::route_spec,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        Header, RecordRouteHeader, TokenString,
     };
 
     pub(crate) fn record_route(input: &str) -> ParserResult<&str, Header> {
         context(
             "Record-Route header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Record-Route"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, route_spec))),
-                )),
+                ),
                 |(name, separator, (value, routes))| {
                     Header::RecordRoute(RecordRouteHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -77,7 +79,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

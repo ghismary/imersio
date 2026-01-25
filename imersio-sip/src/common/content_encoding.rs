@@ -1,5 +1,4 @@
-use derive_more::Display;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -12,7 +11,7 @@ use crate::{SipError, TokenString};
 pub type ContentEncodings = ValueCollection<ContentEncoding>;
 
 /// Representation of an encoding in a `Content-Encoding` header.
-#[derive(Clone, Debug, Display, Eq)]
+#[derive(Clone, Debug, Eq, derive_more::Display)]
 #[display("{}", self.0.to_ascii_lowercase())]
 pub struct ContentEncoding(TokenString);
 
@@ -102,13 +101,16 @@ impl TryFrom<&str> for ContentEncoding {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{token, ParserResult};
-    use crate::{ContentEncoding, TokenString};
-    use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context};
+    use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context, Parser};
+
+    use crate::{
+        parser::{token, ParserResult},
+        ContentEncoding, TokenString,
+    };
 
     #[inline]
     pub(crate) fn content_coding(input: &str) -> ParserResult<&str, ContentEncoding> {
-        context("content_coding", map(token, ContentEncoding::new))(input)
+        context("content_coding", map(token, ContentEncoding::new)).parse(input)
     }
 
     pub(crate) fn codings(input: &str) -> ParserResult<&str, ContentEncoding> {
@@ -118,7 +120,8 @@ pub(crate) mod parser {
                 content_coding,
                 map(tag("*"), |v| ContentEncoding::new(TokenString::new(v))),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

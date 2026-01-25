@@ -1,6 +1,5 @@
 //! SIP Content-Language header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -9,7 +8,7 @@ use crate::{ContentLanguage, ContentLanguages};
 /// Representation of a Content-Language header.
 ///
 /// [[RFC3261, Section 20.13](https://datatracker.ietf.org/doc/html/rfc3261#section-20.13)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContentLanguageHeader {
     #[partial_eq_ignore]
@@ -46,27 +45,30 @@ impl HeaderAccessor for ContentLanguageHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::content_language::parser::language_tag;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{ContentLanguageHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::content_language::parser::language_tag,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        ContentLanguageHeader, Header, TokenString,
     };
 
     pub(crate) fn content_language(input: &str) -> ParserResult<&str, Header> {
         context(
             "Content-Language header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Content-Language"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, language_tag))),
-                )),
+                ),
                 |(name, separator, (value, languages))| {
                     Header::ContentLanguage(ContentLanguageHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -74,7 +76,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

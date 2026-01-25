@@ -1,6 +1,5 @@
 //! SIP Accept header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -13,7 +12,7 @@ use crate::{AcceptRange, AcceptRanges};
 /// present, the server SHOULD assume a default value of `application/sdp`.
 ///
 /// [[RFC3261, Section 20.1](https://datatracker.ietf.org/doc/html/rfc3261#section-20.1)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AcceptHeader {
     #[partial_eq_ignore]
@@ -50,27 +49,30 @@ impl HeaderAccessor for AcceptHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::accept_range::parser::accept_range;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AcceptHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list0,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::accept_range::parser::accept_range,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        AcceptHeader, Header, TokenString,
     };
 
     pub(crate) fn accept(input: &str) -> ParserResult<&str, Header> {
         context(
             "Accept header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Accept"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list0(comma, accept_range))),
-                )),
+                ),
                 |(name, separator, (value, ranges))| {
                     Header::Accept(AcceptHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -78,7 +80,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

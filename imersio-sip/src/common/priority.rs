@@ -78,9 +78,12 @@ impl TryFrom<&str> for Priority {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{token, ParserResult};
-    use crate::{Priority, TokenString};
-    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
+    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, Parser};
+
+    use crate::{
+        parser::{token, ParserResult},
+        Priority, TokenString,
+    };
 
     #[inline]
     fn other_priority(input: &str) -> ParserResult<&str, TokenString> {
@@ -100,6 +103,7 @@ pub(crate) mod parser {
                 )),
                 Priority::new,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

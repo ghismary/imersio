@@ -1,6 +1,5 @@
 //! SIP To header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -14,7 +13,7 @@ use crate::{NameAddress, ToParameter, ToParameters};
 /// parameter serves as a general mechanism for dialog identification.
 ///
 /// [[RFC3261, Section 20.39](https://datatracker.ietf.org/doc/html/rfc3261#section-20.39)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ToHeader {
     #[partial_eq_ignore]
@@ -46,7 +45,7 @@ impl ToHeader {
         &self.parameters
     }
 
-    /// Get the value of the `tag` parameter from the To header, if it has one.
+    /// Get the value of the `tag` parameter from the To header if it has one.
     pub fn tag(&self) -> Option<&str> {
         self.parameters
             .iter()
@@ -75,19 +74,25 @@ impl HeaderAccessor for ToHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact::parser::{addr_spec, name_addr};
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::common::wrapped_string::WrappedString;
-    use crate::headers::GenericHeader;
-    use crate::parser::{equal, hcolon, semi, token, ParserResult};
-    use crate::{GenericParameter, Header, NameAddress, ToHeader, ToParameter, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
-        sequence::{pair, preceded, separated_pair, tuple},
+        sequence::{pair, preceded, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        common::{
+            contact::parser::{addr_spec, name_addr},
+            generic_parameter::parser::generic_param,
+            wrapped_string::WrappedString,
+        },
+        headers::GenericHeader,
+        parser::{equal, hcolon, semi, token, ParserResult},
+        GenericParameter, Header, NameAddress, ToHeader, ToParameter, TokenString,
     };
 
     fn tag_param(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
@@ -99,11 +104,12 @@ pub(crate) mod parser {
                     GenericParameter::new(key, Some(WrappedString::new_not_wrapped(value)))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn to_param(input: &str) -> ParserResult<&str, ToParameter> {
-        context("to_param", map(alt((tag_param, generic_param)), Into::into))(input)
+        context("to_param", map(alt((tag_param, generic_param)), Into::into)).parse(input)
     }
 
     fn to_spec(input: &str) -> ParserResult<&str, (NameAddress, Vec<ToParameter>)> {
@@ -113,18 +119,19 @@ pub(crate) mod parser {
                 alt((map(addr_spec, |uri| NameAddress::new(uri, None)), name_addr)),
                 many0(preceded(semi, to_param)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn to(input: &str) -> ParserResult<&str, Header> {
         context(
             "To header",
             map(
-                tuple((
+                (
                     map(alt((tag_no_case("To"), tag_no_case("t"))), TokenString::new),
                     hcolon,
                     cut(consumed(to_spec)),
-                )),
+                ),
                 |(name, separator, (value, (address, parameters)))| {
                     Header::To(ToHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -133,7 +140,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

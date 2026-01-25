@@ -1,6 +1,5 @@
 //! SIP User-Agent header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -15,7 +14,7 @@ use crate::{ServerValue, ServerValues};
 /// Implementers SHOULD make the User-Agent header field a configurable option.
 ///
 /// [[RFC3261, Section 20.41](https://datatracker.ietf.org/doc/html/rfc3261#section-20.41)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct UserAgentHeader {
     #[partial_eq_ignore]
@@ -53,27 +52,30 @@ impl HeaderAccessor for UserAgentHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::server_value::parser::server_val;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, lws, ParserResult};
-    use crate::{Header, TokenString, UserAgentHeader};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::server_value::parser::server_val,
+        headers::GenericHeader,
+        parser::{hcolon, lws, ParserResult},
+        Header, TokenString, UserAgentHeader,
     };
 
     pub(crate) fn user_agent(input: &str) -> ParserResult<&str, Header> {
         context(
             "User-Agent header",
             map(
-                tuple((
+                (
                     map(tag_no_case("User-Agent"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(lws, server_val))),
-                )),
+                ),
                 |(name, separator, (value, values))| {
                     Header::UserAgent(UserAgentHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -81,7 +83,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

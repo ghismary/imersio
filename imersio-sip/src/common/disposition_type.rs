@@ -1,9 +1,8 @@
 use crate::TokenString;
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 
 /// Representation of a disposition type from a `Content-Disposition` header.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum DispositionType {
     /// The value `render` indicates that the body part should be displayed or
     /// otherwise rendered to the user.
@@ -59,7 +58,9 @@ impl PartialEq for DispositionType {
             | (Self::Session, Self::Session)
             | (Self::Icon, Self::Icon)
             | (Self::Alert, Self::Alert) => true,
-            (Self::Other(svalue), Self::Other(ovalue)) => svalue.eq_ignore_ascii_case(ovalue),
+            (Self::Other(self_value), Self::Other(other_value)) => {
+                self_value.eq_ignore_ascii_case(other_value)
+            }
             _ => false,
         }
     }
@@ -78,9 +79,12 @@ impl Ord for DispositionType {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{token, ParserResult};
-    use crate::{DispositionType, TokenString};
-    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map};
+    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, Parser};
+
+    use crate::{
+        parser::{token, ParserResult},
+        DispositionType, TokenString,
+    };
 
     #[inline]
     fn disp_extension_token(input: &str) -> ParserResult<&str, TokenString> {
@@ -97,6 +101,7 @@ pub(crate) mod parser {
                 disp_extension_token,
             )),
             DispositionType::new,
-        )(input)
+        )
+        .parse(input)
     }
 }

@@ -78,25 +78,25 @@ impl Hash for ErrorUri {
 }
 
 pub(crate) mod parser {
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::parser::{laquot, raquot, semi, ParserResult};
-    use crate::uris::uri::parser::request_uri;
-    use crate::ErrorUri;
-    use nom::{
-        combinator::map,
-        multi::many0,
-        sequence::{preceded, tuple},
+    use nom::{combinator::map, multi::many0, sequence::preceded, Parser};
+
+    use crate::{
+        common::generic_parameter::parser::generic_param,
+        parser::{laquot, raquot, semi, ParserResult},
+        uris::uri::parser::request_uri,
+        ErrorUri,
     };
 
     pub(crate) fn error_uri(input: &str) -> ParserResult<&str, ErrorUri> {
         map(
-            tuple((
+            (
                 laquot,
                 request_uri,
                 raquot,
                 many0(preceded(semi, generic_param)),
-            )),
+            ),
             |(_, uri, _, parameters)| ErrorUri::new(uri, parameters),
-        )(input)
+        )
+        .parse(input)
     }
 }

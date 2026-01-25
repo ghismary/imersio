@@ -1,6 +1,5 @@
 //! SIP Via header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -10,10 +9,10 @@ use crate::{Via, Vias};
 ///
 /// The Via header field indicates the path taken by the request so far and indicates the path that
 /// should be followed in routing responses. The branch ID parameter in the Via header field values
-/// serves as a transaction identifier, and is used by proxies to detect loops.
+/// serves as a transaction identifier and is used by proxies to detect loops.
 ///
 /// [[RFC3261, Section 20.42](https://datatracker.ietf.org/doc/html/rfc3261#section-20.42)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ViaHeader {
     #[partial_eq_ignore]
@@ -50,31 +49,34 @@ impl HeaderAccessor for ViaHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::via::parser::via_parm;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, TokenString, ViaHeader};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::via::parser::via_parm,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        Header, TokenString, ViaHeader,
     };
 
     pub(crate) fn via(input: &str) -> ParserResult<&str, Header> {
         context(
             "Via header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Via"), tag_no_case("v"))),
                         TokenString::new,
                     ),
                     hcolon,
                     cut(consumed(separated_list1(comma, via_parm))),
-                )),
+                ),
                 |(name, separator, (value, vias))| {
                     Header::Via(ViaHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -82,7 +84,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

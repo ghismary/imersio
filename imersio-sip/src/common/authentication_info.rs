@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -12,7 +11,7 @@ use crate::{MessageQop, TokenString};
 pub type AuthenticationInfos = ValueCollection<AuthenticationInfo>;
 
 /// Representation of an info from an `AuthenticationInfoHeader`.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 #[non_exhaustive]
 pub enum AuthenticationInfo {
     /// A `nextnonce` authentication info.
@@ -91,17 +90,20 @@ impl Hash for AuthenticationInfo {
 }
 
 pub(crate) mod parser {
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult};
-    use crate::{AuthenticationInfo, MessageQop, TokenString};
-    use nom::combinator::recognize;
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
-        combinator::{cut, map},
+        combinator::{cut, map, recognize},
         error::context,
         multi::{count, many0},
         sequence::{delimited, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        common::wrapped_string::WrappedString,
+        parser::{equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult},
+        AuthenticationInfo, MessageQop, TokenString,
     };
 
     #[inline]
@@ -116,7 +118,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("nextnonce"), equal, nonce_value),
                 |(_, value)| AuthenticationInfo::NextNonce(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn qop_value(input: &str) -> ParserResult<&str, TokenString> {
@@ -124,7 +127,8 @@ pub(crate) mod parser {
             map(tag_no_case("auth-int"), TokenString::new),
             map(tag_no_case("auth"), TokenString::new),
             token,
-        ))(input)
+        ))
+        .parse(input)
     }
 
     pub(crate) fn message_qop(input: &str) -> ParserResult<&str, AuthenticationInfo> {
@@ -134,7 +138,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("qop"), equal, cut(qop_value)),
                 |(_, value)| AuthenticationInfo::Qop(MessageQop::new(value)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn response_digest(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
@@ -146,7 +151,8 @@ pub(crate) mod parser {
                     .collect::<Vec<String>>()
                     .join(""),
             )
-        })(input)
+        })
+        .parse(input)
     }
 
     fn response_auth(input: &str) -> ParserResult<&str, AuthenticationInfo> {
@@ -156,7 +162,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("rspauth"), equal, response_digest),
                 |(_, value)| AuthenticationInfo::ResponseAuth(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -171,13 +178,15 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("cnonce"), equal, cut(cnonce_value)),
                 |(_, value)| AuthenticationInfo::CNonce(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn nc_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
         map(recognize(count(lhex, 8)), |digits| {
             WrappedString::new_not_wrapped(TokenString::new(digits))
-        })(input)
+        })
+        .parse(input)
     }
 
     pub(crate) fn nonce_count(input: &str) -> ParserResult<&str, AuthenticationInfo> {
@@ -187,10 +196,11 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("nc"), equal, cut(nc_value)),
                 |(_, value)| AuthenticationInfo::NonceCount(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn ainfo(input: &str) -> ParserResult<&str, AuthenticationInfo> {
-        alt((nextnonce, message_qop, response_auth, cnonce, nonce_count))(input)
+        alt((nextnonce, message_qop, response_auth, cnonce, nonce_count)).parse(input)
     }
 }

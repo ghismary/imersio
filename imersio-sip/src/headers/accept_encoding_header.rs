@@ -1,6 +1,5 @@
 //! SIP Accept-Encoding header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -8,11 +7,11 @@ use crate::{AcceptEncoding, AcceptEncodings};
 
 /// Representation of an Accept-Encoding header.
 ///
-/// The Accept-Encoding header field is similar to Accept, but restricts the
+/// The Accept-Encoding header field is similar to Accept but restricts the
 /// content-codings that are acceptable in the response.
 ///
 /// [[RFC3261, Section 20.2](https://datatracker.ietf.org/doc/html/rfc3261#section-20.2)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AcceptEncodingHeader {
     #[partial_eq_ignore]
@@ -49,27 +48,30 @@ impl HeaderAccessor for AcceptEncodingHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::accept_encoding::parser::encoding;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AcceptEncodingHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list0,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::accept_encoding::parser::encoding,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        AcceptEncodingHeader, Header, TokenString,
     };
 
     pub(crate) fn accept_encoding(input: &str) -> ParserResult<&str, Header> {
         context(
             "Accept-Encoding header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Accept-Encoding"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list0(comma, encoding))),
-                )),
+                ),
                 |(name, separator, (value, encodings))| {
                     Header::AcceptEncoding(AcceptEncodingHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -77,7 +79,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

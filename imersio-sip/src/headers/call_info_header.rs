@@ -58,27 +58,30 @@ impl PartialEq for CallInfoHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::call_info::parser::info;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{CallInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::call_info::parser::info,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        CallInfoHeader, Header, TokenString,
     };
 
     pub(crate) fn call_info(input: &str) -> ParserResult<&str, Header> {
         context(
             "Call-Info header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Call-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, info))),
-                )),
+                ),
                 |(name, separator, (value, infos))| {
                     Header::CallInfo(CallInfoHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -86,7 +89,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

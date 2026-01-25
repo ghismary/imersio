@@ -1,6 +1,5 @@
 //! SIP Authorization header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -11,7 +10,7 @@ use crate::Credentials;
 /// The Authorization header field contains authentication credentials of a UA.
 ///
 /// [[RFC3261, Section 20.7](https://datatracker.ietf.org/doc/html/rfc3261#section-20.7)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AuthorizationHeader {
     #[partial_eq_ignore]
@@ -48,26 +47,29 @@ impl HeaderAccessor for AuthorizationHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::credentials::parser::credentials;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, ParserResult};
-    use crate::{AuthorizationHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::credentials::parser::credentials,
+        headers::GenericHeader,
+        parser::{hcolon, ParserResult},
+        AuthorizationHeader, Header, TokenString,
     };
 
     pub(crate) fn authorization(input: &str) -> ParserResult<&str, Header> {
         context(
             "Authorization header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Authorization"), TokenString::new),
                     hcolon,
                     cut(consumed(credentials)),
-                )),
+                ),
                 |(name, separator, (value, credentials))| {
                     Header::Authorization(AuthorizationHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -75,7 +77,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use itertools::join;
 use std::hash::Hash;
 use std::ops::Deref;
@@ -12,7 +11,7 @@ static EMPTY_CONTACTS: Vec<Contact> = vec![];
 /// Representation of the list of contacts of a `Contact` header.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum Contacts {
     /// Any contacts.
     Any,
@@ -132,25 +131,28 @@ impl Hash for Contact {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact_parameter::parser::contact_params;
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{laquot, lws, quoted_string, raquot, semi, token, ParserResult};
-    use crate::uris::absolute_uri::parser::absolute_uri;
-    use crate::uris::sip_uri::parser::sip_uri;
-    use crate::{Contact, NameAddress, TokenString, Uri};
     use nom::{
         branch::alt,
         combinator::{map, opt, recognize},
         error::context,
         multi::many0,
         sequence::{delimited, pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::{contact_parameter::parser::contact_params, wrapped_string::WrappedString},
+        parser::{laquot, lws, quoted_string, raquot, semi, token, ParserResult},
+        uris::{absolute_uri::parser::absolute_uri, sip_uri::parser::sip_uri},
+        Contact, NameAddress, TokenString, Uri,
     };
 
     pub(crate) fn addr_spec(input: &str) -> ParserResult<&str, Uri> {
         context(
             "addr_spec",
             alt((sip_uri, map(absolute_uri, Uri::Absolute))),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn display_name(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
@@ -162,7 +164,8 @@ pub(crate) mod parser {
                     WrappedString::new_not_wrapped(TokenString::new(v.trim_end()))
                 }),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn name_addr(input: &str) -> ParserResult<&str, NameAddress> {
@@ -172,7 +175,8 @@ pub(crate) mod parser {
                 pair(opt(display_name), delimited(laquot, addr_spec, raquot)),
                 |(display_name, uri)| NameAddress::new(uri, display_name),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn contact_param(input: &str) -> ParserResult<&str, Contact> {
@@ -185,6 +189,7 @@ pub(crate) mod parser {
                 ),
                 |(address, params)| Contact::new(address, params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

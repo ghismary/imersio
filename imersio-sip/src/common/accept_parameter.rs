@@ -1,11 +1,10 @@
-use derive_more::IsVariant;
 use std::{cmp::Ordering, hash::Hash};
 
 use crate::common::wrapped_string::WrappedString;
 use crate::{GenericParameter, TokenString};
 
 /// Representation of a parameter for a contact contained in an `Accept` header.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum AcceptParameter {
     /// q parameter
     Q(TokenString),
@@ -104,9 +103,6 @@ impl From<GenericParameter<TokenString>> for AcceptParameter {
 }
 
 pub(crate) mod parser {
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::parser::{digit, equal, ParserResult};
-    use crate::{AcceptParameter, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -114,6 +110,13 @@ pub(crate) mod parser {
         error::context,
         multi::many_m_n,
         sequence::{pair, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        common::generic_parameter::parser::generic_param,
+        parser::{digit, equal, ParserResult},
+        AcceptParameter, TokenString,
     };
 
     pub(crate) fn qvalue(input: &str) -> ParserResult<&str, TokenString> {
@@ -129,7 +132,8 @@ pub(crate) mod parser {
                 ))),
                 TokenString::new,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn q_param(input: &str) -> ParserResult<&str, AcceptParameter> {
@@ -139,13 +143,15 @@ pub(crate) mod parser {
                 separated_pair(map(tag("q"), TokenString::new), equal, qvalue),
                 |(key, value)| AcceptParameter::new(key, Some(value)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn accept_param(input: &str) -> ParserResult<&str, AcceptParameter> {
         context(
             "accept_param",
             alt((q_param, map(generic_param, Into::into))),
-        )(input)
+        )
+        .parse(input)
     }
 }

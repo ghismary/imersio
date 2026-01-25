@@ -1,5 +1,4 @@
-use derive_more::Display;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -14,7 +13,7 @@ pub type OptionTags = ValueCollection<OptionTag>;
 
 /// Representation of an option tag contained in a `Proxy-Require`, `Require`, `Supported` or
 /// `Unsupported` header.
-#[derive(Clone, Debug, Display, Eq)]
+#[derive(Clone, Debug, Eq, derive_more::Display)]
 #[display("{}", self.0.to_ascii_lowercase())]
 pub struct OptionTag(TokenString);
 
@@ -109,12 +108,15 @@ impl TryFrom<&str> for OptionTag {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{token, ParserResult};
-    use crate::OptionTag;
-    use nom::{combinator::map, error::context};
+    use nom::{combinator::map, error::context, Parser};
+
+    use crate::{
+        parser::{token, ParserResult},
+        OptionTag,
+    };
 
     pub(crate) fn option_tag(input: &str) -> ParserResult<&str, OptionTag> {
-        context("option_tag", map(token, OptionTag::new))(input)
+        context("option_tag", map(token, OptionTag::new)).parse(input)
     }
 }
 

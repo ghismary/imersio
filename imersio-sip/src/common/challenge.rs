@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::ops::Deref;
 
 use crate::utils::compare_vectors;
@@ -8,8 +7,8 @@ use crate::MessageQops;
 use crate::Stale;
 use crate::{AuthParameter, AuthParameters};
 
-/// Representation of the challenge from an `ProxyAuthenticateHeader`.
-#[derive(Clone, Debug, Eq, IsVariant)]
+/// Representation of the challenge from a `ProxyAuthenticateHeader`.
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum Challenge {
     /// The Digest authentication scheme.
     ///
@@ -20,7 +19,7 @@ pub enum Challenge {
 }
 
 impl Challenge {
-    /// Tell whether Proxy-Authenticate header contains the given authorization parameter key.
+    /// Tell whether the Proxy-Authenticate header contains the given authorization parameter key.
     pub fn contains(&self, key: &str) -> bool {
         self.parameters().iter().any(|p| p.key() == key)
     }
@@ -228,7 +227,8 @@ pub(crate) mod parser {
         combinator::{consumed, cut, map, recognize, value},
         error::context,
         multi::{many0, many1, separated_list1},
-        sequence::{delimited, pair, preceded, separated_pair, tuple},
+        sequence::{delimited, pair, preceded, separated_pair},
+        Parser,
     };
 
     fn other_challenge(input: &str) -> ParserResult<&str, Challenge> {
@@ -238,25 +238,28 @@ pub(crate) mod parser {
                 separated_pair(auth_scheme, lws, separated_list1(comma, auth_param)),
                 |(scheme, auth_params)| Challenge::Other(scheme.to_string(), auth_params.into()),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn segment(input: &str) -> ParserResult<&str, &str> {
         context(
             "segment",
             recognize(pair(many0(pchar), many0(preceded(tag(";"), param)))),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn path_segments(input: &str) -> ParserResult<&str, &str> {
         context(
             "path_segments",
             recognize(pair(segment, many0(preceded(tag("/"), segment)))),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn abs_path(input: &str) -> ParserResult<&str, &str> {
-        context("abs_path", recognize(pair(tag("/"), path_segments)))(input)
+        context("abs_path", recognize(pair(tag("/"), path_segments))).parse(input)
     }
 
     fn uri(input: &str) -> ParserResult<&str, DomainUri> {
@@ -266,7 +269,8 @@ pub(crate) mod parser {
                 map(request_uri, DomainUri::Uri),
                 map(abs_path, |path| DomainUri::AbsPath(path.to_string())),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn domain_value(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -279,14 +283,16 @@ pub(crate) mod parser {
                 }),
                 rdquot,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn domain(input: &str) -> ParserResult<&str, AuthParameter> {
         map(
-            tuple((tag_no_case("domain"), equal, cut(domain_value))),
+            (tag_no_case("domain"), equal, cut(domain_value)),
             |(_, _, domain)| domain,
-        )(input)
+        )
+        .parse(input)
     }
 
     fn stale(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -306,7 +312,8 @@ pub(crate) mod parser {
                 ),
                 |(_, stale)| stale,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn qop_options(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -332,7 +339,8 @@ pub(crate) mod parser {
                     )
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn digest_cln(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -345,7 +353,8 @@ pub(crate) mod parser {
             algorithm,
             qop_options,
             auth_param,
-        ))(input)
+        ))
+        .parse(input)
     }
 
     pub(crate) fn challenge(input: &str) -> ParserResult<&str, Challenge> {
@@ -359,6 +368,7 @@ pub(crate) mod parser {
                 |(_, auth_params)| Challenge::Digest(auth_params.into()),
             ),
             other_challenge,
-        ))(input)
+        ))
+        .parse(input)
     }
 }

@@ -1,12 +1,10 @@
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use derive_more::IsVariant;
-
 use crate::{SipError, TokenString};
 
 /// Representation of an algorithm parameter.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum Algorithm {
     /// MD5 algorithm.
     Md5,

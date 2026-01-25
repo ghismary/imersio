@@ -1,7 +1,7 @@
 //! Parsing and generation of a URI and its parts, either a SIP URI or an absolute URI.
 
 use crate::{AbsoluteUri, Host, SipError, SipUri, UriHeaders, UriParameters, UriScheme};
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::convert::TryFrom;
 
 /// Representation of a URI, whether a SIP URI or an absolute URI.
@@ -174,14 +174,16 @@ impl PartialEq<Uri> for &Uri {
 }
 
 pub(crate) mod parser {
-    use crate::parser::ParserResult;
-    use crate::uris::absolute_uri::parser::absolute_uri;
-    use crate::uris::sip_uri::parser::sip_uri;
-    use crate::Uri;
-    use nom::{branch::alt, combinator::map, error::context};
+    use nom::{branch::alt, combinator::map, error::context, Parser};
+
+    use crate::{
+        parser::ParserResult,
+        uris::{absolute_uri::parser::absolute_uri, sip_uri::parser::sip_uri},
+        Uri,
+    };
 
     pub(crate) fn request_uri(input: &str) -> ParserResult<&str, Uri> {
-        context("uri", alt((sip_uri, map(absolute_uri, Uri::Absolute))))(input)
+        context("uri", alt((sip_uri, map(absolute_uri, Uri::Absolute)))).parse(input)
     }
 }
 

@@ -1,24 +1,23 @@
-use derive_more::Display;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
 use crate::SipError;
 
-/// Representation of the list of call IDs in a `In-Reply-To` header.
+/// Representation of the list of call IDs in an `In-Reply-To` header.
 ///
 /// This is usable as an iterator.
 pub type CallIds = ValueCollection<CallId>;
 
 /// Representation of a call id contained in a `Call-Id` or `In-Reply-To` header.
-#[derive(Clone, Debug, Display, Eq)]
+#[derive(Clone, Debug, Eq, derive_more::Display)]
 #[display("{}", self.0.to_ascii_lowercase())]
 pub struct CallId(String);
 
 impl CallId {
-    pub(crate) fn new<S: Into<String>>(callid: S) -> Self {
-        Self(callid.into())
+    pub(crate) fn new<S: Into<String>>(id: S) -> Self {
+        Self(id.into())
     }
 }
 
@@ -100,13 +99,17 @@ impl TryFrom<&str> for CallId {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{word, ParserResult};
-    use crate::CallId;
     use nom::{
         bytes::complete::tag,
         combinator::{map, opt, recognize},
         error::context,
         sequence::pair,
+        Parser,
+    };
+
+    use crate::{
+        parser::{word, ParserResult},
+        CallId,
     };
 
     pub(crate) fn callid(input: &str) -> ParserResult<&str, CallId> {
@@ -116,7 +119,8 @@ pub(crate) mod parser {
                 recognize(pair(word, opt(pair(tag("@"), word)))),
                 CallId::new,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

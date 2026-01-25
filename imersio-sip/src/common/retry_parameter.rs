@@ -1,11 +1,10 @@
-use derive_more::IsVariant;
 use std::{cmp::Ordering, hash::Hash};
 
 use crate::common::wrapped_string::WrappedString;
 use crate::{GenericParameter, TokenString};
 
 /// Representation of a parameter contained in a `Retry-After` header.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum RetryParameter {
     /// duration parameter
     Duration(String),
@@ -101,18 +100,22 @@ impl From<GenericParameter<TokenString>> for RetryParameter {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact_parameter::parser::delta_seconds;
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::common::retry_parameter::RetryParameter;
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{equal, ParserResult};
-    use crate::TokenString;
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{map, recognize},
         error::context,
         sequence::separated_pair,
+        Parser,
+    };
+
+    use crate::{
+        common::{
+            contact_parameter::parser::delta_seconds, generic_parameter::parser::generic_param,
+            retry_parameter::RetryParameter, wrapped_string::WrappedString,
+        },
+        parser::{equal, ParserResult},
+        TokenString,
     };
 
     pub(crate) fn retry_param(input: &str) -> ParserResult<&str, RetryParameter> {
@@ -130,6 +133,7 @@ pub(crate) mod parser {
                 ),
                 map(generic_param, Into::into),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 }

@@ -1,5 +1,5 @@
 use crate::{Request, Response, SipError};
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::str::from_utf8;
 
 /// Representation of a SIP message (either a request or a response).
@@ -73,26 +73,30 @@ impl TryFrom<&[u8]> for Message {
 }
 
 mod parser {
-    use crate::messages::request::parser::request;
-    use crate::messages::response::parser::response;
-    use crate::parser::ParserResult;
-    use crate::Message;
     use nom::{
         branch::alt,
         bytes::complete::{tag, take_until1},
         combinator::{map, recognize},
         sequence::pair,
+        Parser,
+    };
+
+    use crate::{
+        messages::{request::parser::request, response::parser::response},
+        parser::ParserResult,
+        Message,
     };
 
     pub(super) fn sip_message_raw(input: &[u8]) -> ParserResult<&[u8], &[u8]> {
-        recognize(pair(take_until1("\r\n\r\n"), tag("\r\n\r\n")))(input)
+        recognize(pair(take_until1("\r\n\r\n"), tag("\r\n\r\n"))).parse(input)
     }
 
     pub(super) fn sip_message(input: &str) -> ParserResult<&str, Message> {
         alt((
             map(request, Message::Request),
             map(response, Message::Response),
-        ))(input)
+        ))
+        .parse(input)
     }
 }
 

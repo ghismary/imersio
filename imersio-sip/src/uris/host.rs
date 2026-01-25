@@ -1,14 +1,14 @@
 //! Parsing and generation of the host part of a SIP uri.
 
-use crate::uris::host::parser::{host, hostname};
-use crate::SipError;
-use derive_more::{Deref, Display, IsVariant};
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::hash::Hash;
 use std::net::IpAddr;
 
+use crate::uris::host::parser::{host, hostname};
+use crate::SipError;
+
 /// Representation of a hostname value accepting only the valid characters.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct HostnameString(String);
 
 impl HostnameString {
@@ -41,7 +41,7 @@ impl TryFrom<&str> for HostnameString {
 }
 
 /// Representation of a host part of a SIP URI.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum Host {
     /// A hostname
     Name(HostnameString),
@@ -134,9 +134,6 @@ impl TryFrom<&str> for Host {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{digit, take1, ParserResult};
-    use crate::uris::host::HostnameString;
-    use crate::Host;
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -144,14 +141,21 @@ pub(crate) mod parser {
         error::context,
         multi::{many1, many_m_n},
         sequence::{delimited, pair, preceded},
+        Parser,
     };
     use std::net::IpAddr;
+
+    use crate::{
+        parser::{digit, take1, ParserResult},
+        uris::host::HostnameString,
+        Host,
+    };
 
     #[inline]
     fn is_valid_hostname(input: &str) -> bool {
         let mut labels: Vec<&str> = input.split('.').collect();
-        // A valid hostname may end by '.', if this is the case the last label
-        // will be empty, and so we remove before further processing.
+        // A valid hostname may end by '.'. If this is the case, the last label
+        // will be empty, and so we remove it before further processing.
         if labels.last().is_some_and(|label| label.is_empty()) {
             labels.pop();
         }
@@ -188,31 +192,34 @@ pub(crate) mod parser {
                 ),
                 HostnameString::new,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
     fn ipv4_char(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| c.is_ascii_digit() || ".".contains(*c))(input)
+        verify(take1, |c| c.is_ascii_digit() || ".".contains(*c)).parse(input)
     }
 
     pub(crate) fn ipv4_address(input: &str) -> ParserResult<&str, IpAddr> {
         context(
             "ipv4_address",
             map_res(recognize(many1(ipv4_char)), |ipv4| ipv4.parse()),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
     fn ipv6_char(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| c.is_ascii_hexdigit() || ":.".contains(*c))(input)
+        verify(take1, |c| c.is_ascii_hexdigit() || ":.".contains(*c)).parse(input)
     }
 
     pub(crate) fn ipv6_address(input: &str) -> ParserResult<&str, IpAddr> {
         context(
             "ipv6_address",
             map_res(recognize(many1(ipv6_char)), |ipv6| ipv6.parse()),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -220,7 +227,8 @@ pub(crate) mod parser {
         context(
             "ipv6_reference",
             delimited(tag("["), ipv6_address, tag("]")),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn host(input: &str) -> ParserResult<&str, Host> {
@@ -231,18 +239,20 @@ pub(crate) mod parser {
                 map(ipv4_address, Host::Ip),
                 map(ipv6_reference, Host::Ip),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn port(input: &str) -> ParserResult<&str, u16> {
         context(
             "port",
             map_res(recognize(many_m_n(1, 5, digit)), |digits| digits.parse()),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn hostport(input: &str) -> ParserResult<&str, (Host, Option<u16>)> {
-        context("hostport", pair(host, opt(preceded(tag(":"), port))))(input)
+        context("hostport", pair(host, opt(preceded(tag(":"), port)))).parse(input)
     }
 }
 

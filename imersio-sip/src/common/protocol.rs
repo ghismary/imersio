@@ -47,21 +47,23 @@ impl std::fmt::Display for Protocol {
 }
 
 pub(crate) mod parser {
-    use crate::common::transport::parser::transport;
-    use crate::parser::{slash, token, ParserResult};
-    use crate::{Protocol, TokenString};
-    use nom::{
-        branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, sequence::tuple,
+    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, Parser};
+
+    use crate::{
+        common::transport::parser::transport,
+        parser::{slash, token, ParserResult},
+        Protocol, TokenString,
     };
 
     pub(crate) fn sent_protocol(input: &str) -> ParserResult<&str, Protocol> {
         context(
             "sent_protocol",
             map(
-                tuple((protocol_name, slash, protocol_version, slash, transport)),
+                (protocol_name, slash, protocol_version, slash, transport),
                 |(name, _, version, _, transport)| Protocol::new(name, version, transport),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -71,7 +73,8 @@ pub(crate) mod parser {
                 TokenString::new(p.to_ascii_uppercase())
             }),
             token,
-        ))(input)
+        ))
+        .parse(input)
     }
 
     #[inline]

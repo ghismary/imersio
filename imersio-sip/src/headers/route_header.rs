@@ -1,6 +1,5 @@
 //! SIP Route header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -11,7 +10,7 @@ use crate::{Route, Routes};
 /// The Route header field is used to force routing for a request through the listed set of proxies.
 ///
 /// [[RFC3261, Section 20.34](https://datatracker.ietf.org/doc/html/rfc3261#section-20.34)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct RouteHeader {
     #[partial_eq_ignore]
@@ -48,27 +47,30 @@ impl HeaderAccessor for RouteHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::route::parser::route_spec;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, RouteHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::route::parser::route_spec,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        Header, RouteHeader, TokenString,
     };
 
     pub(crate) fn route(input: &str) -> ParserResult<&str, Header> {
         context(
             "Route header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Route"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, route_spec))),
-                )),
+                ),
                 |(name, separator, (value, routes))| {
                     Header::Route(RouteHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -76,7 +78,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

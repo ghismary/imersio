@@ -1,5 +1,4 @@
-use derive_more::IsVariant;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -7,7 +6,7 @@ use crate::uris::host::parser::hostport;
 use crate::{SipError, TokenString};
 
 /// Representation of a warning agent contained in a Warning header.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum WarnAgent {
     /// Host + port warning agent.
     HostPort(String),
@@ -83,11 +82,18 @@ impl TryFrom<&str> for WarnAgent {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{token, ParserResult};
-    use crate::uris::host::parser::hostport;
-    use crate::{TokenString, WarnAgent};
-    use nom::combinator::consumed;
-    use nom::{branch::alt, combinator::map, error::context};
+    use nom::{
+        branch::alt,
+        combinator::{consumed, map},
+        error::context,
+        Parser,
+    };
+
+    use crate::{
+        parser::{token, ParserResult},
+        uris::host::parser::hostport,
+        TokenString, WarnAgent,
+    };
 
     pub(crate) fn warn_agent(input: &str) -> ParserResult<&str, WarnAgent> {
         context(
@@ -98,7 +104,8 @@ pub(crate) mod parser {
                 }),
                 map(pseudonym, WarnAgent::Pseudonym),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]

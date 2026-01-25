@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::ops::Deref;
 
 use crate::utils::compare_vectors;
@@ -8,7 +7,7 @@ use crate::Uri;
 use crate::{AuthParameter, AuthParameters};
 
 /// Representation of the credentials from an `AuthorizationHeader` or a `ProxyAuthorizationHeader`.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum Credentials {
     /// The Digest authentication scheme.
     ///
@@ -45,7 +44,7 @@ impl Credentials {
         }
     }
 
-    /// Tell whether the credentials contain a `algorithm` value.
+    /// Tell whether the credentials contain an `algorithm` value.
     pub fn has_algorithm(&self) -> bool {
         match self {
             Self::Digest(params) => params
@@ -191,15 +190,19 @@ credentials! {
 }
 
 pub(crate) mod parser {
-    use crate::common::auth_parameter::parser::{auth_params, auth_scheme, digest_response};
-    use crate::parser::{lws, ParserResult};
-    use crate::Credentials;
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{cut, map},
         error::context,
         sequence::separated_pair,
+        Parser,
+    };
+
+    use crate::{
+        common::auth_parameter::parser::{auth_params, auth_scheme, digest_response},
+        parser::{lws, ParserResult},
+        Credentials,
     };
 
     fn digest_credentials(input: &str) -> ParserResult<&str, Credentials> {
@@ -209,7 +212,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("Digest"), lws, cut(digest_response)),
                 |(_, params)| Credentials::Digest(params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn other_response(input: &str) -> ParserResult<&str, Credentials> {
@@ -219,10 +223,11 @@ pub(crate) mod parser {
                 separated_pair(auth_scheme, lws, auth_params),
                 |(scheme, params)| Credentials::Other(scheme.to_string(), params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn credentials(input: &str) -> ParserResult<&str, Credentials> {
-        context("credentials", alt((digest_credentials, other_response)))(input)
+        context("credentials", alt((digest_credentials, other_response))).parse(input)
     }
 }

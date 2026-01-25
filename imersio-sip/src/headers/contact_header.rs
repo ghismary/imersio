@@ -1,6 +1,5 @@
 //! SIP Contact header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -14,7 +13,7 @@ use crate::Contacts;
 /// in HTTP.
 ///
 /// [[RFC3261, Section 20.10](https://datatracker.ietf.org/doc/html/rfc3261#section-20.10)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContactHeader {
     #[partial_eq_ignore]
@@ -48,24 +47,27 @@ impl HeaderAccessor for ContactHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact::parser::contact_param;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, star, ParserResult};
-    use crate::{ContactHeader, Contacts, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::contact::parser::contact_param,
+        headers::GenericHeader,
+        parser::{comma, hcolon, star, ParserResult},
+        ContactHeader, Contacts, Header, TokenString,
     };
 
     pub(crate) fn contact(input: &str) -> ParserResult<&str, Header> {
         context(
             "Contact header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Contact"), tag_no_case("m"))),
                         TokenString::new,
@@ -75,7 +77,7 @@ pub(crate) mod parser {
                         map(star, |_| Contacts::Any),
                         map(separated_list1(comma, contact_param), Contacts::Contacts),
                     )))),
-                )),
+                ),
                 |(name, separator, (value, contacts))| {
                     Header::Contact(ContactHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -83,7 +85,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

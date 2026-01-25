@@ -1,6 +1,5 @@
 //! SIP Server header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -12,7 +11,7 @@ use crate::{ServerValue, ServerValues};
 /// request.
 ///
 /// [[RFC3261, Section 20.35](https://datatracker.ietf.org/doc/html/rfc3261#section-20.35)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ServerHeader {
     #[partial_eq_ignore]
@@ -50,27 +49,30 @@ impl HeaderAccessor for ServerHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::server_value::parser::server_val;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, lws, ParserResult};
-    use crate::{Header, ServerHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::server_value::parser::server_val,
+        headers::GenericHeader,
+        parser::{hcolon, lws, ParserResult},
+        Header, ServerHeader, TokenString,
     };
 
     pub(crate) fn server(input: &str) -> ParserResult<&str, Header> {
         context(
             "Server header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Server"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(lws, server_val))),
-                )),
+                ),
                 |(name, separator, (value, values))| {
                     Header::Server(ServerHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -78,7 +80,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

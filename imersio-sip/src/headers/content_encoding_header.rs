@@ -1,6 +1,5 @@
 //! SIP Content-Encoding header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -20,7 +19,7 @@ use crate::{ContentEncoding, ContentEncodings};
 /// codings MUST be listed in the order in which they were applied.
 ///
 /// [[RFC3261, Section 20.12](https://datatracker.ietf.org/doc/html/rfc3261#section-20.12)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContentEncodingHeader {
     #[partial_eq_ignore]
@@ -57,31 +56,34 @@ impl HeaderAccessor for ContentEncodingHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::content_encoding::parser::content_coding;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{ContentEncodingHeader, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::{tag, tag_no_case},
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::content_encoding::parser::content_coding,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        ContentEncodingHeader, Header, TokenString,
     };
 
     pub(crate) fn content_encoding(input: &str) -> ParserResult<&str, Header> {
         context(
             "Content-Encoding header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Content-Encoding"), tag("e"))),
                         TokenString::new,
                     ),
                     hcolon,
                     cut(consumed(separated_list1(comma, content_coding))),
-                )),
+                ),
                 |(name, separator, (value, encodings))| {
                     Header::ContentEncoding(ContentEncodingHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -89,7 +91,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

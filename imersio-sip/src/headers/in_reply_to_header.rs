@@ -1,6 +1,5 @@
 //! SIP In-Reply-To header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -13,7 +12,7 @@ use crate::{CallId, CallIds};
 /// return call.
 ///
 /// [[RFC3261, Section 20.21](https://datatracker.ietf.org/doc/html/rfc3261#section-20.21)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct InReplyToHeader {
     #[partial_eq_ignore]
@@ -50,27 +49,30 @@ impl HeaderAccessor for InReplyToHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::call_id::parser::callid;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, InReplyToHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::call_id::parser::callid,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        Header, InReplyToHeader, TokenString,
     };
 
     pub(crate) fn in_reply_to(input: &str) -> ParserResult<&str, Header> {
         context(
             "In-Reply-To header",
             map(
-                tuple((
+                (
                     map(tag_no_case("In-Reply-To"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, callid))),
-                )),
+                ),
                 |(name, separator, (value, call_ids))| {
                     Header::InReplyTo(InReplyToHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -78,7 +80,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

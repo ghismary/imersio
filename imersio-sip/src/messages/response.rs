@@ -3,7 +3,7 @@
 //! TODO
 
 use itertools::join;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::str::from_utf8;
 
 use crate::Reason;
@@ -88,38 +88,37 @@ impl TryFrom<&str> for Response {
 }
 
 pub(crate) mod parser {
+    use nom::{
+        character::complete::crlf, combinator::map, error::context, multi::many0,
+        sequence::terminated, Parser,
+    };
+
     use super::*;
-    use crate::headers::header::parser::message_header;
     use crate::{
         common::{reason::parser::reason, version::parser::sip_version},
+        headers::header::parser::message_header,
         parser::{sp, ParserResult},
-    };
-    use nom::{
-        character::complete::crlf,
-        combinator::map,
-        error::context,
-        multi::many0,
-        sequence::{terminated, tuple},
     };
 
     fn status_line(input: &str) -> ParserResult<&str, (Version, Reason)> {
         context(
             "status_line",
-            map(tuple((sip_version, sp, reason)), |(version, _, reason)| {
+            map((sip_version, sp, reason), |(version, _, reason)| {
                 (version, reason)
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn response(input: &str) -> ParserResult<&str, Response> {
         context(
             "response",
             map(
-                tuple((
+                (
                     terminated(status_line, crlf),
                     many0(terminated(message_header, crlf)),
                     crlf,
-                )),
+                ),
                 |((version, reason), headers, _)| Response {
                     version,
                     reason,
@@ -127,7 +126,8 @@ pub(crate) mod parser {
                     body: vec![],
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -1,6 +1,6 @@
 //! TODO
 
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::borrow::Cow;
 use std::str;
 
@@ -391,15 +391,19 @@ reasons! {
 }
 
 pub(crate) mod parser {
-    use super::*;
-    use crate::common::status_code::parser::status_code;
-    use crate::parser::{escaped, reserved, sp, tab, unreserved, utf8_nonascii, ParserResult};
     use nom::{
         branch::alt,
         combinator::{map, value},
         error::context,
         multi::many0,
         sequence::separated_pair,
+        Parser,
+    };
+
+    use super::*;
+    use crate::{
+        common::status_code::parser::status_code,
+        parser::{escaped, reserved, sp, tab, unreserved, utf8_nonascii, ParserResult},
     };
 
     fn reason_phrase(input: &str) -> ParserResult<&str, String> {
@@ -416,7 +420,8 @@ pub(crate) mod parser {
                 ))),
                 |chars| chars.iter().collect(),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn reason(input: &str) -> ParserResult<&str, Reason> {
@@ -429,7 +434,8 @@ pub(crate) mod parser {
                     phrase: Cow::Owned(phrase),
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

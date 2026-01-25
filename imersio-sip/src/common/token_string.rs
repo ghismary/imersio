@@ -1,13 +1,13 @@
+use nom_language::error::convert_error;
 use std::convert::TryFrom;
-
-use derive_more::{Deref, Display};
-use nom::error::convert_error;
 
 use crate::parser::token;
 use crate::SipError;
 
 /// Representation of a URI scheme value accepting only the valid characters.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, derive_more::Deref, derive_more::Display,
+)]
 pub struct TokenString(String);
 
 impl TokenString {

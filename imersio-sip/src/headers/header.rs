@@ -1,6 +1,6 @@
 //! TODO
 
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::convert::TryFrom;
 
 use crate::headers::generic_header::GenericHeader;
@@ -165,35 +165,40 @@ impl TryFrom<&str> for Header {
 }
 
 pub(crate) mod parser {
-    use crate::headers::{
-        accept_encoding_header::parser::accept_encoding, accept_header::parser::accept,
-        accept_language_header::parser::accept_language, alert_info_header::parser::alert_info,
-        allow_header::parser::allow, authentication_info_header::parser::authentication_info,
-        authorization_header::parser::authorization, call_id_header::parser::call_id,
-        call_info_header::parser::call_info, contact_header::parser::contact,
-        content_disposition_header::parser::content_disposition,
-        content_encoding_header::parser::content_encoding,
-        content_language_header::parser::content_language,
-        content_length_header::parser::content_length, content_type_header::parser::content_type,
-        cseq_header::parser::cseq, date_header::parser::date,
-        error_info_header::parser::error_info, expires_header::parser::expires,
-        from_header::parser::from, generic_header::parser::extension_header,
-        in_reply_to_header::parser::in_reply_to, max_forwards_header::parser::max_forwards,
-        mime_version_header::parser::mime_version, min_expires_header::parser::min_expires,
-        organization_header::parser::organization, priority_header::parser::priority,
-        proxy_authenticate_header::parser::proxy_authenticate,
-        proxy_authorization_header::parser::proxy_authorization,
-        proxy_require_header::parser::proxy_require, record_route_header::parser::record_route,
-        reply_to_header::parser::reply_to, require_header::parser::require,
-        retry_after_header::parser::retry_after, route_header::parser::route,
-        server_header::parser::server, subject_header::parser::subject,
-        supported_header::parser::supported, timestamp_header::parser::timestamp,
-        to_header::parser::to, unsupported_header::parser::unsupported,
-        user_agent_header::parser::user_agent, via_header::parser::via,
-        warning_header::parser::warning, www_authenticate_header::parser::www_authenticate,
+    use nom::{branch::alt, error::context, Parser};
+
+    use crate::{
+        headers::{
+            accept_encoding_header::parser::accept_encoding, accept_header::parser::accept,
+            accept_language_header::parser::accept_language, alert_info_header::parser::alert_info,
+            allow_header::parser::allow, authentication_info_header::parser::authentication_info,
+            authorization_header::parser::authorization, call_id_header::parser::call_id,
+            call_info_header::parser::call_info, contact_header::parser::contact,
+            content_disposition_header::parser::content_disposition,
+            content_encoding_header::parser::content_encoding,
+            content_language_header::parser::content_language,
+            content_length_header::parser::content_length,
+            content_type_header::parser::content_type, cseq_header::parser::cseq,
+            date_header::parser::date, error_info_header::parser::error_info,
+            expires_header::parser::expires, from_header::parser::from,
+            generic_header::parser::extension_header, in_reply_to_header::parser::in_reply_to,
+            max_forwards_header::parser::max_forwards, mime_version_header::parser::mime_version,
+            min_expires_header::parser::min_expires, organization_header::parser::organization,
+            priority_header::parser::priority,
+            proxy_authenticate_header::parser::proxy_authenticate,
+            proxy_authorization_header::parser::proxy_authorization,
+            proxy_require_header::parser::proxy_require, record_route_header::parser::record_route,
+            reply_to_header::parser::reply_to, require_header::parser::require,
+            retry_after_header::parser::retry_after, route_header::parser::route,
+            server_header::parser::server, subject_header::parser::subject,
+            supported_header::parser::supported, timestamp_header::parser::timestamp,
+            to_header::parser::to, unsupported_header::parser::unsupported,
+            user_agent_header::parser::user_agent, via_header::parser::via,
+            warning_header::parser::warning, www_authenticate_header::parser::www_authenticate,
+        },
+        parser::ParserResult,
+        Header,
     };
-    use crate::{parser::ParserResult, Header};
-    use nom::{branch::alt, error::context};
 
     pub(crate) fn message_header(input: &str) -> ParserResult<&str, Header> {
         context(
@@ -248,6 +253,7 @@ pub(crate) mod parser {
                 alt((warning, www_authenticate)),
                 extension_header,
             )),
-        )(input)
+        )
+        .parse(input)
     }
 }

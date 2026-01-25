@@ -1,10 +1,10 @@
-use crate::TokenString;
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
+use crate::TokenString;
+
 /// Representation of the `handling` parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum Handling {
     /// The handling of the content type is optional.
     Optional,
@@ -43,7 +43,9 @@ impl PartialEq for Handling {
     fn eq(&self, other: &Handling) -> bool {
         match (self, other) {
             (Self::Optional, Self::Optional) | (Self::Required, Self::Required) => true,
-            (Self::Other(svalue), Self::Other(ovalue)) => svalue.eq_ignore_ascii_case(ovalue),
+            (Self::Other(self_value), Self::Other(other_value)) => {
+                self_value.eq_ignore_ascii_case(other_value)
+            }
             _ => false,
         }
     }

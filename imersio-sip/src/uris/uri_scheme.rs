@@ -1,15 +1,13 @@
 //! Parsing and generation of the scheme of a SIP URI.
 
+use nom_language::error::convert_error;
 use std::hash::Hash;
-
-use derive_more::{Deref, Display};
-use nom::error::convert_error;
 
 use crate::uris::uri_scheme::parser::scheme;
 use crate::SipError;
 
 /// Representation of a URI scheme value accepting only the valid characters.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct UriSchemeString(String);
 
 impl UriSchemeString {
@@ -142,19 +140,23 @@ impl TryFrom<&str> for UriScheme {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{alpha, digit, take1, ParserResult};
-    use crate::UriSchemeString;
     use nom::{
         branch::alt,
         combinator::{map, recognize, verify},
         error::context,
         multi::many0,
         sequence::pair,
+        Parser,
+    };
+
+    use crate::{
+        parser::{alpha, digit, take1, ParserResult},
+        UriSchemeString,
     };
 
     #[inline]
     fn scheme_special_char(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| "+-.".contains(*c))(input)
+        verify(take1, |c| "+-.".contains(*c)).parse(input)
     }
 
     pub(crate) fn scheme(input: &str) -> ParserResult<&str, UriSchemeString> {
@@ -164,7 +166,8 @@ pub(crate) mod parser {
                 recognize(pair(alpha, many0(alt((alpha, digit, scheme_special_char))))),
                 UriSchemeString::new,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

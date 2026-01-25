@@ -1,6 +1,5 @@
 //! SIP Content-Length header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -15,7 +14,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// MUST be used.
 ///
 /// [[RFC3261, Section 20.14](https://datatracker.ietf.org/doc/html/rfc3261#section-20.14)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContentLengthHeader {
     #[partial_eq_ignore]
@@ -52,23 +51,26 @@ impl HeaderAccessor for ContentLengthHeader {
 }
 
 pub(crate) mod parser {
-    use crate::headers::GenericHeader;
-    use crate::parser::{digit, hcolon, ParserResult};
-    use crate::{ContentLengthHeader, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        headers::GenericHeader,
+        parser::{digit, hcolon, ParserResult},
+        ContentLengthHeader, Header, TokenString,
     };
 
     pub(crate) fn content_length(input: &str) -> ParserResult<&str, Header> {
         context(
             "Content-Length header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Content-Length"), tag_no_case("l"))),
                         TokenString::new,
@@ -77,7 +79,7 @@ pub(crate) mod parser {
                     cut(consumed(map(recognize(many1(digit)), |l| {
                         l.parse::<u32>().unwrap()
                     }))),
-                )),
+                ),
                 |(name, separator, (value, content_length))| {
                     Header::ContentLength(ContentLengthHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -85,7 +87,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -47,7 +47,7 @@ impl AcceptLanguage {
         &self.parameters
     }
 
-    /// Get the value of the `q` parameter for the language, if it has one.
+    /// Get the value of the `q` parameter for the language if it has one.
     pub fn q(&self) -> Option<f32> {
         self.parameters
             .iter()
@@ -85,9 +85,6 @@ impl Hash for AcceptLanguage {
 }
 
 pub(crate) mod parser {
-    use crate::common::accept_parameter::parser::accept_param;
-    use crate::parser::{alpha, semi, ParserResult};
-    use crate::AcceptLanguage;
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -95,6 +92,13 @@ pub(crate) mod parser {
         error::context,
         multi::{many0, many_m_n},
         sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::accept_parameter::parser::accept_param,
+        parser::{alpha, semi, ParserResult},
+        AcceptLanguage,
     };
 
     fn language_range(input: &str) -> ParserResult<&str, &str> {
@@ -107,7 +111,8 @@ pub(crate) mod parser {
                 )),
                 tag("*"),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn language(input: &str) -> ParserResult<&str, AcceptLanguage> {
@@ -117,6 +122,7 @@ pub(crate) mod parser {
                 pair(language_range, many0(preceded(semi, accept_param))),
                 |(language, params)| AcceptLanguage::new(language, params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

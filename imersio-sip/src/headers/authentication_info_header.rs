@@ -1,6 +1,5 @@
 //! SIP Authentication-Info header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -12,7 +11,7 @@ use crate::{AuthenticationInfo, AuthenticationInfos, MessageQop};
 /// with HTTP Digest.
 ///
 /// [[RFC3261, Section 20.6](https://datatracker.ietf.org/doc/html/rfc3261#section-20.6)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AuthenticationInfoHeader {
     #[partial_eq_ignore]
@@ -108,27 +107,30 @@ authentication_info_header! {
 }
 
 pub(crate) mod parser {
-    use crate::common::authentication_info::parser::ainfo;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AuthenticationInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::authentication_info::parser::ainfo,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        AuthenticationInfoHeader, Header, TokenString,
     };
 
     pub(crate) fn authentication_info(input: &str) -> ParserResult<&str, Header> {
         context(
             "Authentication-Info header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Authentication-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, ainfo))),
-                )),
+                ),
                 |(name, separator, (value, ainfos))| {
                     Header::AuthenticationInfo(AuthenticationInfoHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -136,7 +138,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

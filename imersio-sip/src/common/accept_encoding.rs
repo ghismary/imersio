@@ -48,7 +48,7 @@ impl AcceptEncoding {
         &self.parameters
     }
 
-    /// Get the value of the `q` parameter for the encoding, if it has one.
+    /// Get the value of the `q` parameter for the encoding if it has one.
     pub fn q(&self) -> Option<f32> {
         self.parameters
             .iter()
@@ -85,15 +85,18 @@ impl Hash for AcceptEncoding {
 }
 
 pub(crate) mod parser {
-    use crate::common::accept_parameter::parser::accept_param;
-    use crate::common::content_encoding::parser::codings;
-    use crate::parser::{semi, ParserResult};
-    use crate::AcceptEncoding;
     use nom::{
         combinator::map,
         error::context,
         multi::many0,
         sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::{accept_parameter::parser::accept_param, content_encoding::parser::codings},
+        parser::{semi, ParserResult},
+        AcceptEncoding,
     };
 
     pub(crate) fn encoding(input: &str) -> ParserResult<&str, AcceptEncoding> {
@@ -103,6 +106,7 @@ pub(crate) mod parser {
                 pair(codings, many0(preceded(semi, accept_param))),
                 |(codings, params)| AcceptEncoding::new(codings, params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

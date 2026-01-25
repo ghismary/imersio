@@ -4,7 +4,7 @@ use std::hash::Hash;
 use super::wrapped_string::WrappedString;
 use crate::{TokenString, Uri};
 
-/// Representation of name address, that is the conjunction of a display name and an uri.
+/// Representation of name address, that is the conjunction of a display name and a uri.
 #[derive(Clone, Debug, Eq, PartialEqExtras)]
 pub struct NameAddress {
     #[partial_eq_ignore]

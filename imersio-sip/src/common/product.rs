@@ -37,12 +37,16 @@ impl std::fmt::Display for Product {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{slash, token, ParserResult};
-    use crate::{Product, TokenString};
     use nom::{
         combinator::{map, opt},
         error::context,
         sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        parser::{slash, token, ParserResult},
+        Product, TokenString,
     };
 
     pub(crate) fn product(input: &str) -> ParserResult<&str, Product> {
@@ -52,7 +56,8 @@ pub(crate) mod parser {
                 pair(token, opt(preceded(slash, product_version))),
                 |(name, version)| Product::new(name, version),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]

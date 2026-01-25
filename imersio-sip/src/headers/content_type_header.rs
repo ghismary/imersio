@@ -1,6 +1,5 @@
 //! SIP Content-Type header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -15,7 +14,7 @@ use crate::MediaType;
 /// zero length (for example, an empty audio file).
 ///
 /// [[RFC3261, Section 20.15](https://datatracker.ietf.org/doc/html/rfc3261#section-20.15)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ContentTypeHeader {
     #[partial_eq_ignore]
@@ -49,30 +48,33 @@ impl HeaderAccessor for ContentTypeHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::media_type::parser::media_type;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, ParserResult};
-    use crate::{ContentTypeHeader, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::media_type::parser::media_type,
+        headers::GenericHeader,
+        parser::{hcolon, ParserResult},
+        ContentTypeHeader, Header, TokenString,
     };
 
     pub(crate) fn content_type(input: &str) -> ParserResult<&str, Header> {
         context(
             "Content-Type header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Content-Type"), tag_no_case("c"))),
                         TokenString::new,
                     ),
                     hcolon,
                     cut(consumed(media_type)),
-                )),
+                ),
                 |(name, separator, (value, media_type))| {
                     Header::ContentType(ContentTypeHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -80,7 +82,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

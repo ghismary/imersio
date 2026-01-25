@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -6,7 +5,7 @@ use crate::common::wrapped_string::WrappedString;
 use crate::{GenericParameter, TokenString};
 
 /// Representation of an information about the caller or the callee.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum CallInfoParameter {
     /// The `icon` purpose parameter designates an image suitable as an iconic
     /// representation of the caller or callee.
@@ -120,13 +119,15 @@ impl From<GenericParameter<TokenString>> for CallInfoParameter {
 }
 
 pub(crate) mod parser {
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{equal, token, ParserResult};
-    use crate::{CallInfoParameter, GenericParameter, TokenString};
     use nom::{
         branch::alt, bytes::complete::tag_no_case, combinator::map, error::context,
-        sequence::separated_pair,
+        sequence::separated_pair, Parser,
+    };
+
+    use crate::{
+        common::{generic_parameter::parser::generic_param, wrapped_string::WrappedString},
+        parser::{equal, token, ParserResult},
+        CallInfoParameter, GenericParameter, TokenString,
     };
 
     pub(crate) fn info_param(input: &str) -> ParserResult<&str, CallInfoParameter> {
@@ -156,6 +157,7 @@ pub(crate) mod parser {
                 )),
                 Into::into,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

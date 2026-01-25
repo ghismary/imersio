@@ -1,11 +1,11 @@
 //! Parsing and generation of the parameters of a SIP URI.
 
-use derive_more::{Deref, DerefMut, Display, IsVariant};
 use itertools::{join, Itertools};
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 
 use crate::parser::ESCAPED_CHARS;
 use crate::uris::uri_parameter::parser::{is_param_unreserved, uri_parameter};
@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Representation of a URI user value accepting only the valid characters.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct UriParameterString(String);
 
 impl UriParameterString {
@@ -53,7 +53,7 @@ impl TryFrom<&str> for UriParameterString {
 }
 
 /// Representation of a SIP URI parameter.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum UriParameter {
     /// A `transport` parameter.
     Transport(Transport),
@@ -225,7 +225,7 @@ impl TryFrom<&str> for UriParameter {
 /// Representation of a list of URI parameters.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Default, Deref, DerefMut, Eq)]
+#[derive(Clone, Debug, Default, Eq, derive_more::Deref, derive_more::DerefMut)]
 pub struct UriParameters(Vec<UriParameter>);
 
 impl UriParameters {
@@ -237,9 +237,9 @@ impl UriParameters {
 
 impl UriParameters {
     pub(crate) fn add_parameter(&mut self, parameter: UriParameter) {
-        let previous_parameter = self.iter().find_position(|p| {
-            p.name().to_ascii_lowercase() == parameter.name().to_ascii_lowercase()
-        });
+        let previous_parameter = self
+            .iter()
+            .find_position(|p| p.name().eq_ignore_ascii_case(parameter.name()));
         if let Some((idx, _)) = previous_parameter {
             self.remove(idx);
         }
@@ -278,7 +278,7 @@ impl PartialEq for UriParameters {
 }
 
 impl Hash for UriParameters {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         let mut sorted_params: Vec<&UriParameter> = self.iter().collect();
         sorted_params.sort();
         sorted_params.hash(state);
@@ -302,13 +302,6 @@ impl TryFrom<Vec<UriParameter>> for UriParameters {
 }
 
 pub(crate) mod parser {
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{escaped, take1, token, ttl, unreserved, ParserResult};
-    use crate::uris::host::parser::host;
-    use crate::{
-        GenericParameter, Method, Transport, UriParameter, UriParameterString, UriParameters,
-        UserType,
-    };
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -316,6 +309,15 @@ pub(crate) mod parser {
         error::context,
         multi::{many0, many1},
         sequence::{pair, preceded, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        common::wrapped_string::WrappedString,
+        parser::{escaped, take1, token, ttl, unreserved, ParserResult},
+        uris::host::parser::host,
+        GenericParameter, Method, Transport, UriParameter, UriParameterString, UriParameters,
+        UserType,
     };
 
     fn transport_param(input: &str) -> ParserResult<&str, UriParameter> {
@@ -325,7 +327,8 @@ pub(crate) mod parser {
                 separated_pair(tag("transport"), tag("="), token),
                 |(_, value)| UriParameter::Transport(Transport::new(value)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn user_param(input: &str) -> ParserResult<&str, UriParameter> {
@@ -335,7 +338,8 @@ pub(crate) mod parser {
                 separated_pair(tag("user"), tag("="), token),
                 |(_, value)| UriParameter::User(UserType::new(value)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn method_param(input: &str) -> ParserResult<&str, UriParameter> {
@@ -345,7 +349,8 @@ pub(crate) mod parser {
                 separated_pair(tag("method"), tag("="), token),
                 |(_, value)| UriParameter::Method(Method::new(value)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn ttl_param(input: &str) -> ParserResult<&str, UriParameter> {
@@ -354,7 +359,8 @@ pub(crate) mod parser {
             map(separated_pair(tag("ttl"), tag("="), ttl), |(_, value)| {
                 UriParameter::Ttl(value)
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn maddr_param(input: &str) -> ParserResult<&str, UriParameter> {
@@ -364,12 +370,13 @@ pub(crate) mod parser {
                 separated_pair(tag("maddr"), tag("="), host),
                 |(_, value)| UriParameter::MAddr(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
     fn lr_param(input: &str) -> ParserResult<&str, UriParameter> {
-        context("lr_param", value(UriParameter::Lr, tag("lr")))(input)
+        context("lr_param", value(UriParameter::Lr, tag("lr"))).parse(input)
     }
 
     #[inline]
@@ -378,11 +385,11 @@ pub(crate) mod parser {
     }
 
     fn param_unreserved(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| is_param_unreserved(*c))(input)
+        verify(take1, |c| is_param_unreserved(*c)).parse(input)
     }
 
     fn paramchar(input: &str) -> ParserResult<&str, char> {
-        alt((param_unreserved, unreserved, escaped))(input)
+        alt((param_unreserved, unreserved, escaped)).parse(input)
     }
 
     fn pname(input: &str) -> ParserResult<&str, UriParameterString> {
@@ -391,7 +398,8 @@ pub(crate) mod parser {
             map(many1(paramchar), |pname| {
                 UriParameterString::new(pname.iter().collect::<String>())
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn pvalue(input: &str) -> ParserResult<&str, UriParameterString> {
@@ -400,7 +408,8 @@ pub(crate) mod parser {
             map(many1(paramchar), |pvalue| {
                 UriParameterString::new(pvalue.iter().collect::<String>())
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn other_param(input: &str) -> ParserResult<&str, UriParameter> {
@@ -415,7 +424,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(super) fn uri_parameter(input: &str) -> ParserResult<&str, UriParameter> {
@@ -430,13 +440,15 @@ pub(crate) mod parser {
                 lr_param,
                 other_param,
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn uri_parameters(input: &str) -> ParserResult<&str, UriParameters> {
         context(
             "uri_parameters",
             map_res(many0(preceded(tag(";"), uri_parameter)), TryInto::try_into),
-        )(input)
+        )
+        .parse(input)
     }
 }

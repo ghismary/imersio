@@ -1,6 +1,5 @@
 //! SIP MIME-Version header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -8,7 +7,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// Representation of a MIME-Version header.
 ///
 /// [[RFC3261, Section 20.24](https://datatracker.ietf.org/doc/html/rfc3261#section-20.24)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct MimeVersionHeader {
     #[partial_eq_ignore]
@@ -45,30 +44,29 @@ impl HeaderAccessor for MimeVersionHeader {
 }
 
 pub(crate) mod parser {
-    use crate::headers::GenericHeader;
-    use crate::parser::{digit, hcolon, ParserResult};
-    use crate::{Header, MimeVersionHeader, TokenString};
     use nom::{
         bytes::complete::{tag, tag_no_case},
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        headers::GenericHeader,
+        parser::{digit, hcolon, ParserResult},
+        Header, MimeVersionHeader, TokenString,
     };
 
     pub(crate) fn mime_version(input: &str) -> ParserResult<&str, Header> {
         context(
             "MIME-Version header",
             map(
-                tuple((
+                (
                     map(tag_no_case("MIME-Version"), TokenString::new),
                     hcolon,
-                    cut(consumed(recognize(tuple((
-                        many1(digit),
-                        tag("."),
-                        many1(digit),
-                    ))))),
-                )),
+                    cut(consumed(recognize((many1(digit), tag("."), many1(digit))))),
+                ),
                 |(name, separator, (value, version))| {
                     Header::MimeVersion(MimeVersionHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -76,7 +74,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -1,4 +1,4 @@
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -106,18 +106,22 @@ impl TryFrom<&str> for ContentLanguage {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{alpha, ParserResult};
-    use crate::ContentLanguage;
     use nom::{
         bytes::complete::tag,
         combinator::{map, recognize},
         multi::{many0, many_m_n},
         sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        parser::{alpha, ParserResult},
+        ContentLanguage,
     };
 
     #[inline]
     fn primary_tag(input: &str) -> ParserResult<&str, &str> {
-        recognize(many_m_n(1, 8, alpha))(input)
+        recognize(many_m_n(1, 8, alpha)).parse(input)
     }
 
     #[inline]
@@ -129,7 +133,8 @@ pub(crate) mod parser {
         map(
             recognize(pair(primary_tag, many0(preceded(tag("-"), subtag)))),
             ContentLanguage::new,
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -1,6 +1,5 @@
 //! SIP Proxy-Require header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -12,7 +11,7 @@ use crate::{OptionTag, OptionTags};
 /// supported by the proxy.
 ///
 /// [[RFC3261, Section 20.29](https://datatracker.ietf.org/doc/html/rfc3261#section-20.29)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ProxyRequireHeader {
     #[partial_eq_ignore]
@@ -49,27 +48,30 @@ impl HeaderAccessor for ProxyRequireHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::option_tag::parser::option_tag;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, ProxyRequireHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::option_tag::parser::option_tag,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        Header, ProxyRequireHeader, TokenString,
     };
 
     pub(crate) fn proxy_require(input: &str) -> ParserResult<&str, Header> {
         context(
             "Proxy-Require header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Proxy-Require"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, option_tag))),
-                )),
+                ),
                 |(name, separator, (value, tags))| {
                     Header::ProxyRequire(ProxyRequireHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -77,7 +79,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

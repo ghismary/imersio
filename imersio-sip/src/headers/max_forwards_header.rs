@@ -1,6 +1,5 @@
 //! SIP Max-Forwards header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -13,7 +12,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// in mid-chain.
 ///
 /// [[RFC3261, Section 20.22](https://datatracker.ietf.org/doc/html/rfc3261#section-20.22)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct MaxForwardsHeader {
     #[partial_eq_ignore]
@@ -50,28 +49,31 @@ impl HeaderAccessor for MaxForwardsHeader {
 }
 
 pub(crate) mod parser {
-    use crate::headers::GenericHeader;
-    use crate::parser::{digit, hcolon, ParserResult};
-    use crate::{Header, MaxForwardsHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        headers::GenericHeader,
+        parser::{digit, hcolon, ParserResult},
+        Header, MaxForwardsHeader, TokenString,
     };
 
     pub(crate) fn max_forwards(input: &str) -> ParserResult<&str, Header> {
         context(
             "Max-Forwards header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Max-Forwards"), TokenString::new),
                     hcolon,
                     cut(consumed(map(recognize(many1(digit)), |value| {
                         value.parse::<u8>().unwrap_or(u8::MAX)
                     }))),
-                )),
+                ),
                 |(name, separator, (value, max_forwards))| {
                     Header::MaxForwards(MaxForwardsHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -79,7 +81,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

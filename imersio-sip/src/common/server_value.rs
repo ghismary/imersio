@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::hash::Hash;
 
 use crate::common::value_collection::ValueCollection;
@@ -10,7 +9,7 @@ use crate::Product;
 pub type ServerValues = ValueCollection<ServerValue>;
 
 /// Representation of an server value contained in a `Server` or `User-Agent` header.
-#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::IsVariant)]
 pub enum ServerValue {
     /// A product name and version
     Product(Product),
@@ -28,10 +27,13 @@ impl std::fmt::Display for ServerValue {
 }
 
 pub(crate) mod parser {
-    use crate::common::product::parser::product;
-    use crate::parser::{comment, ParserResult};
-    use crate::ServerValue;
-    use nom::{branch::alt, combinator::map, error::context};
+    use nom::{branch::alt, combinator::map, error::context, Parser};
+
+    use crate::{
+        common::product::parser::product,
+        parser::{comment, ParserResult},
+        ServerValue,
+    };
 
     pub(crate) fn server_val(input: &str) -> ParserResult<&str, ServerValue> {
         context(
@@ -40,6 +42,7 @@ pub(crate) mod parser {
                 map(product, ServerValue::Product),
                 map(comment, |comment| ServerValue::Comment(comment.to_string())),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 }

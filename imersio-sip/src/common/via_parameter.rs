@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::net::IpAddr;
 
@@ -6,7 +5,7 @@ use crate::uris::host::parser::host;
 use crate::{GenericParameter, Host, TokenString};
 
 /// Representation of a via parameter.
-#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::IsVariant)]
 pub enum ViaParameter {
     /// A `ttl` parameter.
     Ttl(String),
@@ -59,7 +58,7 @@ impl ViaParameter {
         }
     }
 
-    /// Get the received value of the parameter if this is an `received` parameter.
+    /// Get the received value of the parameter if this is a `received` parameter.
     pub fn received(&self) -> Option<IpAddr> {
         match self {
             Self::Received(value) => value.parse().ok(),
@@ -67,7 +66,7 @@ impl ViaParameter {
         }
     }
 
-    /// Get the branch value of the parameter if this is an `branch` parameter.
+    /// Get the branch value of the parameter if this is a `branch` parameter.
     pub fn branch(&self) -> Option<String> {
         match self {
             Self::Branch(value) => Some(value.clone()),
@@ -95,7 +94,7 @@ impl PartialOrd for ViaParameter {
 }
 
 impl Ord for ViaParameter {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self.key().cmp(other.key()) {
             Ordering::Equal => {}
             ord => return ord,
@@ -111,25 +110,29 @@ impl From<GenericParameter<TokenString>> for ViaParameter {
 }
 
 pub(crate) mod parser {
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::parser::{digit, equal, token, ParserResult};
-    use crate::uris::host::parser::{host, ipv4_address, ipv6_address};
-    use crate::ViaParameter;
-    use nom::combinator::consumed;
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
-        combinator::{map, recognize, verify},
+        combinator::{consumed, map, recognize, verify},
         error::context,
         multi::many_m_n,
         sequence::separated_pair,
+        Parser,
+    };
+
+    use crate::{
+        common::generic_parameter::parser::generic_param,
+        parser::{digit, equal, token, ParserResult},
+        uris::host::parser::{host, ipv4_address, ipv6_address},
+        ViaParameter,
     };
 
     pub(crate) fn via_params(input: &str) -> ParserResult<&str, ViaParameter> {
         context(
             "via_params",
             alt((via_ttl, via_maddr, via_received, via_branch, via_extension)),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn via_ttl(input: &str) -> ParserResult<&str, ViaParameter> {
@@ -143,7 +146,8 @@ pub(crate) mod parser {
                 ),
                 |(_, ttl)| ViaParameter::Ttl(ttl.to_string()),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn via_maddr(input: &str) -> ParserResult<&str, ViaParameter> {
@@ -153,7 +157,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("maddr"), equal, consumed(host)),
                 |(_, (host, _))| ViaParameter::MAddr(host.to_string()),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn via_received(input: &str) -> ParserResult<&str, ViaParameter> {
@@ -167,7 +172,8 @@ pub(crate) mod parser {
                 ),
                 |(_, (ip, _))| ViaParameter::Received(ip.to_string()),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn via_branch(input: &str) -> ParserResult<&str, ViaParameter> {
@@ -177,17 +183,18 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("branch"), equal, token),
                 |(_, branch)| ViaParameter::Branch(branch.to_string()),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn via_extension(input: &str) -> ParserResult<&str, ViaParameter> {
-        context("via_extension", map(generic_param, Into::into))(input)
+        context("via_extension", map(generic_param, Into::into)).parse(input)
     }
 
     fn is_valid_ttl(value: &str) -> bool {
         value.parse::<u8>().is_ok()
     }
     fn ttl(input: &str) -> ParserResult<&str, &str> {
-        recognize(many_m_n(1, 3, digit))(input)
+        recognize(many_m_n(1, 3, digit)).parse(input)
     }
 }

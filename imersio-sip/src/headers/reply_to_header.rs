@@ -1,6 +1,5 @@
 //! SIP Reply-To header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -14,7 +13,7 @@ use crate::{GenericParameter, GenericParameters, NameAddress, TokenString};
 /// request or populated in such a way that does not reveal any private information.
 ///
 /// [[RFC3261, Section 20.31](https://datatracker.ietf.org/doc/html/rfc3261#section-20.31)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ReplyToHeader {
     #[partial_eq_ignore]
@@ -67,18 +66,24 @@ impl HeaderAccessor for ReplyToHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact::parser::{addr_spec, name_addr};
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, semi, ParserResult};
-    use crate::{GenericParameter, Header, NameAddress, ReplyToHeader, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
-        sequence::{pair, preceded, tuple},
+        sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::{
+            contact::parser::{addr_spec, name_addr},
+            generic_parameter::parser::generic_param,
+        },
+        headers::GenericHeader,
+        parser::{hcolon, semi, ParserResult},
+        GenericParameter, Header, NameAddress, ReplyToHeader, TokenString,
     };
 
     #[inline]
@@ -95,18 +100,19 @@ pub(crate) mod parser {
                 alt((map(addr_spec, |uri| NameAddress::new(uri, None)), name_addr)),
                 many0(preceded(semi, rplyto_param)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn reply_to(input: &str) -> ParserResult<&str, Header> {
         context(
             "Reply-To header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Reply-To"), TokenString::new),
                     hcolon,
                     cut(consumed(rplyto_spec)),
-                )),
+                ),
                 |(name, separator, (value, (address, parameters)))| {
                     Header::ReplyTo(ReplyToHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -115,7 +121,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

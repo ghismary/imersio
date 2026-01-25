@@ -80,11 +80,13 @@ impl Hash for Route {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact::parser::name_addr;
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::parser::ParserResult;
-    use crate::{GenericParameter, Route, TokenString};
-    use nom::{combinator::map, error::context, multi::many0, sequence::pair};
+    use nom::{combinator::map, error::context, multi::many0, sequence::pair, Parser};
+
+    use crate::{
+        common::{contact::parser::name_addr, generic_parameter::parser::generic_param},
+        parser::ParserResult,
+        GenericParameter, Route, TokenString,
+    };
 
     #[inline]
     fn route_param(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
@@ -98,6 +100,7 @@ pub(crate) mod parser {
                 pair(name_addr, many0(route_param)),
                 |(name_addr, params)| Route::new(name_addr, params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

@@ -1,14 +1,15 @@
-use crate::common::wrapped_string::WrappedString;
-use crate::utils::compare_vectors;
-use derive_more::{Deref, From, IntoIterator};
 use itertools::join;
 use std::cmp::Ordering;
 use std::hash::Hash;
+use std::ops::Deref;
+
+use crate::common::wrapped_string::WrappedString;
+use crate::utils::compare_vectors;
 
 /// Representation of the list of generic parameters.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Deref, Eq, From, IntoIterator)]
+#[derive(Clone, Debug, Eq, derive_more::Deref, derive_more::From, derive_more::IntoIterator)]
 pub struct GenericParameters<T: std::fmt::Display + AsRef<str>>(Vec<GenericParameter<T>>);
 
 impl<T> std::fmt::Display for GenericParameters<T>
@@ -125,15 +126,19 @@ where
 }
 
 pub(crate) mod parser {
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{equal, quoted_string, token, ParserResult};
-    use crate::uris::host::parser::host;
-    use crate::{GenericParameter, TokenString};
     use nom::{
         branch::alt,
         combinator::{map, opt, recognize},
         error::context,
         sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::wrapped_string::WrappedString,
+        parser::{equal, quoted_string, token, ParserResult},
+        uris::host::parser::host,
+        GenericParameter, TokenString,
     };
 
     fn gen_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
@@ -146,7 +151,8 @@ pub(crate) mod parser {
                 }),
                 quoted_string,
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn generic_param(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
@@ -156,6 +162,7 @@ pub(crate) mod parser {
                 pair(token, opt(preceded(equal, gen_value))),
                 |(name, value)| GenericParameter::new(name, value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

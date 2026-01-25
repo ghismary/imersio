@@ -1,6 +1,5 @@
 //! SIP Subject header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -12,7 +11,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// to use the same subject indication as the invitation.
 ///
 /// [[RFC3261, Section 20.36](https://datatracker.ietf.org/doc/html/rfc3261#section-20.36)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct SubjectHeader {
     #[partial_eq_ignore]
@@ -49,29 +48,32 @@ impl HeaderAccessor for SubjectHeader {
 }
 
 pub(crate) mod parser {
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, text_utf8_trim, ParserResult};
-    use crate::{Header, SubjectHeader, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, opt},
         error::context,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        headers::GenericHeader,
+        parser::{hcolon, text_utf8_trim, ParserResult},
+        Header, SubjectHeader, TokenString,
     };
 
     pub(crate) fn subject(input: &str) -> ParserResult<&str, Header> {
         context(
             "Subject header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Subject"), tag_no_case("s"))),
                         TokenString::new,
                     ),
                     hcolon,
                     cut(consumed(opt(text_utf8_trim))),
-                )),
+                ),
                 |(name, separator, (value, subject))| {
                     Header::Subject(SubjectHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -79,7 +81,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -10,7 +10,7 @@ pub trait HeaderAccessor {
     /// is.
     fn value(&self) -> &str;
 
-    /// Get the compact name of the header, if it has one.
+    /// Get the compact name of the header if it has one.
     fn compact_name(&self) -> Option<&str>;
     /// Get the normalized name of the header, eg. `Call-ID`.
     fn normalized_name(&self) -> Option<&str>;

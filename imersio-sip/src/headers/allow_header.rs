@@ -1,6 +1,5 @@
 //! SIP Allow header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -12,7 +11,7 @@ use crate::{IntoMethod, Method, Methods, SipError, TokenString};
 /// generating the message.
 ///
 /// [[RFC3261, Section 20.5](https://datatracker.ietf.org/doc/html/rfc3261#section-20.5)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AllowHeader {
     #[partial_eq_ignore]
@@ -33,7 +32,7 @@ impl AllowHeader {
         &self.methods
     }
 
-    /// Tell whether Allow header contains the given method.
+    /// Tell whether the Allow header contains the given method.
     pub fn contains(&self, method: Method) -> bool {
         self.methods.iter().any(|m| m == &method)
     }
@@ -93,27 +92,30 @@ impl AllowHeaderBuilder {
 }
 
 pub(crate) mod parser {
-    use crate::common::method::parser::method;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AllowHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list0,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::method::parser::method,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        AllowHeader, Header, TokenString,
     };
 
     pub(crate) fn allow(input: &str) -> ParserResult<&str, Header> {
         context(
             "Allow header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Allow"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list0(comma, method))),
-                )),
+                ),
                 |(name, separator, (value, methods))| {
                     Header::Allow(AllowHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -121,7 +123,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

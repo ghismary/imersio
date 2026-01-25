@@ -62,21 +62,25 @@ impl Hash for WarningValue {
 }
 
 pub(crate) mod parser {
-    use crate::common::warn_agent::parser::warn_agent;
-    use crate::common::warn_code::parser::warn_code;
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{quoted_string, sp, ParserResult};
-    use crate::{TokenString, WarningValue};
-    use nom::{combinator::map, error::context, sequence::tuple};
+    use nom::{combinator::map, error::context, Parser};
+
+    use crate::{
+        common::warn_agent::parser::warn_agent,
+        common::warn_code::parser::warn_code,
+        common::wrapped_string::WrappedString,
+        parser::{quoted_string, sp, ParserResult},
+        TokenString, WarningValue,
+    };
 
     pub(crate) fn warning_value(input: &str) -> ParserResult<&str, WarningValue> {
         context(
             "warning_value",
             map(
-                tuple((warn_code, sp, warn_agent, sp, warn_text)),
+                (warn_code, sp, warn_agent, sp, warn_text),
                 |(code, _, agent, _, text)| WarningValue::new(code, agent, text.value()),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]

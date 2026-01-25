@@ -1,7 +1,6 @@
 //! SIP Timestamp header parsing and generation.
 
 use chrono::{DateTime, TimeDelta, Utc};
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -11,7 +10,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// The Timestamp header field describes when the UAC sent the request to the UAS.
 ///
 /// [[RFC3261, Section 20.38](https://datatracker.ietf.org/doc/html/rfc3261#section-20.38)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct TimestampHeader {
     #[partial_eq_ignore]
@@ -97,9 +96,6 @@ impl HeaderAccessor for TimestampHeader {
 }
 
 pub(crate) mod parser {
-    use crate::headers::GenericHeader;
-    use crate::parser::{digit, hcolon, lws, ParserResult};
-    use crate::{Header, TimestampHeader, TokenString};
     use chrono::{DateTime, TimeDelta};
     use nom::{
         bytes::complete::{tag, tag_no_case},
@@ -107,22 +103,29 @@ pub(crate) mod parser {
         combinator::{consumed, cut, map, opt, recognize},
         error::context,
         multi::{many0, many_m_n},
-        sequence::{pair, preceded, tuple},
+        sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        headers::GenericHeader,
+        parser::{digit, hcolon, lws, ParserResult},
+        Header, TimestampHeader, TokenString,
     };
 
     pub(crate) fn timestamp(input: &str) -> ParserResult<&str, Header> {
         context(
             "Timestamp header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Timestamp"), TokenString::new),
                     hcolon,
-                    cut(consumed(tuple((
+                    cut(consumed((
                         digit1,
                         opt(preceded(tag("."), recognize(many_m_n(0, 9, digit)))),
                         opt(preceded(lws, delay)),
-                    )))),
-                )),
+                    ))),
+                ),
                 |(name, separator, (value, (seconds, nanoseconds, delay)))| {
                     Header::Timestamp(TimestampHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -136,7 +139,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn delay(input: &str) -> ParserResult<&str, TimeDelta> {
@@ -155,7 +159,8 @@ pub(crate) mod parser {
                     .unwrap()
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

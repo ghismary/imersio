@@ -1,6 +1,5 @@
 //! SIP CSeq header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -16,7 +15,7 @@ use crate::Method;
 /// new requests and request retransmissions.
 ///
 /// [[RFC3261, Section 20.16](https://datatracker.ietf.org/doc/html/rfc3261#section-20.16)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct CSeqHeader {
     #[partial_eq_ignore]
@@ -60,23 +59,27 @@ impl HeaderAccessor for CSeqHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::method::parser::method;
-    use crate::headers::GenericHeader;
-    use crate::parser::{digit, hcolon, lws, ParserResult};
-    use crate::{CSeqHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
-        sequence::{separated_pair, tuple},
+        sequence::separated_pair,
+        Parser,
+    };
+
+    use crate::{
+        common::method::parser::method,
+        headers::GenericHeader,
+        parser::{digit, hcolon, lws, ParserResult},
+        CSeqHeader, Header, TokenString,
     };
 
     pub(crate) fn cseq(input: &str) -> ParserResult<&str, Header> {
         context(
             "CSeq header",
             map(
-                tuple((
+                (
                     map(tag_no_case("CSeq"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_pair(
@@ -84,7 +87,7 @@ pub(crate) mod parser {
                         lws,
                         method,
                     ))),
-                )),
+                ),
                 |(name, separator, (value, (cseq, method)))| {
                     Header::CSeq(CSeqHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -93,7 +96,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

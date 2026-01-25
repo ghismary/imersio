@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::hash::Hash;
@@ -20,7 +19,7 @@ pub type AuthParameters = ValueCollection<AuthParameter>;
 
 /// Representation of the authentication parameters used in an `AuthorizationHeader` or in a
 /// `ProxyAuthenticateHeader`.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum AuthParameter {
     /// A `username` parameter.
     Username(WrappedString<TokenString>),
@@ -132,8 +131,8 @@ impl PartialEq for AuthParameter {
             (Self::Domain(a), Self::Domain(b)) => a == b,
             (Self::Stale(a), Self::Stale(b)) => a == b,
             (Self::QopOptions(a), Self::QopOptions(b)) => a == b,
-            (Self::Other(akey, avalue), Self::Other(bkey, bvalue)) => {
-                akey.eq_ignore_ascii_case(bkey) && avalue == bvalue
+            (Self::Other(a_key, a_value), Self::Other(b_key, b_value)) => {
+                a_key.eq_ignore_ascii_case(b_key) && a_value == b_value
             }
             _ => false,
         }
@@ -188,13 +187,6 @@ impl TryFrom<AuthenticationInfo> for AuthParameter {
 }
 
 pub(crate) mod parser {
-    use crate::common::authentication_info::parser::{
-        cnonce, message_qop, nonce_count, nonce_value,
-    };
-    use crate::common::wrapped_string::WrappedString;
-    use crate::parser::{comma, equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult};
-    use crate::uris::uri::parser::request_uri;
-    use crate::{Algorithm, AuthParameter, AuthParameters, TokenString, Uri};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
@@ -202,6 +194,17 @@ pub(crate) mod parser {
         error::context,
         multi::{many_m_n, separated_list1},
         sequence::{delimited, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        common::{
+            authentication_info::parser::{cnonce, message_qop, nonce_count, nonce_value},
+            wrapped_string::WrappedString,
+        },
+        parser::{comma, equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult},
+        uris::uri::parser::request_uri,
+        Algorithm, AuthParameter, AuthParameters, TokenString, Uri,
     };
 
     #[inline]
@@ -216,7 +219,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("username"), equal, cut(username_value)),
                 |(_, value)| AuthParameter::Username(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -231,7 +235,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("realm"), equal, cut(realm_value)),
                 |(_, value)| AuthParameter::Realm(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn nonce(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -241,11 +246,12 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("nonce"), equal, cut(nonce_value)),
                 |(_, value)| AuthParameter::Nonce(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn digest_uri_value(input: &str) -> ParserResult<&str, Uri> {
-        delimited(ldquot, request_uri, rdquot)(input)
+        delimited(ldquot, request_uri, rdquot).parse(input)
     }
 
     fn digest_uri(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -255,7 +261,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("uri"), equal, cut(digest_uri_value)),
                 |(_, value)| AuthParameter::DigestUri(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn request_digest(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {
@@ -265,7 +272,8 @@ pub(crate) mod parser {
                 delimited(ldquot, recognize(many_m_n(32, 32, lhex)), rdquot),
                 WrappedString::new_quoted,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn dresponse(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -275,7 +283,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("response"), equal, cut(request_digest)),
                 |(_, value)| AuthParameter::DResponse(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn algorithm(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -293,7 +302,8 @@ pub(crate) mod parser {
                 ),
                 |(_, value)| AuthParameter::Algorithm(Algorithm::new(value)),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn opaque(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -303,7 +313,8 @@ pub(crate) mod parser {
                 separated_pair(tag_no_case("opaque"), equal, cut(quoted_string)),
                 |(_, value)| AuthParameter::Opaque(value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -322,7 +333,8 @@ pub(crate) mod parser {
                 ),
                 |(key, value)| AuthParameter::Other(key, value),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn dig_resp(input: &str) -> ParserResult<&str, AuthParameter> {
@@ -341,14 +353,16 @@ pub(crate) mod parser {
                 map(nonce_count, |ainfo| ainfo.try_into().unwrap()),
                 auth_param,
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn digest_response(input: &str) -> ParserResult<&str, AuthParameters> {
         context(
             "digest_response",
             map(separated_list1(comma, dig_resp), Into::into),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -360,6 +374,7 @@ pub(crate) mod parser {
         context(
             "auth_params",
             map(separated_list1(comma, auth_param), Into::into),
-        )(input)
+        )
+        .parse(input)
     }
 }

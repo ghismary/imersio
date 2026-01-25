@@ -1,4 +1,4 @@
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::convert::TryFrom;
 
 use crate::SipError;
@@ -71,7 +71,7 @@ impl StatusCode {
         let offset = (self.code() - 100) as usize;
         let offset = offset * 3;
 
-        // Invariant: self has checked range [100, 999] and CODE_DIGITS is
+        // Invariant: self has checked range [100, 999], and CODE_DIGITS is
         // ASCII-only, of length 900 * 3 = 2700 bytes.
         &CODE_DIGITS[offset..offset + 3]
     }
@@ -319,8 +319,6 @@ pub(crate) const CODE_DIGITS: &str = "\
 980981982983984985986987988989990991992993994995996997998999";
 
 pub(crate) mod parser {
-    use super::*;
-    use crate::parser::{digit, positive_digit, ParserResult};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -328,7 +326,11 @@ pub(crate) mod parser {
         error::context,
         multi::count,
         sequence::pair,
+        Parser,
     };
+
+    use super::*;
+    use crate::parser::{digit, positive_digit, ParserResult};
 
     #[inline]
     fn informational(input: &str) -> ParserResult<&str, StatusCode> {
@@ -338,12 +340,13 @@ pub(crate) mod parser {
             value(StatusCode::CALL_IS_BEING_FORWARDED, tag("181")),
             value(StatusCode::QUEUED, tag("182")),
             value(StatusCode::SESSION_PROGRESS, tag("183")),
-        ))(input)
+        ))
+        .parse(input)
     }
 
     #[inline]
     fn success(input: &str) -> ParserResult<&str, StatusCode> {
-        value(StatusCode::OK, tag("200"))(input)
+        value(StatusCode::OK, tag("200")).parse(input)
     }
 
     #[inline]
@@ -354,7 +357,8 @@ pub(crate) mod parser {
             value(StatusCode::MOVED_TEMPORARILY, tag("302")),
             value(StatusCode::USE_PROXY, tag("305")),
             value(StatusCode::ALTERNATE_SERVICE, tag("380")),
-        ))(input)
+        ))
+        .parse(input)
     }
 
     #[inline]
@@ -390,7 +394,8 @@ pub(crate) mod parser {
                 value(StatusCode::REQUEST_PENDING, tag("491")),
                 value(StatusCode::UNDECIPHERABLE, tag("493")),
             )),
-        ))(input)
+        ))
+        .parse(input)
     }
 
     #[inline]
@@ -403,7 +408,8 @@ pub(crate) mod parser {
             value(StatusCode::SERVER_TIMEOUT, tag("504")),
             value(StatusCode::VERSION_NOT_SUPPORTED, tag("505")),
             value(StatusCode::MESSAGE_TOO_LARGE, tag("513")),
-        ))(input)
+        ))
+        .parse(input)
     }
 
     #[inline]
@@ -413,15 +419,18 @@ pub(crate) mod parser {
             value(StatusCode::DECLINE, tag("603")),
             value(StatusCode::DOES_NOT_EXIST_ANYWHERE, tag("604")),
             value(StatusCode::NOT_ACCEPTABLE_GLOBAL, tag("606")),
-        ))(input)
+        ))
+        .parse(input)
     }
 
     #[inline]
     fn extension_code(input: &str) -> ParserResult<&str, StatusCode> {
-        recognize(pair(positive_digit, count(digit, 2)))(input).map(|(rest, result)| {
-            let status = result.parse::<u16>().unwrap();
-            (rest, StatusCode(status))
-        })
+        recognize(pair(positive_digit, count(digit, 2)))
+            .parse(input)
+            .map(|(rest, result)| {
+                let status = result.parse::<u16>().unwrap();
+                (rest, StatusCode(status))
+            })
     }
 
     pub(crate) fn status_code(input: &str) -> ParserResult<&str, StatusCode> {
@@ -436,7 +445,8 @@ pub(crate) mod parser {
                 global_failure,
                 extension_code,
             )),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

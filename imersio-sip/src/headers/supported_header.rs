@@ -8,7 +8,7 @@ use crate::{OptionTag, OptionTags};
 
 /// Representation of a Supported header.
 ///
-/// The Supported header field enumerates all the extensions supported by the UAC or UAS.
+/// The Supported header field lists all the extensions supported by the UAC or UAS.
 ///
 /// [[RFC3261, Section 20.37](https://datatracker.ietf.org/doc/html/rfc3261#section-20.37)]
 #[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
@@ -48,31 +48,34 @@ impl HeaderAccessor for SupportedHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::option_tag::parser::option_tag;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{Header, SupportedHeader, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::option_tag::parser::option_tag,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        Header, SupportedHeader, TokenString,
     };
 
     pub(crate) fn supported(input: &str) -> ParserResult<&str, Header> {
         context(
             "Supported header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Supported"), tag_no_case("k"))),
                         TokenString::new,
                     ),
                     hcolon,
                     cut(consumed(separated_list1(comma, option_tag))),
-                )),
+                ),
                 |(name, separator, (value, tags))| {
                     Header::Supported(SupportedHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -80,7 +83,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

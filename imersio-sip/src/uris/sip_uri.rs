@@ -251,18 +251,22 @@ impl SipUriBuilder {
 }
 
 pub(crate) mod parser {
-    use crate::parser::ParserResult;
-    use crate::uris::host::parser::hostport;
-    use crate::uris::uri_header::parser::headers;
-    use crate::uris::uri_parameter::parser::uri_parameters;
-    use crate::uris::user_info::parser::userinfo;
-    use crate::{SipUri, Uri, UriScheme};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{cut, map, opt},
         error::context,
-        sequence::{pair, tuple},
+        sequence::pair,
+        Parser,
+    };
+
+    use crate::{
+        parser::ParserResult,
+        uris::{
+            host::parser::hostport, uri_header::parser::headers,
+            uri_parameter::parser::uri_parameters, user_info::parser::userinfo,
+        },
+        SipUri, Uri, UriScheme,
     };
 
     pub(crate) fn sip_uri(input: &str) -> ParserResult<&str, Uri> {
@@ -274,12 +278,7 @@ pub(crate) mod parser {
                         map(tag_no_case("sip:"), |_| UriScheme::SIP),
                         map(tag_no_case("sips:"), |_| UriScheme::SIPS),
                     )),
-                    cut(tuple((
-                        opt(userinfo),
-                        hostport,
-                        uri_parameters,
-                        opt(headers),
-                    ))),
+                    cut((opt(userinfo), hostport, uri_parameters, opt(headers))),
                 ),
                 |(scheme, (userinfo, (host, port), parameters, headers))| {
                     Uri::Sip(SipUri::new(
@@ -292,7 +291,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -1,6 +1,5 @@
 //! SIP Alert-Info header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -15,7 +14,7 @@ use crate::{Alert, Alerts};
 /// field to provide a distinctive ring feature.
 ///
 /// [[RFC3261, Section 20.4](https://datatracker.ietf.org/doc/html/rfc3261#section-20.4)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct AlertInfoHeader {
     #[partial_eq_ignore]
@@ -52,27 +51,30 @@ impl HeaderAccessor for AlertInfoHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::alert::parser::alert_param;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{AlertInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::alert::parser::alert_param,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        AlertInfoHeader, Header, TokenString,
     };
 
     pub(crate) fn alert_info(input: &str) -> ParserResult<&str, Header> {
         context(
             "Alert-Info header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Alert-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, alert_param))),
-                )),
+                ),
                 |(name, separator, (value, alerts))| {
                     Header::AlertInfo(AlertInfoHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -80,7 +82,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

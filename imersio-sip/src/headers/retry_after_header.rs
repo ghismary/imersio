@@ -1,7 +1,6 @@
 //! SIP Retry-After header parsing and generation.
 
 use chrono::TimeDelta;
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 use itertools::join;
 
@@ -18,7 +17,7 @@ use crate::RetryParameter;
 /// seconds (in decimal) after the time of the response.
 ///
 /// [[RFC3261, Section 20.33](https://datatracker.ietf.org/doc/html/rfc3261#section-20.33)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct RetryAfterHeader {
     #[partial_eq_ignore]
@@ -85,33 +84,36 @@ impl HeaderAccessor for RetryAfterHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact_parameter::parser::delta_seconds;
-    use crate::common::retry_parameter::parser::retry_param;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comment, hcolon, semi, ParserResult};
-    use crate::{Header, RetryAfterHeader, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::opt,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
-        sequence::{preceded, tuple},
+        sequence::preceded,
+        Parser,
+    };
+
+    use crate::{
+        common::{contact_parameter::parser::delta_seconds, retry_parameter::parser::retry_param},
+        headers::GenericHeader,
+        parser::{comment, hcolon, semi, ParserResult},
+        Header, RetryAfterHeader, TokenString,
     };
 
     pub(crate) fn retry_after(input: &str) -> ParserResult<&str, Header> {
         context(
             "Retry-After header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Retry-After"), TokenString::new),
                     hcolon,
-                    cut(consumed(tuple((
+                    cut(consumed((
                         delta_seconds,
                         opt(comment),
                         many0(preceded(semi, retry_param)),
-                    )))),
-                )),
+                    ))),
+                ),
                 |(name, separator, (value, (retry_after, comment, params)))| {
                     Header::RetryAfter(RetryAfterHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -121,7 +123,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

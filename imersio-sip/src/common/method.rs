@@ -16,7 +16,7 @@
 //! ```
 
 use crate::common::value_collection::ValueCollection;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::{hash::Hash, str};
 
 use crate::{SipError, TokenString};
@@ -137,44 +137,50 @@ impl TryFrom<&str> for Method {
 }
 
 pub(crate) mod parser {
+    use nom::{
+        branch::alt,
+        bytes::complete::tag,
+        combinator::{map, value},
+        error::context,
+        Parser,
+    };
+
     use super::Method;
     use crate::parser::{token, ParserResult};
-    use nom::combinator::value;
-    use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context};
 
     #[inline]
     fn ack_method(input: &str) -> ParserResult<&str, Method> {
-        value(Method::Ack, tag("ACK"))(input)
+        value(Method::Ack, tag("ACK")).parse(input)
     }
 
     #[inline]
     fn bye_method(input: &str) -> ParserResult<&str, Method> {
-        value(Method::Bye, tag("BYE"))(input)
+        value(Method::Bye, tag("BYE")).parse(input)
     }
 
     #[inline]
     fn cancel_method(input: &str) -> ParserResult<&str, Method> {
-        value(Method::Cancel, tag("CANCEL"))(input)
+        value(Method::Cancel, tag("CANCEL")).parse(input)
     }
 
     #[inline]
     fn extension_method(input: &str) -> ParserResult<&str, Method> {
-        map(token, Method::Other)(input)
+        map(token, Method::Other).parse(input)
     }
 
     #[inline]
     fn invite_method(input: &str) -> ParserResult<&str, Method> {
-        value(Method::Invite, tag("INVITE"))(input)
+        value(Method::Invite, tag("INVITE")).parse(input)
     }
 
     #[inline]
     fn options_method(input: &str) -> ParserResult<&str, Method> {
-        value(Method::Options, tag("OPTIONS"))(input)
+        value(Method::Options, tag("OPTIONS")).parse(input)
     }
 
     #[inline]
     fn register_method(input: &str) -> ParserResult<&str, Method> {
-        value(Method::Register, tag("REGISTER"))(input)
+        value(Method::Register, tag("REGISTER")).parse(input)
     }
 
     pub(crate) fn method(input: &str) -> ParserResult<&str, Method> {
@@ -189,7 +195,8 @@ pub(crate) mod parser {
                 register_method,
                 extension_method,
             )),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

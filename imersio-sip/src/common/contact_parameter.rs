@@ -1,10 +1,9 @@
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 
 use crate::{GenericParameter, TokenString};
 
 /// Representation of a contact parameter.
-#[derive(Clone, Debug, Eq, Hash, IsVariant, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::IsVariant)]
 pub enum ContactParameter {
     /// A `q` parameter.
     Q(String),
@@ -70,7 +69,7 @@ impl PartialOrd for ContactParameter {
 }
 
 impl Ord for ContactParameter {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self.key().cmp(other.key()) {
             Ordering::Equal => {}
             ord => return ord,
@@ -86,10 +85,6 @@ impl From<GenericParameter<TokenString>> for ContactParameter {
 }
 
 pub(crate) mod parser {
-    use crate::common::accept_parameter::parser::qvalue;
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::parser::{digit, equal, ParserResult};
-    use crate::{ContactParameter, GenericParameter, TokenString};
     use chrono::TimeDelta;
     use nom::{
         branch::alt,
@@ -97,20 +92,29 @@ pub(crate) mod parser {
         combinator::{map, recognize},
         multi::many1,
         sequence::separated_pair,
+        Parser,
+    };
+
+    use crate::{
+        common::{accept_parameter::parser::qvalue, generic_parameter::parser::generic_param},
+        parser::{digit, equal, ParserResult},
+        ContactParameter, GenericParameter, TokenString,
     };
 
     fn c_p_q(input: &str) -> ParserResult<&str, ContactParameter> {
         map(
             separated_pair(tag_no_case("q"), equal, qvalue),
             |(_, value)| ContactParameter::Q(value.to_string()),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
     pub(crate) fn delta_seconds(input: &str) -> ParserResult<&str, TimeDelta> {
         map(recognize(many1(digit)), |digits| {
             TimeDelta::seconds(digits.parse::<u32>().unwrap_or(u32::MAX) as i64)
-        })(input)
+        })
+        .parse(input)
     }
 
     fn c_p_expires(input: &str) -> ParserResult<&str, ContactParameter> {
@@ -121,7 +125,8 @@ pub(crate) mod parser {
                 map(delta_seconds, |seconds| seconds.num_seconds().to_string()),
             ),
             |(_, value)| ContactParameter::Expires(value),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -130,6 +135,6 @@ pub(crate) mod parser {
     }
 
     pub(crate) fn contact_params(input: &str) -> ParserResult<&str, ContactParameter> {
-        alt((c_p_q, c_p_expires, map(contact_extension, Into::into)))(input)
+        alt((c_p_q, c_p_expires, map(contact_extension, Into::into))).parse(input)
     }
 }

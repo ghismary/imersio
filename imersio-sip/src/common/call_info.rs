@@ -12,7 +12,7 @@ use crate::CallInfoParameter;
 pub type CallInfos = ValueCollection<CallInfo>;
 
 impl CallInfos {
-    /// Tell whether Call-Info header contains the given `AbsoluteUri`.
+    /// Tell whether the Call-Info header contains the given `AbsoluteUri`.
     pub fn contains(&self, uri: &AbsoluteUri) -> bool {
         self.iter().any(|info| &info.uri == uri)
     }
@@ -74,29 +74,28 @@ impl Hash for CallInfo {
 }
 
 pub(crate) mod parser {
-    use crate::common::call_info_parameter::parser::info_param;
-    use crate::parser::{laquot, raquot, semi, ParserResult};
-    use crate::uris::absolute_uri::parser::absolute_uri;
-    use crate::CallInfo;
-    use nom::{
-        combinator::map,
-        error::context,
-        multi::many0,
-        sequence::{preceded, tuple},
+    use nom::{combinator::map, error::context, multi::many0, sequence::preceded, Parser};
+
+    use crate::{
+        common::call_info_parameter::parser::info_param,
+        parser::{laquot, raquot, semi, ParserResult},
+        uris::absolute_uri::parser::absolute_uri,
+        CallInfo,
     };
 
     pub(crate) fn info(input: &str) -> ParserResult<&str, CallInfo> {
         context(
             "info",
             map(
-                tuple((
+                (
                     laquot,
                     absolute_uri,
                     raquot,
                     many0(preceded(semi, info_param)),
-                )),
+                ),
                 |(_, uri, _, params)| CallInfo::new(uri, params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

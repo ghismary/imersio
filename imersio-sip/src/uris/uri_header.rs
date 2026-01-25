@@ -1,16 +1,16 @@
 //! Parsing and generation of the headers of a SIP URI.
 
-use derive_more::{Deref, DerefMut, Display};
 use itertools::join;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 
 use crate::parser::ESCAPED_CHARS;
 use crate::uris::uri_header::parser::is_hnv_unreserved;
 use crate::{parser::is_unreserved, utils::escape, SipError};
 
 /// Representation of a string with limited characters for URI header names.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct UriHeaderNameString(String);
 
 impl UriHeaderNameString {
@@ -42,7 +42,7 @@ impl TryFrom<&str> for UriHeaderNameString {
 }
 
 /// Representation of a string with limited characters for URI header values.
-#[derive(Clone, Debug, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct UriHeaderValueString(String);
 
 impl UriHeaderValueString {
@@ -114,7 +114,7 @@ impl std::fmt::Display for UriHeader {
 impl PartialEq for UriHeader {
     fn eq(&self, other: &Self) -> bool {
         self.name().eq_ignore_ascii_case(other.name())
-            && self.value().to_ascii_lowercase() == other.value().to_ascii_lowercase()
+            && self.value().eq_ignore_ascii_case(other.value())
     }
 }
 
@@ -150,23 +150,23 @@ impl Hash for UriHeader {
 /// Representation of a list of URI headers.
 ///
 /// This is usable as an iterator.
-#[derive(Clone, Debug, Default, Deref, DerefMut, Eq)]
+#[derive(Clone, Debug, Default, Eq, derive_more::Deref, derive_more::DerefMut)]
 pub struct UriHeaders(Vec<UriHeader>);
 
-impl crate::UriHeaders {
+impl UriHeaders {
     /// Get a URI header by its name.
     pub fn get(&self, name: &str) -> Option<&UriHeader> {
         self.iter().find(|p| p.name().eq_ignore_ascii_case(name))
     }
 }
 
-impl std::fmt::Display for crate::UriHeaders {
+impl std::fmt::Display for UriHeaders {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", join(self.deref(), "&"))
     }
 }
 
-impl PartialEq for crate::UriHeaders {
+impl PartialEq for UriHeaders {
     fn eq(&self, other: &Self) -> bool {
         for self_header in &self.0 {
             if let Some(other_header) = other.get(self_header.name()) {
@@ -198,8 +198,8 @@ impl PartialEq for crate::UriHeaders {
     }
 }
 
-impl Hash for crate::UriHeaders {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl Hash for UriHeaders {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         let mut sorted_headers: Vec<&UriHeader> = self.iter().collect();
         sorted_headers.sort();
         sorted_headers.hash(state);
@@ -213,8 +213,6 @@ impl From<Vec<UriHeader>> for UriHeaders {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{escaped, take1, unreserved, ParserResult};
-    use crate::{UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -222,6 +220,12 @@ pub(crate) mod parser {
         error::context,
         multi::{many0, many1, separated_list1},
         sequence::{preceded, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        parser::{escaped, take1, unreserved, ParserResult},
+        UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders,
     };
 
     #[inline]
@@ -231,7 +235,7 @@ pub(crate) mod parser {
 
     #[inline]
     fn hnv_unreserved(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| is_hnv_unreserved(*c))(input)
+        verify(take1, |c| is_hnv_unreserved(*c)).parse(input)
     }
 
     #[inline]
@@ -241,7 +245,8 @@ pub(crate) mod parser {
             map(many1(alt((hnv_unreserved, unreserved, escaped))), |name| {
                 UriHeaderNameString::new(name.iter().collect::<String>())
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -251,7 +256,8 @@ pub(crate) mod parser {
             map(many0(alt((hnv_unreserved, unreserved, escaped))), |value| {
                 UriHeaderValueString::new(value.iter().collect::<String>())
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn header(input: &str) -> ParserResult<&str, UriHeader> {
@@ -260,7 +266,8 @@ pub(crate) mod parser {
             map(separated_pair(hname, tag("="), hvalue), |(name, value)| {
                 UriHeader::new(name, value)
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn headers(input: &str) -> ParserResult<&str, UriHeaders> {
@@ -270,6 +277,7 @@ pub(crate) mod parser {
                 preceded(tag("?"), separated_list1(tag("&"), header)),
                 Into::into,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

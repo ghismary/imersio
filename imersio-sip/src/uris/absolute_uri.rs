@@ -4,10 +4,9 @@ use crate::parser::{is_reserved, is_unreserved, ESCAPED_CHARS};
 use crate::uris::absolute_uri::parser::is_uric_special_char;
 use crate::utils::escape;
 use crate::{IntoSpecificString, IntoUriScheme, SipError, UriHeaders, UriParameters, UriScheme};
-use derive_more::{Deref, Display};
 
 /// Representation of a URI user value accepting only the valid characters.
-#[derive(Clone, Debug, Default, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct OpaquePartString(String);
 
 impl OpaquePartString {
@@ -155,11 +154,6 @@ impl AbsoluteUriBuilder {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{
-        escaped, is_reserved, is_unreserved, reserved, take1, unreserved, ParserResult,
-    };
-    use crate::uris::uri_scheme::parser::scheme;
-    use crate::{AbsoluteUri, OpaquePartString, UriHeaders, UriParameters, UriScheme};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -167,6 +161,13 @@ pub(crate) mod parser {
         error::context,
         multi::many0,
         sequence::{pair, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        parser::{escaped, is_reserved, is_unreserved, reserved, take1, unreserved, ParserResult},
+        uris::uri_scheme::parser::scheme,
+        AbsoluteUri, OpaquePartString, UriHeaders, UriParameters, UriScheme,
     };
 
     #[inline]
@@ -176,14 +177,15 @@ pub(crate) mod parser {
 
     #[inline]
     fn uric(input: &str) -> ParserResult<&str, char> {
-        alt((reserved, unreserved, escaped))(input)
+        alt((reserved, unreserved, escaped)).parse(input)
     }
 
     #[inline]
     fn uric_no_slash(input: &str) -> ParserResult<&str, char> {
         verify(take1, |c| {
             is_reserved(*c) || is_unreserved(*c) || is_uric_special_char(*c)
-        })(input)
+        })
+        .parse(input)
     }
 
     #[inline]
@@ -191,7 +193,8 @@ pub(crate) mod parser {
         map(
             recognize(pair(uric_no_slash, many0(uric))),
             OpaquePartString::new,
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn absolute_uri(input: &str) -> ParserResult<&str, AbsoluteUri> {
@@ -208,7 +211,8 @@ pub(crate) mod parser {
                     )
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -74,15 +74,19 @@ impl Hash for Alert {
 }
 
 pub(crate) mod parser {
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::parser::{laquot, raquot, semi, ParserResult};
-    use crate::uris::absolute_uri::parser::absolute_uri;
-    use crate::Alert;
     use nom::{
         combinator::map,
         error::context,
         multi::many0,
         sequence::{delimited, pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::generic_parameter::parser::generic_param,
+        parser::{laquot, raquot, semi, ParserResult},
+        uris::absolute_uri::parser::absolute_uri,
+        Alert,
     };
 
     pub(crate) fn alert_param(input: &str) -> ParserResult<&str, Alert> {
@@ -95,6 +99,7 @@ pub(crate) mod parser {
                 ),
                 |(uri, params)| Alert::new(uri, params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

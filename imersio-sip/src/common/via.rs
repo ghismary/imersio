@@ -91,34 +91,39 @@ impl Hash for Via {
 }
 
 pub(crate) mod parser {
-    use crate::common::protocol::parser::sent_protocol;
-    use crate::common::via_parameter::parser::via_params;
-    use crate::parser::{colon, lws, semi, ParserResult};
-    use crate::uris::host::parser::{host, port};
-    use crate::{Host, Via};
     use nom::{
         combinator::{map, opt},
         error::context,
         multi::many0,
-        sequence::{pair, preceded, tuple},
+        sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::protocol::parser::sent_protocol,
+        common::via_parameter::parser::via_params,
+        parser::{colon, lws, semi, ParserResult},
+        uris::host::parser::{host, port},
+        Host, Via,
     };
 
     fn sent_by(input: &str) -> ParserResult<&str, (Host, Option<u16>)> {
-        context("sent_by", pair(host, opt(preceded(colon, port))))(input)
+        context("sent_by", pair(host, opt(preceded(colon, port)))).parse(input)
     }
 
     pub(crate) fn via_parm(input: &str) -> ParserResult<&str, Via> {
         context(
             "via_parm",
             map(
-                tuple((
+                (
                     sent_protocol,
                     lws,
                     sent_by,
                     many0(preceded(semi, via_params)),
-                )),
+                ),
                 |(protocol, _, (host, port), params)| Via::new(protocol, host, port, params),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }

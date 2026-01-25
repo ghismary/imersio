@@ -1,9 +1,7 @@
 use std::error::Error;
 
-use derive_more::Display;
-
 /// A generic error for SIP
-#[derive(Debug, Display, PartialEq)]
+#[derive(Debug, PartialEq, derive_more::Display)]
 pub enum SipError {
     /// Duplicated URI parameters.
     #[display("Duplicated URI parameters")]

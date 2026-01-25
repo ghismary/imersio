@@ -1,8 +1,7 @@
 use crate::TokenString;
-use derive_more::Display;
 
 /// Representation of a media range contained in an `AcceptRange` or a `Content-Type` header.
-#[derive(Clone, Debug, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Display)]
 #[display("{}/{}", self.r#type, self.subtype)]
 pub struct MediaRange {
     r#type: TokenString,
@@ -16,13 +15,17 @@ impl MediaRange {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{slash, token, ParserResult};
-    use crate::{MediaRange, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag,
         combinator::{map, recognize},
         sequence::{pair, separated_pair},
+        Parser,
+    };
+
+    use crate::{
+        parser::{slash, token, ParserResult},
+        MediaRange, TokenString,
     };
 
     fn discrete_type(input: &str) -> ParserResult<&str, TokenString> {
@@ -35,11 +38,12 @@ pub(crate) mod parser {
                 tag("application"),
             )),
             TokenString::new,
-        )(input)
+        )
+        .parse(input)
     }
 
     fn composite_type(input: &str) -> ParserResult<&str, TokenString> {
-        map(alt((tag("message"), tag("multipart"))), TokenString::new)(input)
+        map(alt((tag("message"), tag("multipart"))), TokenString::new).parse(input)
     }
 
     #[inline]
@@ -49,16 +53,16 @@ pub(crate) mod parser {
 
     #[inline]
     fn x_token(input: &str) -> ParserResult<&str, TokenString> {
-        map(recognize(pair(tag("x-"), token)), TokenString::new)(input)
+        map(recognize(pair(tag("x-"), token)), TokenString::new).parse(input)
     }
 
     #[inline]
     fn extension_token(input: &str) -> ParserResult<&str, TokenString> {
-        alt((ietf_token, x_token))(input)
+        alt((ietf_token, x_token)).parse(input)
     }
 
     pub(crate) fn m_type(input: &str) -> ParserResult<&str, TokenString> {
-        alt((discrete_type, composite_type, extension_token))(input)
+        alt((discrete_type, composite_type, extension_token)).parse(input)
     }
 
     #[inline]
@@ -67,7 +71,7 @@ pub(crate) mod parser {
     }
 
     pub(crate) fn m_subtype(input: &str) -> ParserResult<&str, TokenString> {
-        alt((extension_token, iana_token))(input)
+        alt((extension_token, iana_token)).parse(input)
     }
 
     pub(crate) fn media_range(input: &str) -> ParserResult<&str, MediaRange> {
@@ -82,6 +86,7 @@ pub(crate) mod parser {
                 separated_pair(m_type, slash, m_subtype),
             )),
             |(r#type, subtype)| MediaRange::new(r#type, subtype),
-        )(input)
+        )
+        .parse(input)
     }
 }

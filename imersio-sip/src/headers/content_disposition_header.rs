@@ -1,6 +1,5 @@
 //! SIP Content-Disposition header parsing and generation.
 
-use derive_more::Display;
 use itertools::join;
 use std::ops::Deref;
 
@@ -15,7 +14,7 @@ use crate::{DispositionParameter, DispositionType};
 /// UAC or UAS.
 ///
 /// [[RFC3261, Section 20.11](https://datatracker.ietf.org/doc/html/rfc3261#section-20.11)]
-#[derive(Clone, Debug, Display, Eq)]
+#[derive(Clone, Debug, Eq, derive_more::Display)]
 #[display("{}", header)]
 pub struct ContentDispositionHeader {
     header: GenericHeader,
@@ -74,28 +73,31 @@ impl PartialEq for ContentDispositionHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::disposition_parameter::parser::disp_param;
-    use crate::common::disposition_type::parser::disp_type;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, semi, ParserResult};
-    use crate::{ContentDispositionHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
-        sequence::{pair, preceded, tuple},
+        sequence::{pair, preceded},
+        Parser,
+    };
+
+    use crate::{
+        common::{disposition_parameter::parser::disp_param, disposition_type::parser::disp_type},
+        headers::GenericHeader,
+        parser::{hcolon, semi, ParserResult},
+        ContentDispositionHeader, Header, TokenString,
     };
 
     pub(crate) fn content_disposition(input: &str) -> ParserResult<&str, Header> {
         context(
             "Content-Disposition header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Content-Disposition"), TokenString::new),
                     hcolon,
                     cut(consumed(pair(disp_type, many0(preceded(semi, disp_param))))),
-                )),
+                ),
                 |(name, separator, (value, (r#type, params)))| {
                     Header::ContentDisposition(ContentDispositionHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -104,7 +106,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

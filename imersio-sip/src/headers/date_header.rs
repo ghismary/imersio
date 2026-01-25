@@ -1,7 +1,6 @@
 //! SIP Date header parsing and generation.
 
 use chrono::{DateTime, Utc};
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -13,7 +12,7 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// SIP restricts the time zone in SIP-date to "GMT", while RFC 1123 allows any time zone.
 ///
 /// [[RFC3261, Section 20.17](https://datatracker.ietf.org/doc/html/rfc3261#section-20.17)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct DateHeader {
     #[partial_eq_ignore]
@@ -47,17 +46,21 @@ impl HeaderAccessor for DateHeader {
 }
 
 pub(crate) mod parser {
-    use crate::headers::GenericHeader;
-    use crate::parser::{digit, hcolon, sp, ParserResult};
-    use crate::{DateHeader, Header, TokenString};
     use chrono::{DateTime, Utc};
     use nom::{
         branch::alt,
         bytes::complete::{tag, tag_no_case},
         combinator::{consumed, cut, map, recognize},
-        error::{context, ErrorKind, ParseError, VerboseError},
+        error::{context, ErrorKind, ParseError},
         multi::count,
-        sequence::tuple,
+        Parser,
+    };
+    use nom_language::error::VerboseError;
+
+    use crate::{
+        headers::GenericHeader,
+        parser::{digit, hcolon, sp, ParserResult},
+        DateHeader, Header, TokenString,
     };
 
     fn wkday(input: &str) -> ParserResult<&str, &str> {
@@ -72,7 +75,8 @@ pub(crate) mod parser {
                 tag("Sat"),
                 tag("Sun"),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn month(input: &str) -> ParserResult<&str, &str> {
@@ -92,40 +96,34 @@ pub(crate) mod parser {
                 tag("Nov"),
                 tag("Dec"),
             )),
-        )(input)
+        )
+        .parse(input)
     }
 
     fn date1(input: &str) -> ParserResult<&str, &str> {
         context(
             "date1",
-            recognize(tuple((count(digit, 2), sp, month, sp, count(digit, 4)))),
-        )(input)
+            recognize((count(digit, 2), sp, month, sp, count(digit, 4))),
+        )
+        .parse(input)
     }
 
     fn time(input: &str) -> ParserResult<&str, &str> {
         context(
             "time",
-            recognize(tuple((
+            recognize((
                 count(digit, 2),
                 tag(":"),
                 count(digit, 2),
                 tag(":"),
                 count(digit, 2),
-            ))),
-        )(input)
+            )),
+        )
+        .parse(input)
     }
 
     fn rfc1123_date(input: &str) -> ParserResult<&str, DateTime<Utc>> {
-        let result = recognize(tuple((
-            wkday,
-            tag(","),
-            sp,
-            date1,
-            sp,
-            time,
-            sp,
-            tag("GMT"),
-        )))(input);
+        let result = recognize((wkday, tag(","), sp, date1, sp, time, sp, tag("GMT"))).parse(input);
         match result {
             Err(e) => Err(e),
             Ok((rest, date)) => {
@@ -150,11 +148,11 @@ pub(crate) mod parser {
         context(
             "Date header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Date"), TokenString::new),
                     hcolon,
                     cut(consumed(sip_date)),
-                )),
+                ),
                 |(name, separator, (value, date))| {
                     Header::Date(DateHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -162,7 +160,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

@@ -1,6 +1,5 @@
 //! SIP Call-ID header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -12,7 +11,7 @@ use crate::CallId;
 /// all registrations of a particular client.
 ///
 /// [[RFC3261, Section 20.8](https://datatracker.ietf.org/doc/html/rfc3261#section-20.8)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct CallIdHeader {
     #[partial_eq_ignore]
@@ -46,30 +45,33 @@ impl HeaderAccessor for CallIdHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::call_id::parser::callid;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, ParserResult};
-    use crate::{CallIdHeader, Header, TokenString};
     use nom::{
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::call_id::parser::callid,
+        headers::GenericHeader,
+        parser::{hcolon, ParserResult},
+        CallIdHeader, Header, TokenString,
     };
 
     pub(crate) fn call_id(input: &str) -> ParserResult<&str, Header> {
         context(
             "Call-ID header",
             map(
-                tuple((
+                (
                     map(
                         alt((tag_no_case("Call-ID"), tag_no_case("i"))),
                         TokenString::new,
                     ),
                     hcolon,
                     cut(consumed(callid)),
-                )),
+                ),
                 |(name, separator, (value, call_id))| {
                     Header::CallId(CallIdHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -77,7 +79,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

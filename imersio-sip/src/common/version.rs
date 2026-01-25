@@ -15,7 +15,7 @@
 //! ```
 
 use crate::SipError;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 
 /// Represents a version of the SIP specification.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -87,10 +87,10 @@ impl TryFrom<&str> for Version {
 
 pub(crate) mod parser {
     use crate::{parser::ParserResult, Version};
-    use nom::{bytes::complete::tag, combinator::value, error::context};
+    use nom::{bytes::complete::tag, combinator::value, error::context, Parser};
 
     pub(crate) fn sip_version(input: &str) -> ParserResult<&str, Version> {
-        context("sip_version", value(Version::Sip2, tag("SIP/2.0")))(input)
+        context("sip_version", value(Version::Sip2, tag("SIP/2.0"))).parse(input)
     }
 }
 

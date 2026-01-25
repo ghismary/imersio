@@ -1,10 +1,10 @@
-use derive_more::{Deref, DerefMut};
 use itertools::join;
 use std::hash::Hash;
+use std::ops::Deref;
 
 use crate::utils::compare_vectors;
 
-#[derive(Clone, Debug, Deref, DerefMut, Eq)]
+#[derive(Clone, Debug, Eq, derive_more::Deref, derive_more::DerefMut)]
 pub struct ValueCollection<T>
 where
     T: Eq + PartialEq + Hash,

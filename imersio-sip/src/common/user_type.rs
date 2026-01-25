@@ -1,10 +1,10 @@
-use crate::{SipError, TokenString};
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
+use crate::{SipError, TokenString};
+
 /// Representation of a user type included in a `user` uri parameter.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum UserType {
     /// Phone user.
     Phone,

@@ -1,7 +1,6 @@
 //! SIP Expires header parsing and generation.
 
 use chrono::TimeDelta;
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -9,13 +8,13 @@ use crate::headers::{GenericHeader, HeaderAccessor};
 /// Representation of an Expires header.
 ///
 /// The Expires header field gives the relative time after which the message (or content) expires.
-/// The precise meaning of this is method dependent.
+/// The precise meaning of this is method-dependent.
 /// The expiration time in an INVITE does not affect the duration of the actual session that may
 /// result from the invitation. Session description protocols may offer the ability to express time
 /// limits on the session duration, however.
 ///
 /// [[RFC3261, Section 20.19](https://datatracker.ietf.org/doc/html/rfc3261#section-20.19)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ExpiresHeader {
     #[partial_eq_ignore]
@@ -49,26 +48,29 @@ impl HeaderAccessor for ExpiresHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::contact_parameter::parser::delta_seconds;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, ParserResult};
-    use crate::{ExpiresHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::contact_parameter::parser::delta_seconds,
+        headers::GenericHeader,
+        parser::{hcolon, ParserResult},
+        ExpiresHeader, Header, TokenString,
     };
 
     pub(crate) fn expires(input: &str) -> ParserResult<&str, Header> {
         context(
             "Expires header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Expires"), TokenString::new),
                     hcolon,
                     cut(consumed(delta_seconds)),
-                )),
+                ),
                 |(name, separator, (value, expires))| {
                     Header::Expires(ExpiresHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -76,7 +78,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

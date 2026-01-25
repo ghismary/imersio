@@ -1,6 +1,5 @@
 //! SIP WWW-Authenticate header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -11,7 +10,7 @@ use crate::Challenge;
 /// A WWW-Authenticate header field value contains an authentication challenge.
 ///
 /// [[RFC3261, Section 20.44](https://datatracker.ietf.org/doc/html/rfc3261#section-20.44)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct WWWAuthenticateHeader {
     #[partial_eq_ignore]
@@ -45,26 +44,29 @@ impl HeaderAccessor for WWWAuthenticateHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::challenge::parser::challenge;
-    use crate::headers::GenericHeader;
-    use crate::parser::{hcolon, ParserResult};
-    use crate::{Header, TokenString, WWWAuthenticateHeader};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::challenge::parser::challenge,
+        headers::GenericHeader,
+        parser::{hcolon, ParserResult},
+        Header, TokenString, WWWAuthenticateHeader,
     };
 
     pub(crate) fn www_authenticate(input: &str) -> ParserResult<&str, Header> {
         context(
             "WWW-Authenticate header",
             map(
-                tuple((
+                (
                     map(tag_no_case("WWW-Authenticate"), TokenString::new),
                     hcolon,
                     cut(consumed(challenge)),
-                )),
+                ),
                 |(name, separator, (value, challenge))| {
                     Header::WWWAuthenticate(WWWAuthenticateHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -72,7 +74,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

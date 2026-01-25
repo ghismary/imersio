@@ -1,7 +1,5 @@
 //! Parsing and generation of the userinfo part of a SIP URI.  
 
-use derive_more::{Deref, Display};
-
 use crate::uris::user_info::parser::{is_password_special_char, is_user_unreserved};
 use crate::{
     parser::{is_unreserved, ESCAPED_CHARS},
@@ -10,7 +8,7 @@ use crate::{
 };
 
 /// Representation of a URI user value accepting only the valid characters.
-#[derive(Clone, Debug, Default, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct UserString(String);
 
 impl UserString {
@@ -42,7 +40,7 @@ impl TryFrom<&str> for UserString {
 }
 
 /// Representation of a URI password value accepting only the valid characters.
-#[derive(Clone, Debug, Default, Deref, Display, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
 pub struct PasswordString(String);
 
 impl PasswordString {
@@ -73,7 +71,7 @@ impl TryFrom<&str> for PasswordString {
     }
 }
 
-/// Representation of an userinfo of a SIP URI.
+/// Representation of a userinfo of a SIP URI.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct UserInfo {
     user: UserString,
@@ -113,15 +111,19 @@ impl std::fmt::Display for UserInfo {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{escaped, take1, unreserved, ParserResult};
-    use crate::{PasswordString, UserInfo, UserString};
     use nom::{
         branch::alt,
         bytes::complete::tag,
         combinator::{map, opt, verify},
         error::context,
         multi::{many0, many1},
-        sequence::{preceded, tuple},
+        sequence::preceded,
+        Parser,
+    };
+
+    use crate::{
+        parser::{escaped, take1, unreserved, ParserResult},
+        PasswordString, UserInfo, UserString,
     };
 
     #[inline]
@@ -131,7 +133,7 @@ pub(crate) mod parser {
 
     #[inline]
     fn user_unreserved(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| is_user_unreserved(*c))(input)
+        verify(take1, |c| is_user_unreserved(*c)).parse(input)
     }
 
     pub(super) fn user(input: &str) -> ParserResult<&str, UserString> {
@@ -140,7 +142,8 @@ pub(crate) mod parser {
             map(many1(alt((unreserved, escaped, user_unreserved))), |user| {
                 UserString::new(user.iter().collect::<String>())
             }),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]
@@ -150,7 +153,7 @@ pub(crate) mod parser {
 
     #[inline]
     fn password_special_char(input: &str) -> ParserResult<&str, char> {
-        verify(take1, |c| is_password_special_char(*c))(input)
+        verify(take1, |c| is_password_special_char(*c)).parse(input)
     }
 
     pub(super) fn password(input: &str) -> ParserResult<&str, PasswordString> {
@@ -160,23 +163,26 @@ pub(crate) mod parser {
                 many0(alt((unreserved, escaped, password_special_char))),
                 |password| PasswordString::new(password.iter().collect::<String>()),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn userinfo(input: &str) -> ParserResult<&str, UserInfo> {
         context(
             "userinfo",
             map(
-                tuple((
+                (
                     user, // TODO: alt((user, telephone_subscriber)),
                     opt(preceded(tag(":"), password)),
                     tag("@"),
-                )),
+                ),
                 |(user, password, _)| UserInfo::new(user, password),
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
+
 #[cfg(test)]
 mod tests {
     use crate::{PasswordString, UserInfo, UserString};

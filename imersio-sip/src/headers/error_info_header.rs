@@ -1,6 +1,5 @@
 //! SIP Error-Info header parsing and generation.
 
-use derive_more::Display;
 use derive_partial_eq_extras::PartialEqExtras;
 
 use crate::headers::{GenericHeader, HeaderAccessor};
@@ -11,7 +10,7 @@ use crate::{ErrorUri, ErrorUris};
 /// The Error-Info header field provides a pointer to additional information about the error status
 /// response.
 /// [[RFC3261, Section 20.18](https://datatracker.ietf.org/doc/html/rfc3261#section-20.18)]
-#[derive(Clone, Debug, Display, Eq, PartialEqExtras)]
+#[derive(Clone, Debug, Eq, derive_more::Display, PartialEqExtras)]
 #[display("{}", header)]
 pub struct ErrorInfoHeader {
     #[partial_eq_ignore]
@@ -48,27 +47,30 @@ impl HeaderAccessor for ErrorInfoHeader {
 }
 
 pub(crate) mod parser {
-    use crate::common::error_uri::parser::error_uri;
-    use crate::headers::GenericHeader;
-    use crate::parser::{comma, hcolon, ParserResult};
-    use crate::{ErrorInfoHeader, Header, TokenString};
     use nom::{
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        sequence::tuple,
+        Parser,
+    };
+
+    use crate::{
+        common::error_uri::parser::error_uri,
+        headers::GenericHeader,
+        parser::{comma, hcolon, ParserResult},
+        ErrorInfoHeader, Header, TokenString,
     };
 
     pub(crate) fn error_info(input: &str) -> ParserResult<&str, Header> {
         context(
             "Error-Info header",
             map(
-                tuple((
+                (
                     map(tag_no_case("Error-Info"), TokenString::new),
                     hcolon,
                     cut(consumed(separated_list1(comma, error_uri))),
-                )),
+                ),
                 |(name, separator, (value, uris))| {
                     Header::ErrorInfo(ErrorInfoHeader::new(
                         GenericHeader::new(name, separator, value),
@@ -76,7 +78,8 @@ pub(crate) mod parser {
                     ))
                 },
             ),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

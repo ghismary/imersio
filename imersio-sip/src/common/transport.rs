@@ -1,10 +1,10 @@
-use crate::{SipError, TokenString};
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
+use crate::{SipError, TokenString};
+
 /// Representation of a transport contained in a Via header or in a transport uri parameter.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum Transport {
     /// UDP transport.
     Udp,
@@ -87,9 +87,12 @@ impl TryFrom<&str> for Transport {
 }
 
 pub(crate) mod parser {
-    use crate::parser::{token, ParserResult};
-    use crate::{TokenString, Transport};
-    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
+    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, Parser};
+
+    use crate::{
+        parser::{token, ParserResult},
+        TokenString, Transport,
+    };
 
     pub(crate) fn transport(input: &str) -> ParserResult<&str, Transport> {
         context(
@@ -109,7 +112,8 @@ pub(crate) mod parser {
                 )),
                 Transport::new,
             ),
-        )(input)
+        )
+        .parse(input)
     }
 
     #[inline]

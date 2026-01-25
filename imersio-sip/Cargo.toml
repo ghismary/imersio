@@ -18,6 +18,7 @@ derive_more.workspace = true
 derive-partial-eq-extras.workspace = true
 itertools.workspace = true
 nom.workspace = true
+nom-language.workspace = true
 
 [dev-dependencies]
 claims.workspace = true

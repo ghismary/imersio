@@ -1,5 +1,5 @@
 use crate::common::status_code::CODE_DIGITS;
-use nom::error::convert_error;
+use nom_language::error::convert_error;
 use std::convert::TryFrom;
 
 use crate::SipError;
@@ -34,7 +34,7 @@ impl WarnCode {
         let offset = (self.code() - 100) as usize;
         let offset = offset * 3;
 
-        // Invariant: self has checked range [100, 999] and CODE_DIGITS is
+        // Invariant: self has checked range [100, 999], and CODE_DIGITS is
         // ASCII-only, of length 900 * 3 = 2700 bytes.
         &CODE_DIGITS[offset..offset + 3]
     }
@@ -186,10 +186,16 @@ warn_codes! {
 }
 
 pub(crate) mod parser {
+    use nom::{
+        combinator::{map, recognize},
+        error::context,
+        multi::count,
+        sequence::pair,
+        Parser,
+    };
+
     use super::*;
     use crate::parser::{digit, positive_digit, ParserResult};
-    use nom::combinator::map;
-    use nom::{combinator::recognize, error::context, multi::count, sequence::pair};
 
     pub(crate) fn warn_code(input: &str) -> ParserResult<&str, WarnCode> {
         context(
@@ -198,7 +204,8 @@ pub(crate) mod parser {
                 let status = result.parse::<u16>().unwrap();
                 WarnCode(status)
             }),
-        )(input)
+        )
+        .parse(input)
     }
 }
 

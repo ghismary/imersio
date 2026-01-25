@@ -1,4 +1,3 @@
-use derive_more::IsVariant;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
@@ -6,7 +5,7 @@ use crate::Handling;
 use crate::{GenericParameter, TokenString};
 
 /// Representation of a parameter of a `DispositionType`.
-#[derive(Clone, Debug, Eq, IsVariant)]
+#[derive(Clone, Debug, Eq, derive_more::IsVariant)]
 pub enum DispositionParameter {
     /// The handling parameter describes how the UAS should react if it
     /// receives a message body whose content type or disposition type it
@@ -58,8 +57,10 @@ impl std::fmt::Display for DispositionParameter {
 impl PartialEq for DispositionParameter {
     fn eq(&self, other: &DispositionParameter) -> bool {
         match (self, other) {
-            (Self::Handling(shandling), Self::Handling(ohandling)) => shandling == ohandling,
-            (Self::Other(sparam), Self::Other(oparam)) => sparam == oparam,
+            (Self::Handling(self_handling), Self::Handling(other_handling)) => {
+                self_handling == other_handling
+            }
+            (Self::Other(self_param), Self::Other(other_param)) => self_param == other_param,
             _ => false,
         }
     }
@@ -95,11 +96,15 @@ impl From<GenericParameter<TokenString>> for DispositionParameter {
 }
 
 pub(crate) mod parser {
-    use crate::common::generic_parameter::parser::generic_param;
-    use crate::parser::{equal, token, ParserResult};
-    use crate::{DispositionParameter, Handling, TokenString};
     use nom::{
         branch::alt, bytes::complete::tag_no_case, combinator::map, sequence::separated_pair,
+        Parser,
+    };
+
+    use crate::{
+        common::generic_parameter::parser::generic_param,
+        parser::{equal, token, ParserResult},
+        DispositionParameter, Handling, TokenString,
     };
 
     #[inline]
@@ -122,10 +127,11 @@ pub(crate) mod parser {
                 ),
             ),
             |(_, value)| DispositionParameter::Handling(value),
-        )(input)
+        )
+        .parse(input)
     }
 
     pub(crate) fn disp_param(input: &str) -> ParserResult<&str, DispositionParameter> {
-        alt((handling_param, map(generic_param, Into::into)))(input)
+        alt((handling_param, map(generic_param, Into::into))).parse(input)
     }
 }
