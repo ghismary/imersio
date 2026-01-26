@@ -1,0 +1,26 @@
+[workspace]
+members = ["imersio-sip", "imersio-sip/fuzz"]
+default-members = ["imersio-sip"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+repository = "https://github.com/ghismary/imersio"
+license = "Apache-2.0"
+version = "0.1.0"
+authors = ["Ghislain MARY <ghislain@ghislainmary.fr>"]
+rust-version = "1.70"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.dependencies]
+chrono = "0.4"
+claims = "0.8"
+criterion = { version = "0.8", features = ["html_reports"] }
+derive_more = { version = "2.1", features = ["deref", "deref_mut", "display", "from", "into_iterator", "is_variant"] }
+derive-partial-eq-extras = "0.2"
+itertools = "0.14"
+libfuzzer-sys = "0.4"
+nom = "8.0"
+nom-language = "0.1"

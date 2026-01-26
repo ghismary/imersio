@@ -1,0 +1,33 @@
+[package]
+name = "imersio-sip"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+description = "A generator and parser of SIP requests and responses."
+keywords = ["sip"]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+chrono.workspace = true
+derive_more.workspace = true
+derive-partial-eq-extras.workspace = true
+itertools.workspace = true
+nom.workspace = true
+nom-language.workspace = true
+
+[dev-dependencies]
+claims.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "messages"
+harness = false
+
+[[bench]]
+name = "uris"
+harness = false

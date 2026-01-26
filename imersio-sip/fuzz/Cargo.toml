@@ -1,0 +1,21 @@
+[package]
+name = "imersio-sip-fuzz"
+version = "0.1.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys.workspace = true
+
+[dependencies.imersio-sip]
+path = ".."
+
+[[bin]]
+name = "fuzz_target_sip_messages"
+path = "fuzz_targets/fuzz_target_sip_messages.rs"
+test = false
+doc = false
+bench = false

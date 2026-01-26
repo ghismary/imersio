@@ -1,0 +1,18 @@
+## Uri
+
+ - Implement URI builder
+
+## SIP Headers
+
+ - Implement builder
+
+
+## Questions
+
+ - Should accept parameters be case sensitive? No
+
+
+
+
+ - Add trait for parameters?
+ - Add enum for wildcard content encoding
