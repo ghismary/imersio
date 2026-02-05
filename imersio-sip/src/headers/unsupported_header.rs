@@ -48,18 +48,18 @@ impl HeaderAccessor for UnsupportedHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        Header, TokenString, UnsupportedHeader,
         common::option_tag::parser::option_tag,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        Header, TokenString, UnsupportedHeader,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn unsupported(input: &str) -> ParserResult<&str, Header> {
@@ -86,11 +86,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, UnsupportedHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

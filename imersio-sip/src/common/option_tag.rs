@@ -108,11 +108,11 @@ impl TryFrom<&str> for OptionTag {
 }
 
 pub(crate) mod parser {
-    use nom::{combinator::map, error::context, Parser};
+    use nom::{Parser, combinator::map, error::context};
 
     use crate::{
-        parser::{token, ParserResult},
         OptionTag,
+        parser::{ParserResult, token},
     };
 
     pub(crate) fn option_tag(input: &str) -> ParserResult<&str, OptionTag> {
@@ -152,7 +152,9 @@ mod test {
 
     #[test]
     fn test_valid_option_tag_with_remaining_data() {
-        assert!(OptionTag::try_from("foo anything")
-            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
+        assert!(
+            OptionTag::try_from("foo anything")
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 }

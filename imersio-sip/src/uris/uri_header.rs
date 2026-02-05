@@ -7,7 +7,7 @@ use std::ops::Deref;
 
 use crate::parser::ESCAPED_CHARS;
 use crate::uris::uri_header::parser::is_hnv_unreserved;
-use crate::{parser::is_unreserved, utils::escape, SipError};
+use crate::{SipError, parser::is_unreserved, utils::escape};
 
 /// Representation of a string with limited characters for URI header names.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
@@ -214,18 +214,18 @@ impl From<Vec<UriHeader>> for UriHeaders {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, verify},
         error::context,
         multi::{many0, many1, separated_list1},
         sequence::{preceded, separated_pair},
-        Parser,
     };
 
     use crate::{
-        parser::{escaped, take1, unreserved, ParserResult},
         UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders,
+        parser::{ParserResult, escaped, take1, unreserved},
     };
 
     #[inline]

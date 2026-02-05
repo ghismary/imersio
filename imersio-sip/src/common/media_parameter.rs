@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::common::wrapped_string::WrappedString;
 use crate::TokenString;
+use crate::common::wrapped_string::WrappedString;
 
 /// Representation of a media parameter.
 #[derive(Clone, Debug, Eq)]

@@ -79,11 +79,11 @@ impl Ord for DispositionType {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, Parser};
+    use nom::{Parser, branch::alt, bytes::complete::tag_no_case, combinator::map};
 
     use crate::{
-        parser::{token, ParserResult},
         DispositionType, TokenString,
+        parser::{ParserResult, token},
     };
 
     #[inline]

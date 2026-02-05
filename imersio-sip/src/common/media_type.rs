@@ -2,9 +2,9 @@ use itertools::join;
 use std::hash::Hash;
 use std::ops::Deref;
 
-use crate::utils::compare_vectors;
 use crate::MediaParameter;
 use crate::MediaRange;
+use crate::utils::compare_vectors;
 
 /// Representation of a media type contained in a `ContentTypeHeader`.
 #[derive(Clone, Debug, Eq)]
@@ -65,19 +65,19 @@ impl Hash for MediaType {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         combinator::map,
         error::context,
         multi::many0,
         sequence::{preceded, separated_pair},
-        Parser,
     };
 
     use crate::{
+        MediaParameter, MediaRange, MediaType, TokenString,
         common::media_range::parser::{m_subtype, m_type},
         common::wrapped_string::WrappedString,
-        parser::{equal, quoted_string, semi, slash, token, ParserResult},
-        MediaParameter, MediaRange, MediaType, TokenString,
+        parser::{ParserResult, equal, quoted_string, semi, slash, token},
     };
 
     #[inline]

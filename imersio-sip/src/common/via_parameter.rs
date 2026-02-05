@@ -111,20 +111,20 @@ impl From<GenericParameter<TokenString>> for ViaParameter {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, map, recognize, verify},
         error::context,
         multi::many_m_n,
         sequence::separated_pair,
-        Parser,
     };
 
     use crate::{
-        common::generic_parameter::parser::generic_param,
-        parser::{digit, equal, token, ParserResult},
-        uris::host::parser::{host, ipv4_address, ipv6_address},
         ViaParameter,
+        common::generic_parameter::parser::generic_param,
+        parser::{ParserResult, digit, equal, token},
+        uris::host::parser::{host, ipv4_address, ipv6_address},
     };
 
     pub(crate) fn via_params(input: &str) -> ParserResult<&str, ViaParameter> {

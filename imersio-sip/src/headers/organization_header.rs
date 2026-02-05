@@ -50,16 +50,16 @@ impl HeaderAccessor for OrganizationHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, opt},
         error::context,
-        Parser,
     };
 
     use crate::{
-        headers::GenericHeader,
-        parser::{hcolon, text_utf8_trim, ParserResult},
         Header, OrganizationHeader, TokenString,
+        headers::GenericHeader,
+        parser::{ParserResult, hcolon, text_utf8_trim},
     };
 
     pub(crate) fn organization(input: &str) -> ParserResult<&str, Header> {
@@ -86,11 +86,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, valid_header},
-            HeaderAccessor,
-        },
         Header, OrganizationHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, valid_header},
+        },
     };
     use claims::assert_ok;
 

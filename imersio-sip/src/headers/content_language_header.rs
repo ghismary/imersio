@@ -46,18 +46,18 @@ impl HeaderAccessor for ContentLanguageHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        ContentLanguageHeader, Header, TokenString,
         common::content_language::parser::language_tag,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        ContentLanguageHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn content_language(input: &str) -> ParserResult<&str, Header> {
@@ -84,11 +84,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         ContentLanguageHeader, Header,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

@@ -86,8 +86,8 @@ impl TryFrom<&str> for Version {
 }
 
 pub(crate) mod parser {
-    use crate::{parser::ParserResult, Version};
-    use nom::{bytes::complete::tag, combinator::value, error::context, Parser};
+    use crate::{Version, parser::ParserResult};
+    use nom::{Parser, bytes::complete::tag, combinator::value, error::context};
 
     pub(crate) fn sip_version(input: &str) -> ParserResult<&str, Version> {
         context("sip_version", value(Version::Sip2, tag("SIP/2.0"))).parse(input)
@@ -128,7 +128,9 @@ mod test {
 
     #[test]
     fn test_valid_version_but_with_remaining_data() {
-        assert!(Version::try_from("SIP/2.0 anything")
-            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
+        assert!(
+            Version::try_from("SIP/2.0 anything")
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 }

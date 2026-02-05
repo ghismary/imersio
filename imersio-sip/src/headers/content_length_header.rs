@@ -52,18 +52,18 @@ impl HeaderAccessor for ContentLengthHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
-        Parser,
     };
 
     use crate::{
-        headers::GenericHeader,
-        parser::{digit, hcolon, ParserResult},
         ContentLengthHeader, Header, TokenString,
+        headers::GenericHeader,
+        parser::{ParserResult, digit, hcolon},
     };
 
     pub(crate) fn content_length(input: &str) -> ParserResult<&str, Header> {
@@ -95,11 +95,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         ContentLengthHeader, Header,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

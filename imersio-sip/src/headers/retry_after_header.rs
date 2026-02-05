@@ -4,8 +4,8 @@ use chrono::TimeDelta;
 use derive_partial_eq_extras::PartialEqExtras;
 use itertools::join;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::RetryParameter;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Retry-After header.
 ///
@@ -85,20 +85,20 @@ impl HeaderAccessor for RetryAfterHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::opt,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
         sequence::preceded,
-        Parser,
     };
 
     use crate::{
+        Header, RetryAfterHeader, TokenString,
         common::{contact_parameter::parser::delta_seconds, retry_parameter::parser::retry_param},
         headers::GenericHeader,
-        parser::{comment, hcolon, semi, ParserResult},
-        Header, RetryAfterHeader, TokenString,
+        parser::{ParserResult, comment, hcolon, semi},
     };
 
     pub(crate) fn retry_after(input: &str) -> ParserResult<&str, Header> {
@@ -131,11 +131,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, RetryAfterHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use chrono::TimeDelta;
     use claims::assert_ok;

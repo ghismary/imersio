@@ -16,16 +16,16 @@ impl MediaRange {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, recognize},
         sequence::{pair, separated_pair},
-        Parser,
     };
 
     use crate::{
-        parser::{slash, token, ParserResult},
         MediaRange, TokenString,
+        parser::{ParserResult, slash, token},
     };
 
     fn discrete_type(input: &str) -> ParserResult<&str, TokenString> {

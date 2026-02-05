@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 use imersio_sip::Uri;
 
@@ -31,11 +31,15 @@ fn sip_uri_with_phone_number_parsing() {
 }
 
 fn sip_uri_with_parameters_parsing() {
-    let _ = Uri::try_from("sip:maddr=@192.168.0.1;lr;maddr=192.168.0.1;user=ip;ttl=140;transport=sctp;method=INVITE;rport=5060");
+    let _ = Uri::try_from(
+        "sip:maddr=@192.168.0.1;lr;maddr=192.168.0.1;user=ip;ttl=140;transport=sctp;method=INVITE;rport=5060",
+    );
 }
 
 fn sip_uri_with_headers_parsing() {
-    let _ = Uri::try_from("sip:eNgwBpkNcH6EdTHlX0cq8@example.org?P-Group-Id=Fu0hHIQ23H4hveVT:New%20Group&P-Expert-Profile-Id=zKQOBOB2jTmUOjkB:New%20Group&P-Reverse-Charging=0&P-Campaign-Id=none&P-Embed-Url=https://example.org/caller/?1.4.0-dev-42-91bdf0c%26id%3DFu0hHIQ23H4hveVT%26CAMPAIGN_ID%3Dnone");
+    let _ = Uri::try_from(
+        "sip:eNgwBpkNcH6EdTHlX0cq8@example.org?P-Group-Id=Fu0hHIQ23H4hveVT:New%20Group&P-Expert-Profile-Id=zKQOBOB2jTmUOjkB:New%20Group&P-Reverse-Charging=0&P-Campaign-Id=none&P-Embed-Url=https://example.org/caller/?1.4.0-dev-42-91bdf0c%26id%3DFu0hHIQ23H4hveVT%26CAMPAIGN_ID%3Dnone",
+    );
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

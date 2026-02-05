@@ -92,19 +92,19 @@ impl Hash for Via {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         combinator::{map, opt},
         error::context,
         multi::many0,
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
+        Host, Via,
         common::protocol::parser::sent_protocol,
         common::via_parameter::parser::via_params,
-        parser::{colon, lws, semi, ParserResult},
+        parser::{ParserResult, colon, lws, semi},
         uris::host::parser::{host, port},
-        Host, Via,
     };
 
     fn sent_by(input: &str) -> ParserResult<&str, (Host, Option<u16>)> {

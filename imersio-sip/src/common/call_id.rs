@@ -2,8 +2,8 @@ use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
 use crate::SipError;
+use crate::common::value_collection::ValueCollection;
 
 /// Representation of the list of call IDs in an `In-Reply-To` header.
 ///
@@ -100,16 +100,16 @@ impl TryFrom<&str> for CallId {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag,
         combinator::{map, opt, recognize},
         error::context,
         sequence::pair,
-        Parser,
     };
 
     use crate::{
-        parser::{word, ParserResult},
         CallId,
+        parser::{ParserResult, word},
     };
 
     pub(crate) fn callid(input: &str) -> ParserResult<&str, CallId> {

@@ -2,8 +2,8 @@
 
 use derive_partial_eq_extras::PartialEqExtras;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Priority;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Priority header.
 ///
@@ -54,17 +54,17 @@ impl HeaderAccessor for PriorityHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        Parser,
     };
 
     use crate::{
+        Header, PriorityHeader, TokenString,
         common::priority::parser::priority_value,
         headers::GenericHeader,
-        parser::{hcolon, ParserResult},
-        Header, PriorityHeader, TokenString,
+        parser::{ParserResult, hcolon},
     };
 
     pub(crate) fn priority(input: &str) -> ParserResult<&str, Header> {
@@ -91,11 +91,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, Priority, PriorityHeader, TokenString,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

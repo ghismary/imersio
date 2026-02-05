@@ -1,9 +1,9 @@
 use std::ops::Deref;
 
-use crate::utils::compare_vectors;
 use crate::Algorithm;
 use crate::MessageQop;
 use crate::Uri;
+use crate::utils::compare_vectors;
 use crate::{AuthParameter, AuthParameters};
 
 /// Representation of the credentials from an `AuthorizationHeader` or a `ProxyAuthorizationHeader`.
@@ -191,18 +191,18 @@ credentials! {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{cut, map},
         error::context,
         sequence::separated_pair,
-        Parser,
     };
 
     use crate::{
-        common::auth_parameter::parser::{auth_params, auth_scheme, digest_response},
-        parser::{lws, ParserResult},
         Credentials,
+        common::auth_parameter::parser::{auth_params, auth_scheme, digest_response},
+        parser::{ParserResult, lws},
     };
 
     fn digest_credentials(input: &str) -> ParserResult<&str, Credentials> {

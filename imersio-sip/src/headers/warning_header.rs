@@ -55,18 +55,18 @@ impl HeaderAccessor for WarningHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        Header, TokenString, WarningHeader,
         common::warning_value::parser::warning_value,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        Header, TokenString, WarningHeader,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn warning(input: &str) -> ParserResult<&str, Header> {
@@ -94,11 +94,11 @@ pub(crate) mod parser {
 mod tests {
     use crate::common::warn_code::WarnCode;
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, WarnAgent, WarningHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

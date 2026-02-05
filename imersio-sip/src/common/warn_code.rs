@@ -187,15 +187,15 @@ warn_codes! {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         combinator::{map, recognize},
         error::context,
         multi::count,
         sequence::pair,
-        Parser,
     };
 
     use super::*;
-    use crate::parser::{digit, positive_digit, ParserResult};
+    use crate::parser::{ParserResult, digit, positive_digit};
 
     pub(crate) fn warn_code(input: &str) -> ParserResult<&str, WarnCode> {
         context(
@@ -278,7 +278,9 @@ mod test {
 
     #[test]
     fn test_valid_warn_code_but_with_remaining_data() {
-        assert!(WarnCode::try_from("306 anything")
-            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
+        assert!(
+            WarnCode::try_from("306 anything")
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 }

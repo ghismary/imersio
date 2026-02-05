@@ -104,19 +104,19 @@ impl From<GenericParameter<TokenString>> for AcceptParameter {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, opt, recognize},
         error::context,
         multi::many_m_n,
         sequence::{pair, separated_pair},
-        Parser,
     };
 
     use crate::{
-        common::generic_parameter::parser::generic_param,
-        parser::{digit, equal, ParserResult},
         AcceptParameter, TokenString,
+        common::generic_parameter::parser::generic_param,
+        parser::{ParserResult, digit, equal},
     };
 
     pub(crate) fn qvalue(input: &str) -> ParserResult<&str, TokenString> {

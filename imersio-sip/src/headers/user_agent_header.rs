@@ -53,18 +53,18 @@ impl HeaderAccessor for UserAgentHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        Header, TokenString, UserAgentHeader,
         common::server_value::parser::server_val,
         headers::GenericHeader,
-        parser::{hcolon, lws, ParserResult},
-        Header, TokenString, UserAgentHeader,
+        parser::{ParserResult, hcolon, lws},
     };
 
     pub(crate) fn user_agent(input: &str) -> ParserResult<&str, Header> {
@@ -91,11 +91,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, Product, ServerValue, TokenString, UserAgentHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

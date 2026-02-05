@@ -2,8 +2,8 @@
 
 use derive_partial_eq_extras::PartialEqExtras;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Contacts;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Contact header.
 ///
@@ -48,19 +48,19 @@ impl HeaderAccessor for ContactHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        ContactHeader, Contacts, Header, TokenString,
         common::contact::parser::contact_param,
         headers::GenericHeader,
-        parser::{comma, hcolon, star, ParserResult},
-        ContactHeader, Contacts, Header, TokenString,
+        parser::{ParserResult, comma, hcolon, star},
     };
 
     pub(crate) fn contact(input: &str) -> ParserResult<&str, Header> {
@@ -93,12 +93,12 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
+        ContactHeader, Header, Uri,
         headers::{
+            HeaderAccessor,
             contact_header::Contacts,
             tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
         },
-        ContactHeader, Header, Uri,
     };
     use claims::assert_ok;
 

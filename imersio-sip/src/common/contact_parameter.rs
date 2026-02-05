@@ -87,18 +87,18 @@ impl From<GenericParameter<TokenString>> for ContactParameter {
 pub(crate) mod parser {
     use chrono::TimeDelta;
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{map, recognize},
         multi::many1,
         sequence::separated_pair,
-        Parser,
     };
 
     use crate::{
-        common::{accept_parameter::parser::qvalue, generic_parameter::parser::generic_param},
-        parser::{digit, equal, ParserResult},
         ContactParameter, GenericParameter, TokenString,
+        common::{accept_parameter::parser::qvalue, generic_parameter::parser::generic_param},
+        parser::{ParserResult, digit, equal},
     };
 
     fn c_p_q(input: &str) -> ParserResult<&str, ContactParameter> {

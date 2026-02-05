@@ -1,9 +1,9 @@
 use itertools::join;
 use std::hash::Hash;
 
+use crate::AcceptParameter;
 use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
-use crate::AcceptParameter;
 
 /// Representation of the list of languages from an `AcceptLanguageHeader`.
 ///
@@ -86,19 +86,19 @@ impl Hash for AcceptLanguage {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, opt, recognize},
         error::context,
-        multi::{many0, many_m_n},
+        multi::{many_m_n, many0},
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
-        common::accept_parameter::parser::accept_param,
-        parser::{alpha, semi, ParserResult},
         AcceptLanguage,
+        common::accept_parameter::parser::accept_param,
+        parser::{ParserResult, alpha, semi},
     };
 
     fn language_range(input: &str) -> ParserResult<&str, &str> {

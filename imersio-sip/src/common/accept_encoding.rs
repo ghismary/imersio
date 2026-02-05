@@ -1,10 +1,10 @@
 use itertools::join;
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
-use crate::utils::compare_vectors;
 use crate::AcceptParameter;
 use crate::ContentEncoding;
+use crate::common::value_collection::ValueCollection;
+use crate::utils::compare_vectors;
 
 /// Representation of the list of encodings from an `AcceptEncodingHeader`.
 ///
@@ -86,17 +86,17 @@ impl Hash for AcceptEncoding {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         combinator::map,
         error::context,
         multi::many0,
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
-        common::{accept_parameter::parser::accept_param, content_encoding::parser::codings},
-        parser::{semi, ParserResult},
         AcceptEncoding,
+        common::{accept_parameter::parser::accept_param, content_encoding::parser::codings},
+        parser::{ParserResult, semi},
     };
 
     pub(crate) fn encoding(input: &str) -> ParserResult<&str, AcceptEncoding> {

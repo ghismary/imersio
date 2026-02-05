@@ -1,8 +1,8 @@
 use nom_language::error::convert_error;
 use std::convert::TryFrom;
 
-use crate::parser::token;
 use crate::SipError;
+use crate::parser::token;
 
 /// Representation of a URI scheme value accepting only the valid characters.
 #[derive(

@@ -2,9 +2,9 @@
 
 use crate::uris::user_info::parser::{is_password_special_char, is_user_unreserved};
 use crate::{
-    parser::{is_unreserved, ESCAPED_CHARS},
-    utils::escape,
     SipError,
+    parser::{ESCAPED_CHARS, is_unreserved},
+    utils::escape,
 };
 
 /// Representation of a URI user value accepting only the valid characters.
@@ -112,18 +112,18 @@ impl std::fmt::Display for UserInfo {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, opt, verify},
         error::context,
         multi::{many0, many1},
         sequence::preceded,
-        Parser,
     };
 
     use crate::{
-        parser::{escaped, take1, unreserved, ParserResult},
         PasswordString, UserInfo, UserString,
+        parser::{ParserResult, escaped, take1, unreserved},
     };
 
     #[inline]

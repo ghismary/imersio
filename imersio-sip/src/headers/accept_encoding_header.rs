@@ -49,18 +49,18 @@ impl HeaderAccessor for AcceptEncodingHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list0,
-        Parser,
     };
 
     use crate::{
+        AcceptEncodingHeader, Header, TokenString,
         common::accept_encoding::parser::encoding,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        AcceptEncodingHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn accept_encoding(input: &str) -> ParserResult<&str, Header> {
@@ -87,8 +87,8 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::headers::{
-        tests::{header_equality, header_inequality, invalid_header, valid_header},
         HeaderAccessor,
+        tests::{header_equality, header_inequality, invalid_header, valid_header},
     };
     use crate::{AcceptEncodingHeader, Header};
     use claims::assert_ok;
@@ -197,14 +197,14 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_encoding_header_inequality_with_first_header_having_more_encodings_than_the_second(
-    ) {
+    fn test_accept_encoding_header_inequality_with_first_header_having_more_encodings_than_the_second()
+     {
         header_inequality("Accept-Encoding: gzip, deflate", "Accept-Encoding: deflate");
     }
 
     #[test]
-    fn test_accept_encoding_header_inequality_with_first_header_having_less_encodings_than_the_second(
-    ) {
+    fn test_accept_encoding_header_inequality_with_first_header_having_less_encodings_than_the_second()
+     {
         header_inequality("Accept-Encoding: deflate", "Accept-Encoding: gzip, deflate");
     }
 

@@ -138,15 +138,15 @@ impl TryFrom<&str> for Method {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, value},
         error::context,
-        Parser,
     };
 
     use super::Method;
-    use crate::parser::{token, ParserResult};
+    use crate::parser::{ParserResult, token};
 
     #[inline]
     fn ack_method(input: &str) -> ParserResult<&str, Method> {
@@ -230,8 +230,10 @@ mod test {
 
     #[test]
     fn test_invalid_method_with_remaining_data() {
-        assert!(Method::try_from("INVITE anything")
-            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
+        assert!(
+            Method::try_from("INVITE anything")
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 
     #[test]

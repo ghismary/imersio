@@ -1,4 +1,4 @@
-use itertools::{join, Itertools};
+use itertools::{Itertools, join};
 use std::cmp::Ordering;
 use std::hash::Hash;
 use std::ops::Deref;

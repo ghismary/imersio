@@ -2,8 +2,8 @@ use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
 use crate::SipError;
+use crate::common::value_collection::ValueCollection;
 
 /// Representation of the list of languages in a `Content-Language` header.
 ///
@@ -107,16 +107,16 @@ impl TryFrom<&str> for ContentLanguage {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag,
         combinator::{map, recognize},
-        multi::{many0, many_m_n},
+        multi::{many_m_n, many0},
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
-        parser::{alpha, ParserResult},
         ContentLanguage,
+        parser::{ParserResult, alpha},
     };
 
     #[inline]
@@ -175,7 +175,9 @@ mod test {
 
     #[test]
     fn test_valid_content_language_with_remaining_data() {
-        assert!(ContentLanguage::try_from("en-US anything")
-            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
+        assert!(
+            ContentLanguage::try_from("en-US anything")
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 }

@@ -97,14 +97,14 @@ impl From<GenericParameter<TokenString>> for DispositionParameter {
 
 pub(crate) mod parser {
     use nom::{
-        branch::alt, bytes::complete::tag_no_case, combinator::map, sequence::separated_pair,
-        Parser,
+        Parser, branch::alt, bytes::complete::tag_no_case, combinator::map,
+        sequence::separated_pair,
     };
 
     use crate::{
-        common::generic_parameter::parser::generic_param,
-        parser::{equal, token, ParserResult},
         DispositionParameter, Handling, TokenString,
+        common::generic_parameter::parser::generic_param,
+        parser::{ParserResult, equal, token},
     };
 
     #[inline]

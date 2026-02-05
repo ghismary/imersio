@@ -74,17 +74,17 @@ impl TryFrom<&[u8]> for Message {
 
 mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::{tag, take_until1},
         combinator::{map, recognize},
         sequence::pair,
-        Parser,
     };
 
     use crate::{
+        Message,
         messages::{request::parser::request, response::parser::response},
         parser::ParserResult,
-        Message,
     };
 
     pub(super) fn sip_message_raw(input: &[u8]) -> ParserResult<&[u8], &[u8]> {

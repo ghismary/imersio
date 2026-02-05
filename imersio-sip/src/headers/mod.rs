@@ -53,5 +53,5 @@ mod tests;
 
 use generic_header::GenericHeader;
 pub use header::Header;
-use header_accessor::generic_header_accessors;
 pub use header_accessor::HeaderAccessor;
+use header_accessor::generic_header_accessors;

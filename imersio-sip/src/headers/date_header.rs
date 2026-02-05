@@ -48,19 +48,19 @@ impl HeaderAccessor for DateHeader {
 pub(crate) mod parser {
     use chrono::{DateTime, Utc};
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::{tag, tag_no_case},
         combinator::{consumed, cut, map, recognize},
-        error::{context, ErrorKind, ParseError},
+        error::{ErrorKind, ParseError, context},
         multi::count,
-        Parser,
     };
     use nom_language::error::VerboseError;
 
     use crate::{
-        headers::GenericHeader,
-        parser::{digit, hcolon, sp, ParserResult},
         DateHeader, Header, TokenString,
+        headers::GenericHeader,
+        parser::{ParserResult, digit, hcolon, sp},
     };
 
     fn wkday(input: &str) -> ParserResult<&str, &str> {
@@ -168,11 +168,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         DateHeader, Header,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use chrono::prelude::*;
     use claims::assert_ok;

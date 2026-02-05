@@ -1,10 +1,10 @@
 use itertools::join;
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
-use crate::utils::compare_vectors;
 use crate::AcceptParameter;
 use crate::MediaRange;
+use crate::common::value_collection::ValueCollection;
+use crate::utils::compare_vectors;
 
 /// Representation of the list of range from an `AcceptHeader`.
 ///
@@ -79,17 +79,17 @@ impl Hash for AcceptRange {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         combinator::map,
         error::context,
         multi::many0,
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
-        common::{accept_parameter::parser::accept_param, media_range::parser::media_range},
-        parser::{semi, ParserResult},
         AcceptRange,
+        common::{accept_parameter::parser::accept_param, media_range::parser::media_range},
+        parser::{ParserResult, semi},
     };
 
     pub(crate) fn accept_range(input: &str) -> ParserResult<&str, AcceptRange> {

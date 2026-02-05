@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
+use crate::WarnAgent;
 use crate::common::value_collection::ValueCollection;
 use crate::common::warn_code::WarnCode;
-use crate::WarnAgent;
 
 /// Representation of the list of warning values in a `Warning` header.
 ///
@@ -62,14 +62,14 @@ impl Hash for WarningValue {
 }
 
 pub(crate) mod parser {
-    use nom::{combinator::map, error::context, Parser};
+    use nom::{Parser, combinator::map, error::context};
 
     use crate::{
+        TokenString, WarningValue,
         common::warn_agent::parser::warn_agent,
         common::warn_code::parser::warn_code,
         common::wrapped_string::WrappedString,
-        parser::{quoted_string, sp, ParserResult},
-        TokenString, WarningValue,
+        parser::{ParserResult, quoted_string, sp},
     };
 
     pub(crate) fn warning_value(input: &str) -> ParserResult<&str, WarningValue> {

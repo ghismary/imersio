@@ -2,8 +2,8 @@
 
 use derive_partial_eq_extras::PartialEqExtras;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Credentials;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of an Authorization header.
 ///
@@ -48,17 +48,17 @@ impl HeaderAccessor for AuthorizationHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        Parser,
     };
 
     use crate::{
+        AuthorizationHeader, Header, TokenString,
         common::credentials::parser::credentials,
         headers::GenericHeader,
-        parser::{hcolon, ParserResult},
-        AuthorizationHeader, Header, TokenString,
+        parser::{ParserResult, hcolon},
     };
 
     pub(crate) fn authorization(input: &str) -> ParserResult<&str, Header> {
@@ -85,11 +85,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Algorithm, AuthParameter, AuthorizationHeader, Header, MessageQop, Uri,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

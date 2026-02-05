@@ -83,16 +83,16 @@ impl TryFrom<&str> for WarnAgent {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         combinator::{consumed, map},
         error::context,
-        Parser,
     };
 
     use crate::{
-        parser::{token, ParserResult},
-        uris::host::parser::hostport,
         TokenString, WarnAgent,
+        parser::{ParserResult, token},
+        uris::host::parser::hostport,
     };
 
     pub(crate) fn warn_agent(input: &str) -> ParserResult<&str, WarnAgent> {
