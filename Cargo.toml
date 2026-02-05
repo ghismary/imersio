@@ -4,12 +4,12 @@ default-members = ["imersio-sip"]
 resolver = "2"
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/ghismary/imersio"
 license = "Apache-2.0"
 version = "0.1.0"
 authors = ["Ghislain MARY <ghislain@ghislainmary.fr>"]
-rust-version = "1.70"
+rust-version = "1.85"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -24,3 +24,4 @@ itertools = "0.14"
 libfuzzer-sys = "0.4"
 nom = "8.0"
 nom-language = "0.1"
+serde = { version = "1.0.228", features = ["derive"] }

@@ -4,8 +4,8 @@ use nom_language::error::convert_error;
 use std::hash::Hash;
 use std::net::IpAddr;
 
-use crate::uris::host::parser::{host, hostname};
 use crate::SipError;
+use crate::uris::host::parser::{host, hostname};
 
 /// Representation of a hostname value accepting only the valid characters.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
@@ -135,20 +135,20 @@ impl TryFrom<&str> for Host {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, map_res, opt, recognize, verify},
         error::context,
-        multi::{many1, many_m_n},
+        multi::{many_m_n, many1},
         sequence::{delimited, pair, preceded},
-        Parser,
     };
     use std::net::IpAddr;
 
     use crate::{
-        parser::{digit, take1, ParserResult},
-        uris::host::HostnameString,
         Host,
+        parser::{ParserResult, digit, take1},
+        uris::host::HostnameString,
     };
 
     #[inline]

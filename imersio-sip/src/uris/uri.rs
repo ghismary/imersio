@@ -1,8 +1,9 @@
 //! Parsing and generation of a URI and its parts, either a SIP URI or an absolute URI.
 
-use crate::{AbsoluteUri, Host, SipError, SipUri, UriHeaders, UriParameters, UriScheme};
 use nom_language::error::convert_error;
 use std::convert::TryFrom;
+
+use crate::{AbsoluteUri, Host, SipError, SipUri, UriHeaders, UriParameters, UriScheme};
 
 /// Representation of a URI, whether a SIP URI or an absolute URI.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -39,10 +40,10 @@ impl Uri {
         matches!(self, Uri::Sip(_))
     }
 
-    /// Telss whether this `Uri` is secure or not.
+    /// Tell whether this `Uri` is secure or not.
     pub fn is_secure(&self) -> bool {
         match self {
-            Uri::Sip(uri) => uri.scheme() == &UriScheme::SIPS,
+            Uri::Sip(uri) => uri.is_secure(),
             _ => false,
         }
     }
@@ -174,16 +175,20 @@ impl PartialEq<Uri> for &Uri {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, combinator::map, error::context, Parser};
+    use nom::{Parser, branch::alt, combinator::map, error::context};
 
     use crate::{
+        Uri,
         parser::ParserResult,
         uris::{absolute_uri::parser::absolute_uri, sip_uri::parser::sip_uri},
-        Uri,
     };
 
     pub(crate) fn request_uri(input: &str) -> ParserResult<&str, Uri> {
-        context("uri", alt((sip_uri, map(absolute_uri, Uri::Absolute)))).parse(input)
+        context(
+            "uri",
+            alt((map(sip_uri, Uri::Sip), map(absolute_uri, Uri::Absolute))),
+        )
+        .parse(input)
     }
 }
 

@@ -2,9 +2,9 @@ use itertools::join;
 use std::hash::Hash;
 use std::ops::Deref;
 
-use crate::utils::compare_vectors;
 use crate::ContactParameter;
 use crate::NameAddress;
+use crate::utils::compare_vectors;
 
 static EMPTY_CONTACTS: Vec<Contact> = vec![];
 
@@ -132,25 +132,25 @@ impl Hash for Contact {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         combinator::{map, opt, recognize},
         error::context,
         multi::many0,
         sequence::{delimited, pair, preceded},
-        Parser,
     };
 
     use crate::{
-        common::{contact_parameter::parser::contact_params, wrapped_string::WrappedString},
-        parser::{laquot, lws, quoted_string, raquot, semi, token, ParserResult},
-        uris::{absolute_uri::parser::absolute_uri, sip_uri::parser::sip_uri},
         Contact, NameAddress, TokenString, Uri,
+        common::{contact_parameter::parser::contact_params, wrapped_string::WrappedString},
+        parser::{ParserResult, laquot, lws, quoted_string, raquot, semi, token},
+        uris::{absolute_uri::parser::absolute_uri, sip_uri::parser::sip_uri},
     };
 
     pub(crate) fn addr_spec(input: &str) -> ParserResult<&str, Uri> {
         context(
             "addr_spec",
-            alt((sip_uri, map(absolute_uri, Uri::Absolute))),
+            alt((map(sip_uri, Uri::Sip), map(absolute_uri, Uri::Absolute))),
         )
         .parse(input)
     }
