@@ -1,6 +1,6 @@
 //! Parsing and generation of an absolute URI.
 
-use crate::parser::{is_reserved, is_unreserved, ESCAPED_CHARS};
+use crate::parser::{ESCAPED_CHARS, is_reserved, is_unreserved};
 use crate::uris::absolute_uri::parser::is_uric_special_char;
 use crate::utils::escape;
 use crate::{IntoSpecificString, IntoUriScheme, SipError, UriHeaders, UriParameters, UriScheme};
@@ -138,7 +138,7 @@ impl AbsoluteUriBuilder {
             None => {
                 return Err(SipError::InvalidUriScheme(
                     "No scheme given to the builder".to_string(),
-                ))
+                ));
             }
         }
         match &self.opaque_part {
@@ -146,7 +146,7 @@ impl AbsoluteUriBuilder {
             None => {
                 return Err(SipError::InvalidUriOpaquePart(
                     "No opaque part given to the builder".to_string(),
-                ))
+                ));
             }
         }
         Ok(uri)
@@ -155,19 +155,19 @@ impl AbsoluteUriBuilder {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, recognize, verify},
         error::context,
         multi::many0,
         sequence::{pair, separated_pair},
-        Parser,
     };
 
     use crate::{
-        parser::{escaped, is_reserved, is_unreserved, reserved, take1, unreserved, ParserResult},
-        uris::uri_scheme::parser::scheme,
         AbsoluteUri, OpaquePartString, UriHeaders, UriParameters, UriScheme,
+        parser::{ParserResult, escaped, is_reserved, is_unreserved, reserved, take1, unreserved},
+        uris::uri_scheme::parser::scheme,
     };
 
     #[inline]

@@ -45,17 +45,17 @@ impl HeaderAccessor for MimeVersionHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::{tag, tag_no_case},
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
-        Parser,
     };
 
     use crate::{
-        headers::GenericHeader,
-        parser::{digit, hcolon, ParserResult},
         Header, MimeVersionHeader, TokenString,
+        headers::GenericHeader,
+        parser::{ParserResult, digit, hcolon},
     };
 
     pub(crate) fn mime_version(input: &str) -> ParserResult<&str, Header> {
@@ -82,11 +82,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, MimeVersionHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

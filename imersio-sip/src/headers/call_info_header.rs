@@ -59,18 +59,18 @@ impl PartialEq for CallInfoHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        CallInfoHeader, Header, TokenString,
         common::call_info::parser::info,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        CallInfoHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn call_info(input: &str) -> ParserResult<&str, Header> {
@@ -98,11 +98,11 @@ pub(crate) mod parser {
 mod tests {
     use crate::common::wrapped_string::WrappedString;
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         CallInfoHeader, CallInfoParameter, GenericParameter, Header, TokenString, Uri,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 
@@ -112,34 +112,37 @@ mod tests {
 
     #[test]
     fn test_valid_call_info_header_with_icon_and_info() {
-        valid_header("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info", |header| {
-            assert_eq!(header.infos().len(), 2);
-            let first_uri = Uri::try_from("http://wwww.example.com/alice/photo.jpg").unwrap();
-            let first_uri = first_uri.as_absolute_uri().unwrap();
-            assert!(header.infos().contains(first_uri));
-            let first_call_info = header.infos().get(first_uri);
-            assert!(first_call_info.is_some());
-            let first_call_info = first_call_info.unwrap();
-            assert_eq!(first_call_info.parameters().len(), 1);
-            assert_eq!(
-                first_call_info.parameters().first().unwrap(),
-                &CallInfoParameter::IconPurpose
-            );
-            let second_uri = Uri::try_from("http://www.example.com/alice/").unwrap();
-            let second_uri = second_uri.as_absolute_uri().unwrap();
-            assert!(header.infos().contains(second_uri));
-            let second_call_info = header.infos().get(second_uri);
-            assert!(second_call_info.is_some());
-            let second_call_info = second_call_info.unwrap();
-            assert_eq!(second_call_info.parameters().len(), 1);
-            assert_eq!(
-                second_call_info.parameters().first().unwrap(),
-                &CallInfoParameter::InfoPurpose
-            );
-            let third_uri = Uri::try_from("http://www.example.com/bob/").unwrap();
-            let third_uri = third_uri.as_absolute_uri().unwrap();
-            assert!(!header.infos().contains(third_uri));
-        });
+        valid_header(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info",
+            |header| {
+                assert_eq!(header.infos().len(), 2);
+                let first_uri = Uri::try_from("http://wwww.example.com/alice/photo.jpg").unwrap();
+                let first_uri = first_uri.as_absolute_uri().unwrap();
+                assert!(header.infos().contains(first_uri));
+                let first_call_info = header.infos().get(first_uri);
+                assert!(first_call_info.is_some());
+                let first_call_info = first_call_info.unwrap();
+                assert_eq!(first_call_info.parameters().len(), 1);
+                assert_eq!(
+                    first_call_info.parameters().first().unwrap(),
+                    &CallInfoParameter::IconPurpose
+                );
+                let second_uri = Uri::try_from("http://www.example.com/alice/").unwrap();
+                let second_uri = second_uri.as_absolute_uri().unwrap();
+                assert!(header.infos().contains(second_uri));
+                let second_call_info = header.infos().get(second_uri);
+                assert!(second_call_info.is_some());
+                let second_call_info = second_call_info.unwrap();
+                assert_eq!(second_call_info.parameters().len(), 1);
+                assert_eq!(
+                    second_call_info.parameters().first().unwrap(),
+                    &CallInfoParameter::InfoPurpose
+                );
+                let third_uri = Uri::try_from("http://www.example.com/bob/").unwrap();
+                let third_uri = third_uri.as_absolute_uri().unwrap();
+                assert!(!header.infos().contains(third_uri));
+            },
+        );
     }
 
     #[test]
@@ -250,12 +253,18 @@ mod tests {
 
     #[test]
     fn test_call_info_header_equality_same_header_with_space_characters_differences() {
-        header_equality("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/>;purpose=info", "Call-Info: <http://wwww.example.com/alice/photo.jpg>; purpose=icon, <http://www.example.com/alice/> ;purpose=info");
+        header_equality(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/>;purpose=info",
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg>; purpose=icon, <http://www.example.com/alice/> ;purpose=info",
+        );
     }
 
     #[test]
     fn test_call_info_header_equality_with_inverted_infos() {
-        header_equality("Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info", "Call-Info: <http://www.example.com/alice/> ;purpose=info, <http://wwww.example.com/alice/photo.jpg> ;purpose=icon");
+        header_equality(
+            "Call-Info: <http://wwww.example.com/alice/photo.jpg> ;purpose=icon, <http://www.example.com/alice/> ;purpose=info",
+            "Call-Info: <http://www.example.com/alice/> ;purpose=info, <http://wwww.example.com/alice/photo.jpg> ;purpose=icon",
+        );
     }
 
     #[test]

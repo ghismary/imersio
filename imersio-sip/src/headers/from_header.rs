@@ -74,24 +74,24 @@ impl HeaderAccessor for FromHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
         sequence::{pair, preceded, separated_pair},
-        Parser,
     };
 
     use crate::{
+        FromHeader, FromParameter, GenericParameter, Header, NameAddress, TokenString,
         common::{
             contact::parser::{addr_spec, name_addr},
             generic_parameter::parser::generic_param,
             wrapped_string::WrappedString,
         },
         headers::GenericHeader,
-        parser::{equal, hcolon, semi, token, ParserResult},
-        FromHeader, FromParameter, GenericParameter, Header, NameAddress, TokenString,
+        parser::{ParserResult, equal, hcolon, semi, token},
     };
 
     fn tag_param(input: &str) -> ParserResult<&str, GenericParameter<TokenString>> {
@@ -154,11 +154,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         FromHeader, Header, Uri,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

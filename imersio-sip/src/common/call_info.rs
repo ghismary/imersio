@@ -1,10 +1,10 @@
 use itertools::join;
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
-use crate::utils::compare_vectors;
 use crate::AbsoluteUri;
 use crate::CallInfoParameter;
+use crate::common::value_collection::ValueCollection;
+use crate::utils::compare_vectors;
 
 /// Representation of the list of call information from a `Call-Info` header.
 ///
@@ -74,13 +74,13 @@ impl Hash for CallInfo {
 }
 
 pub(crate) mod parser {
-    use nom::{combinator::map, error::context, multi::many0, sequence::preceded, Parser};
+    use nom::{Parser, combinator::map, error::context, multi::many0, sequence::preceded};
 
     use crate::{
-        common::call_info_parameter::parser::info_param,
-        parser::{laquot, raquot, semi, ParserResult},
-        uris::absolute_uri::parser::absolute_uri,
         CallInfo,
+        common::call_info_parameter::parser::info_param,
+        parser::{ParserResult, laquot, raquot, semi},
+        uris::absolute_uri::parser::absolute_uri,
     };
 
     pub(crate) fn info(input: &str) -> ParserResult<&str, CallInfo> {

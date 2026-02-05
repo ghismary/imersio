@@ -57,19 +57,19 @@ impl HeaderAccessor for ContentEncodingHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::{tag, tag_no_case},
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        ContentEncodingHeader, Header, TokenString,
         common::content_encoding::parser::content_coding,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        ContentEncodingHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn content_encoding(input: &str) -> ParserResult<&str, Header> {
@@ -99,11 +99,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         ContentEncodingHeader, Header,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

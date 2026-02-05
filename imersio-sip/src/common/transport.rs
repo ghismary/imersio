@@ -87,11 +87,11 @@ impl TryFrom<&str> for Transport {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, Parser};
+    use nom::{Parser, branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
 
     use crate::{
-        parser::{token, ParserResult},
         TokenString, Transport,
+        parser::{ParserResult, token},
     };
 
     pub(crate) fn transport(input: &str) -> ParserResult<&str, Transport> {

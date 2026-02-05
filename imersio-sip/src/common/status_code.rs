@@ -320,17 +320,17 @@ pub(crate) const CODE_DIGITS: &str = "\
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{recognize, value},
         error::context,
         multi::count,
         sequence::pair,
-        Parser,
     };
 
     use super::*;
-    use crate::parser::{digit, positive_digit, ParserResult};
+    use crate::parser::{ParserResult, digit, positive_digit};
 
     #[inline]
     fn informational(input: &str) -> ParserResult<&str, StatusCode> {
@@ -532,7 +532,9 @@ mod test {
 
     #[test]
     fn test_valid_status_code_but_with_remaining_data() {
-        assert!(StatusCode::try_from("200 anything")
-            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
+        assert!(
+            StatusCode::try_from("200 anything")
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 }

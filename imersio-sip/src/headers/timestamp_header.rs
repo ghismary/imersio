@@ -98,19 +98,19 @@ impl HeaderAccessor for TimestampHeader {
 pub(crate) mod parser {
     use chrono::{DateTime, TimeDelta};
     use nom::{
+        Parser,
         bytes::complete::{tag, tag_no_case},
         character::complete::digit1,
         combinator::{consumed, cut, map, opt, recognize},
         error::context,
-        multi::{many0, many_m_n},
+        multi::{many_m_n, many0},
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
-        headers::GenericHeader,
-        parser::{digit, hcolon, lws, ParserResult},
         Header, TimestampHeader, TokenString,
+        headers::GenericHeader,
+        parser::{ParserResult, digit, hcolon, lws},
     };
 
     pub(crate) fn timestamp(input: &str) -> ParserResult<&str, Header> {
@@ -181,11 +181,11 @@ fn str_to_nanoseconds(value: Option<&str>) -> u32 {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, TimestampHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use chrono::{DateTime, TimeDelta};
     use claims::assert_ok;

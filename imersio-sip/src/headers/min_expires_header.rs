@@ -50,17 +50,17 @@ impl HeaderAccessor for MinExpiresHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        Parser,
     };
 
     use crate::{
+        Header, MinExpiresHeader, TokenString,
         common::contact_parameter::parser::delta_seconds,
         headers::GenericHeader,
-        parser::{hcolon, ParserResult},
-        Header, MinExpiresHeader, TokenString,
+        parser::{ParserResult, hcolon},
     };
 
     pub(crate) fn min_expires(input: &str) -> ParserResult<&str, Header> {
@@ -87,11 +87,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, MinExpiresHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use chrono::TimeDelta;
     use claims::assert_ok;

@@ -93,18 +93,18 @@ impl AllowHeaderBuilder {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list0,
-        Parser,
     };
 
     use crate::{
+        AllowHeader, Header, TokenString,
         common::method::parser::method,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        AllowHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn allow(input: &str) -> ParserResult<&str, Header> {
@@ -131,8 +131,8 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::headers::{
-        tests::{header_equality, header_inequality, valid_header},
         HeaderAccessor,
+        tests::{header_equality, header_inequality, valid_header},
     };
     use crate::{AllowHeader, Header, Method};
     use claims::{assert_err, assert_ok};

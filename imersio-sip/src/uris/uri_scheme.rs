@@ -3,8 +3,8 @@
 use nom_language::error::convert_error;
 use std::hash::Hash;
 
-use crate::uris::uri_scheme::parser::scheme;
 use crate::SipError;
+use crate::uris::uri_scheme::parser::scheme;
 
 /// Representation of a URI scheme value accepting only the valid characters.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, derive_more::Deref, derive_more::Display)]
@@ -141,17 +141,17 @@ impl TryFrom<&str> for UriScheme {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         combinator::{map, recognize, verify},
         error::context,
         multi::many0,
         sequence::pair,
-        Parser,
     };
 
     use crate::{
-        parser::{alpha, digit, take1, ParserResult},
         UriSchemeString,
+        parser::{ParserResult, alpha, digit, take1},
     };
 
     #[inline]

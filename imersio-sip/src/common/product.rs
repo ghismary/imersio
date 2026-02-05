@@ -38,15 +38,15 @@ impl std::fmt::Display for Product {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         combinator::{map, opt},
         error::context,
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
-        parser::{slash, token, ParserResult},
         Product, TokenString,
+        parser::{ParserResult, slash, token},
     };
 
     pub(crate) fn product(input: &str) -> ParserResult<&str, Product> {

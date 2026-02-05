@@ -2,8 +2,8 @@
 
 use derive_partial_eq_extras::PartialEqExtras;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Challenge;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Proxy-Authenticate header.
 ///
@@ -45,17 +45,17 @@ impl HeaderAccessor for ProxyAuthenticateHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        Parser,
     };
 
     use crate::{
+        Header, ProxyAuthenticateHeader, TokenString,
         common::challenge::parser::challenge,
         headers::GenericHeader,
-        parser::{hcolon, ParserResult},
-        Header, ProxyAuthenticateHeader, TokenString,
+        parser::{ParserResult, hcolon},
     };
 
     pub(crate) fn proxy_authenticate(input: &str) -> ParserResult<&str, Header> {
@@ -82,11 +82,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Algorithm, DomainUri, Header, MessageQop, ProxyAuthenticateHeader, Uri,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

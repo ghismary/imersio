@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
-use crate::headers::HeaderAccessor;
 use crate::TokenString;
+use crate::headers::HeaderAccessor;
 
 #[derive(Clone, Debug, Eq)]
 pub struct GenericHeader {
@@ -78,17 +78,17 @@ impl Ord for GenericHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         combinator::{map, recognize},
         error::context,
         multi::many0,
-        Parser,
     };
 
     use crate::{
-        headers::GenericHeader,
-        parser::{hcolon, lws, text_utf8char, token, ParserResult},
         Header, TokenString,
+        headers::GenericHeader,
+        parser::{ParserResult, hcolon, lws, text_utf8char, token},
     };
 
     #[inline]

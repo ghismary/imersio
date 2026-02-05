@@ -48,18 +48,18 @@ impl HeaderAccessor for ErrorInfoHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        ErrorInfoHeader, Header, TokenString,
         common::error_uri::parser::error_uri,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        ErrorInfoHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn error_info(input: &str) -> ParserResult<&str, Header> {
@@ -86,11 +86,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         ErrorInfoHeader, Header, Uri,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 
@@ -104,9 +104,11 @@ mod tests {
             "Error-Info: <sip:not-in-service-recording@atlanta.com>",
             |header| {
                 assert_eq!(header.error_uris().len(), 1);
-                assert!(header
-                    .error_uris()
-                    .contains(&Uri::try_from("sip:not-in-service-recording@atlanta.com").unwrap()));
+                assert!(
+                    header.error_uris().contains(
+                        &Uri::try_from("sip:not-in-service-recording@atlanta.com").unwrap()
+                    )
+                );
             },
         );
     }

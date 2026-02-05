@@ -2,8 +2,8 @@
 
 use derive_partial_eq_extras::PartialEqExtras;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::MediaType;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Content-Type header.
 ///
@@ -49,18 +49,18 @@ impl HeaderAccessor for ContentTypeHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        Parser,
     };
 
     use crate::{
+        ContentTypeHeader, Header, TokenString,
         common::media_type::parser::media_type,
         headers::GenericHeader,
-        parser::{hcolon, ParserResult},
-        ContentTypeHeader, Header, TokenString,
+        parser::{ParserResult, hcolon},
     };
 
     pub(crate) fn content_type(input: &str) -> ParserResult<&str, Header> {
@@ -90,12 +90,12 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
+        ContentTypeHeader, Header, MediaParameter, MediaRange, TokenString,
         common::wrapped_string::WrappedString,
         headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
         },
-        ContentTypeHeader, Header, MediaParameter, MediaRange, TokenString,
     };
     use claims::assert_ok;
 

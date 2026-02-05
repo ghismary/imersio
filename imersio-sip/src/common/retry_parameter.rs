@@ -101,21 +101,21 @@ impl From<GenericParameter<TokenString>> for RetryParameter {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{map, recognize},
         error::context,
         sequence::separated_pair,
-        Parser,
     };
 
     use crate::{
+        TokenString,
         common::{
             contact_parameter::parser::delta_seconds, generic_parameter::parser::generic_param,
             retry_parameter::RetryParameter, wrapped_string::WrappedString,
         },
-        parser::{equal, ParserResult},
-        TokenString,
+        parser::{ParserResult, equal},
     };
 
     pub(crate) fn retry_param(input: &str) -> ParserResult<&str, RetryParameter> {

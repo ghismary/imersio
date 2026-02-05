@@ -1,10 +1,10 @@
-use itertools::{join, Itertools};
+use itertools::{Itertools, join};
 use std::cmp::Ordering;
 use std::hash::Hash;
 use std::ops::Deref;
 
-use crate::utils::compare_vectors;
 use crate::Uri;
+use crate::utils::compare_vectors;
 
 /// Representation of the list of uris in a `domain` parameter of a `Proxy-Authenticate` header.
 ///

@@ -2,11 +2,11 @@ use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
-use crate::common::wrapped_string::WrappedString;
 use crate::AuthenticationInfo;
 use crate::DomainUris;
 use crate::Stale;
+use crate::common::value_collection::ValueCollection;
+use crate::common::wrapped_string::WrappedString;
 use crate::{Algorithm, TokenString};
 use crate::{MessageQop, MessageQops};
 use crate::{SipError, Uri};
@@ -188,23 +188,23 @@ impl TryFrom<AuthenticationInfo> for AuthParameter {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{cut, map, recognize},
         error::context,
         multi::{many_m_n, separated_list1},
         sequence::{delimited, separated_pair},
-        Parser,
     };
 
     use crate::{
+        Algorithm, AuthParameter, AuthParameters, TokenString, Uri,
         common::{
             authentication_info::parser::{cnonce, message_qop, nonce_count, nonce_value},
             wrapped_string::WrappedString,
         },
-        parser::{comma, equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult},
+        parser::{ParserResult, comma, equal, ldquot, lhex, quoted_string, rdquot, token},
         uris::uri::parser::request_uri,
-        Algorithm, AuthParameter, AuthParameters, TokenString, Uri,
     };
 
     #[inline]

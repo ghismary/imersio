@@ -165,9 +165,10 @@ impl TryFrom<&str> for Header {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, error::context, Parser};
+    use nom::{Parser, branch::alt, error::context};
 
     use crate::{
+        Header,
         headers::{
             accept_encoding_header::parser::accept_encoding, accept_header::parser::accept,
             accept_language_header::parser::accept_language, alert_info_header::parser::alert_info,
@@ -197,7 +198,6 @@ pub(crate) mod parser {
             warning_header::parser::warning, www_authenticate_header::parser::www_authenticate,
         },
         parser::ParserResult,
-        Header,
     };
 
     pub(crate) fn message_header(input: &str) -> ParserResult<&str, Header> {

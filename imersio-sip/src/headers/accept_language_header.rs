@@ -52,18 +52,18 @@ impl HeaderAccessor for AcceptLanguageHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list0,
-        Parser,
     };
 
     use crate::{
+        AcceptLanguageHeader, Header, TokenString,
         common::accept_language::parser::language,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        AcceptLanguageHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn accept_language(input: &str) -> ParserResult<&str, Header> {
@@ -90,8 +90,8 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::headers::{
-        tests::{header_equality, header_inequality, invalid_header, valid_header},
         HeaderAccessor,
+        tests::{header_equality, header_inequality, invalid_header, valid_header},
     };
     use crate::{AcceptLanguageHeader, Header};
     use claims::assert_ok;
@@ -215,14 +215,14 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_language_header_inequality_with_first_header_having_more_languages_than_the_second(
-    ) {
+    fn test_accept_language_header_inequality_with_first_header_having_more_languages_than_the_second()
+     {
         header_inequality("Accept-Language: fr, en", "Accept-Language: en");
     }
 
     #[test]
-    fn test_accept_language_header_inequality_with_first_header_having_less_languages_than_the_second(
-    ) {
+    fn test_accept_language_header_inequality_with_first_header_having_less_languages_than_the_second()
+     {
         header_inequality("Accept-Language: en", "Accept-Language: fr, en");
     }
 

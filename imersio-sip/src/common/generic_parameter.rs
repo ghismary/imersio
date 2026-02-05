@@ -127,18 +127,18 @@ where
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         combinator::{map, opt, recognize},
         error::context,
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
-        common::wrapped_string::WrappedString,
-        parser::{equal, quoted_string, token, ParserResult},
-        uris::host::parser::host,
         GenericParameter, TokenString,
+        common::wrapped_string::WrappedString,
+        parser::{ParserResult, equal, quoted_string, token},
+        uris::host::parser::host,
     };
 
     fn gen_value(input: &str) -> ParserResult<&str, WrappedString<TokenString>> {

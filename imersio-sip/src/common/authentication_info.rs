@@ -91,19 +91,19 @@ impl Hash for AuthenticationInfo {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{cut, map, recognize},
         error::context,
         multi::{count, many0},
         sequence::{delimited, separated_pair},
-        Parser,
     };
 
     use crate::{
-        common::wrapped_string::WrappedString,
-        parser::{equal, ldquot, lhex, quoted_string, rdquot, token, ParserResult},
         AuthenticationInfo, MessageQop, TokenString,
+        common::wrapped_string::WrappedString,
+        parser::{ParserResult, equal, ldquot, lhex, quoted_string, rdquot, token},
     };
 
     #[inline]

@@ -2,8 +2,8 @@
 
 use derive_partial_eq_extras::PartialEqExtras;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::CallId;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of a Call-ID header.
 ///
@@ -46,18 +46,18 @@ impl HeaderAccessor for CallIdHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        Parser,
     };
 
     use crate::{
+        CallIdHeader, Header, TokenString,
         common::call_id::parser::callid,
         headers::GenericHeader,
-        parser::{hcolon, ParserResult},
-        CallIdHeader, Header, TokenString,
+        parser::{ParserResult, hcolon},
     };
 
     pub(crate) fn call_id(input: &str) -> ParserResult<&str, Header> {
@@ -87,11 +87,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         CallIdHeader, Header,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

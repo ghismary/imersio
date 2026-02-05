@@ -1,10 +1,10 @@
 use std::ops::Deref;
 
-use crate::utils::compare_vectors;
 use crate::Algorithm;
 use crate::DomainUris;
 use crate::MessageQops;
 use crate::Stale;
+use crate::utils::compare_vectors;
 use crate::{AuthParameter, AuthParameters};
 
 /// Representation of the challenge from a `ProxyAuthenticateHeader`.
@@ -218,17 +218,17 @@ pub(crate) mod parser {
         algorithm, auth_param, auth_scheme, nonce, opaque, realm,
     };
     use crate::common::authentication_info::parser::qop_value;
-    use crate::parser::{comma, equal, ldquot, lws, param, pchar, rdquot, sp, ParserResult};
+    use crate::parser::{ParserResult, comma, equal, ldquot, lws, param, pchar, rdquot, sp};
     use crate::uris::uri::parser::request_uri;
     use crate::{AuthParameter, Challenge, DomainUri, MessageQop, Stale};
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::{tag, tag_no_case},
         combinator::{consumed, cut, map, recognize, value},
         error::context,
         multi::{many0, many1, separated_list1},
         sequence::{delimited, pair, preceded, separated_pair},
-        Parser,
     };
 
     fn other_challenge(input: &str) -> ParserResult<&str, Challenge> {

@@ -1,6 +1,6 @@
 //! Parsing and generation of the parameters of a SIP URI.
 
-use itertools::{join, Itertools};
+use itertools::{Itertools, join};
 use nom_language::error::convert_error;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -10,8 +10,8 @@ use std::ops::Deref;
 use crate::parser::ESCAPED_CHARS;
 use crate::uris::uri_parameter::parser::{is_param_unreserved, uri_parameter};
 use crate::{
-    parser::is_unreserved, utils::escape, GenericParameter, Host, Method, SipError, Transport,
-    UserType,
+    GenericParameter, Host, Method, SipError, Transport, UserType, parser::is_unreserved,
+    utils::escape,
 };
 
 /// Representation of a URI user value accepting only the valid characters.
@@ -303,21 +303,21 @@ impl TryFrom<Vec<UriParameter>> for UriParameters {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag,
         combinator::{map, map_res, opt, value, verify},
         error::context,
         multi::{many0, many1},
         sequence::{pair, preceded, separated_pair},
-        Parser,
     };
 
     use crate::{
-        common::wrapped_string::WrappedString,
-        parser::{escaped, take1, token, ttl, unreserved, ParserResult},
-        uris::host::parser::host,
         GenericParameter, Method, Transport, UriParameter, UriParameterString, UriParameters,
         UserType,
+        common::wrapped_string::WrappedString,
+        parser::{ParserResult, escaped, take1, token, ttl, unreserved},
+        uris::host::parser::host,
     };
 
     fn transport_param(input: &str) -> ParserResult<&str, UriParameter> {

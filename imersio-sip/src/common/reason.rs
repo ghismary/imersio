@@ -392,18 +392,18 @@ reasons! {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         combinator::{map, value},
         error::context,
         multi::many0,
         sequence::separated_pair,
-        Parser,
     };
 
     use super::*;
     use crate::{
         common::status_code::parser::status_code,
-        parser::{escaped, reserved, sp, tab, unreserved, utf8_nonascii, ParserResult},
+        parser::{ParserResult, escaped, reserved, sp, tab, unreserved, utf8_nonascii},
     };
 
     fn reason_phrase(input: &str) -> ParserResult<&str, String> {

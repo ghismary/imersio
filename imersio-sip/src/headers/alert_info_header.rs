@@ -52,18 +52,18 @@ impl HeaderAccessor for AlertInfoHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        AlertInfoHeader, Header, TokenString,
         common::alert::parser::alert_param,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        AlertInfoHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn alert_info(input: &str) -> ParserResult<&str, Header> {
@@ -90,11 +90,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         AlertInfoHeader, Header, Uri,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 
@@ -108,12 +108,14 @@ mod tests {
             "Alert-Info: <http://www.example.com/sounds/moo.wav>",
             |header| {
                 assert_eq!(header.alerts().len(), 1);
-                assert!(header.alerts().contains(
-                    Uri::try_from("http://www.example.com/sounds/moo.wav")
-                        .unwrap()
-                        .as_absolute_uri()
-                        .unwrap()
-                ));
+                assert!(
+                    header.alerts().contains(
+                        Uri::try_from("http://www.example.com/sounds/moo.wav")
+                            .unwrap()
+                            .as_absolute_uri()
+                            .unwrap()
+                    )
+                );
             },
         );
     }

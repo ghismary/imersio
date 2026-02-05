@@ -120,14 +120,14 @@ impl From<GenericParameter<TokenString>> for CallInfoParameter {
 
 pub(crate) mod parser {
     use nom::{
-        branch::alt, bytes::complete::tag_no_case, combinator::map, error::context,
-        sequence::separated_pair, Parser,
+        Parser, branch::alt, bytes::complete::tag_no_case, combinator::map, error::context,
+        sequence::separated_pair,
     };
 
     use crate::{
-        common::{generic_parameter::parser::generic_param, wrapped_string::WrappedString},
-        parser::{equal, token, ParserResult},
         CallInfoParameter, GenericParameter, TokenString,
+        common::{generic_parameter::parser::generic_param, wrapped_string::WrappedString},
+        parser::{ParserResult, equal, token},
     };
 
     pub(crate) fn info_param(input: &str) -> ParserResult<&str, CallInfoParameter> {

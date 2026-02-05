@@ -1,9 +1,9 @@
 use itertools::join;
 use std::hash::Hash;
 
+use crate::NameAddress;
 use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
-use crate::NameAddress;
 use crate::{GenericParameter, TokenString};
 
 /// Representation of the list of routes from a `RecordRouteHeader`.
@@ -80,12 +80,12 @@ impl Hash for Route {
 }
 
 pub(crate) mod parser {
-    use nom::{combinator::map, error::context, multi::many0, sequence::pair, Parser};
+    use nom::{Parser, combinator::map, error::context, multi::many0, sequence::pair};
 
     use crate::{
+        GenericParameter, Route, TokenString,
         common::{contact::parser::name_addr, generic_parameter::parser::generic_param},
         parser::ParserResult,
-        GenericParameter, Route, TokenString,
     };
 
     #[inline]

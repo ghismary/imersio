@@ -101,11 +101,11 @@ impl TryFrom<&str> for ContentEncoding {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, bytes::complete::tag, combinator::map, error::context, Parser};
+    use nom::{Parser, branch::alt, bytes::complete::tag, combinator::map, error::context};
 
     use crate::{
-        parser::{token, ParserResult},
         ContentEncoding, TokenString,
+        parser::{ParserResult, token},
     };
 
     #[inline]
@@ -163,7 +163,9 @@ mod test {
 
     #[test]
     fn test_valid_content_encoding_with_remaining_data() {
-        assert!(ContentEncoding::try_from("gzip anything")
-            .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string())));
+        assert!(
+            ContentEncoding::try_from("gzip anything")
+                .is_err_and(|e| e == SipError::RemainingUnparsedData(" anything".to_string()))
+        );
     }
 }

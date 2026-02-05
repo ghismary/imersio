@@ -1,18 +1,18 @@
 //! Generic parser rules used throughout the whole crate.
 
 use nom::{
+    IResult, Input, Parser,
     branch::alt,
     bytes::complete::{tag, take},
     character::complete::crlf,
     combinator::{map, map_res, opt, recognize, verify},
-    error::{context, ErrorKind},
-    multi::{count, many0, many1, many_m_n, separated_list1},
+    error::{ErrorKind, context},
+    multi::{count, many_m_n, many0, many1, separated_list1},
     sequence::{delimited, pair, preceded, terminated},
-    IResult, Input, Parser,
 };
 use nom_language::error::VerboseError;
 
-use crate::{common::wrapped_string::WrappedString, TokenString};
+use crate::{TokenString, common::wrapped_string::WrappedString};
 
 pub(crate) type ParserResult<T, U> = IResult<T, U, VerboseError<T>>;
 

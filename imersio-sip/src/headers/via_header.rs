@@ -50,19 +50,19 @@ impl HeaderAccessor for ViaHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        Header, TokenString, ViaHeader,
         common::via::parser::via_parm,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        Header, TokenString, ViaHeader,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn via(input: &str) -> ParserResult<&str, Header> {
@@ -92,11 +92,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, Host, HostnameString, Protocol, TokenString, Transport, ViaHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
     use std::net::{IpAddr, Ipv4Addr};
@@ -174,7 +174,11 @@ mod tests {
                 let first_via = header.vias().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
-                    &Protocol::new(TokenString::new("SIP"), TokenString::new("2.0"), Transport::Udp)
+                    &Protocol::new(
+                        TokenString::new("SIP"),
+                        TokenString::new("2.0"),
+                        Transport::Udp
+                    )
                 );
                 assert_eq!(
                     first_via.host(),
@@ -183,12 +187,12 @@ mod tests {
                 assert_eq!(first_via.port(), Some(4000));
                 let mut it = first_via.parameters().iter();
                 let param = it.next();
-                assert_eq!(
-                    param.unwrap().ttl(),
-                    Some(16)
-                );
+                assert_eq!(param.unwrap().ttl(), Some(16));
                 let param = it.next();
-                assert_eq!(param.unwrap().maddr(), Some(Host::Ip(IpAddr::V4(Ipv4Addr::new(224, 2, 0, 1)))));
+                assert_eq!(
+                    param.unwrap().maddr(),
+                    Some(Host::Ip(IpAddr::V4(Ipv4Addr::new(224, 2, 0, 1))))
+                );
                 let param = it.next();
                 assert_eq!(
                     param.unwrap().branch(),
@@ -232,8 +236,8 @@ mod tests {
     #[test]
     fn test_via_header_equality_same_vias_with_different_cases() {
         header_equality(
-            "v: SIP / 2.0 / UDP first.example.com: 4000;ttl=16;maddr=224.2.0.1 ;branch=z9hG4bKa7c6a8dlze.1", 
-            "V: sip / 2.0 / Udp first.example.com: 4000;TTL=16;MAddr=224.2.0.1 ;brAnch=z9hG4bKa7c6a8dlze.1"
+            "v: SIP / 2.0 / UDP first.example.com: 4000;ttl=16;maddr=224.2.0.1 ;branch=z9hG4bKa7c6a8dlze.1",
+            "V: sip / 2.0 / Udp first.example.com: 4000;TTL=16;MAddr=224.2.0.1 ;brAnch=z9hG4bKa7c6a8dlze.1",
         );
     }
 
@@ -263,9 +267,14 @@ mod tests {
 
     #[test]
     fn test_via_header_to_string() {
-        let header = Header::try_from("via :    SIP/2.0/UDP      192.0.2.1:5060 ;ReceiveD= 192.0.2.207 ; branCH=z9hG4bK77asjd");
+        let header = Header::try_from(
+            "via :    SIP/2.0/UDP      192.0.2.1:5060 ;ReceiveD= 192.0.2.207 ; branCH=z9hG4bK77asjd",
+        );
         if let Header::Via(header) = header.unwrap() {
-            assert_eq!(header.to_string(), "via :    SIP/2.0/UDP      192.0.2.1:5060 ;ReceiveD= 192.0.2.207 ; branCH=z9hG4bK77asjd");
+            assert_eq!(
+                header.to_string(),
+                "via :    SIP/2.0/UDP      192.0.2.1:5060 ;ReceiveD= 192.0.2.207 ; branCH=z9hG4bK77asjd"
+            );
             assert_eq!(
                 header.to_normalized_string(),
                 "Via: SIP/2.0/UDP 192.0.2.1:5060;received=192.0.2.207;branch=z9hG4bK77asjd"

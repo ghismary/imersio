@@ -1,10 +1,10 @@
 use itertools::join;
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
-use crate::utils::compare_vectors;
 use crate::AbsoluteUri;
 use crate::AcceptParameter;
+use crate::common::value_collection::ValueCollection;
+use crate::utils::compare_vectors;
 
 /// Representation of the list of alerts from an `AlertInfoHeader`.
 ///
@@ -75,18 +75,18 @@ impl Hash for Alert {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         combinator::map,
         error::context,
         multi::many0,
         sequence::{delimited, pair, preceded},
-        Parser,
     };
 
     use crate::{
-        common::generic_parameter::parser::generic_param,
-        parser::{laquot, raquot, semi, ParserResult},
-        uris::absolute_uri::parser::absolute_uri,
         Alert,
+        common::generic_parameter::parser::generic_param,
+        parser::{ParserResult, laquot, raquot, semi},
+        uris::absolute_uri::parser::absolute_uri,
     };
 
     pub(crate) fn alert_param(input: &str) -> ParserResult<&str, Alert> {

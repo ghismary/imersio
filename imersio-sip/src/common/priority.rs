@@ -78,11 +78,11 @@ impl TryFrom<&str> for Priority {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, Parser};
+    use nom::{Parser, branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
 
     use crate::{
-        parser::{token, ParserResult},
         Priority, TokenString,
+        parser::{ParserResult, token},
     };
 
     #[inline]

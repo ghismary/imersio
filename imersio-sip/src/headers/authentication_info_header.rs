@@ -108,18 +108,18 @@ authentication_info_header! {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        AuthenticationInfoHeader, Header, TokenString,
         common::authentication_info::parser::ainfo,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        AuthenticationInfoHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn authentication_info(input: &str) -> ParserResult<&str, Header> {
@@ -146,11 +146,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         AuthenticationInfoHeader, Header, MessageQop,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

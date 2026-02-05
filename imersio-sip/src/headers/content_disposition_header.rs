@@ -74,19 +74,19 @@ impl PartialEq for ContentDispositionHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
+        ContentDispositionHeader, Header, TokenString,
         common::{disposition_parameter::parser::disp_param, disposition_type::parser::disp_type},
         headers::GenericHeader,
-        parser::{hcolon, semi, ParserResult},
-        ContentDispositionHeader, Header, TokenString,
+        parser::{ParserResult, hcolon, semi},
     };
 
     pub(crate) fn content_disposition(input: &str) -> ParserResult<&str, Header> {
@@ -114,11 +114,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         ContentDispositionHeader, DispositionType, Handling, Header, TokenString,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

@@ -47,12 +47,12 @@ impl std::fmt::Display for Protocol {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, bytes::complete::tag_no_case, combinator::map, error::context, Parser};
+    use nom::{Parser, branch::alt, bytes::complete::tag_no_case, combinator::map, error::context};
 
     use crate::{
-        common::transport::parser::transport,
-        parser::{slash, token, ParserResult},
         Protocol, TokenString,
+        common::transport::parser::transport,
+        parser::{ParserResult, slash, token},
     };
 
     pub(crate) fn sent_protocol(input: &str) -> ParserResult<&str, Protocol> {

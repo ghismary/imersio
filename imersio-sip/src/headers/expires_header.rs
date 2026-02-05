@@ -49,17 +49,17 @@ impl HeaderAccessor for ExpiresHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
-        Parser,
     };
 
     use crate::{
+        ExpiresHeader, Header, TokenString,
         common::contact_parameter::parser::delta_seconds,
         headers::GenericHeader,
-        parser::{hcolon, ParserResult},
-        ExpiresHeader, Header, TokenString,
+        parser::{ParserResult, hcolon},
     };
 
     pub(crate) fn expires(input: &str) -> ParserResult<&str, Header> {
@@ -86,11 +86,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         ExpiresHeader, Header,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use chrono::TimeDelta;
     use claims::assert_ok;

@@ -2,8 +2,8 @@
 
 use derive_partial_eq_extras::PartialEqExtras;
 
-use crate::headers::{GenericHeader, HeaderAccessor};
 use crate::Method;
+use crate::headers::{GenericHeader, HeaderAccessor};
 
 /// Representation of a CSeq header.
 ///
@@ -60,19 +60,19 @@ impl HeaderAccessor for CSeqHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
         sequence::separated_pair,
-        Parser,
     };
 
     use crate::{
+        CSeqHeader, Header, TokenString,
         common::method::parser::method,
         headers::GenericHeader,
-        parser::{digit, hcolon, lws, ParserResult},
-        CSeqHeader, Header, TokenString,
+        parser::{ParserResult, digit, hcolon, lws},
     };
 
     pub(crate) fn cseq(input: &str) -> ParserResult<&str, Header> {
@@ -104,11 +104,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         CSeqHeader, Header,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

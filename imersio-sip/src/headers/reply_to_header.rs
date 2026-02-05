@@ -67,23 +67,23 @@ impl HeaderAccessor for ReplyToHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::many0,
         sequence::{pair, preceded},
-        Parser,
     };
 
     use crate::{
+        GenericParameter, Header, NameAddress, ReplyToHeader, TokenString,
         common::{
             contact::parser::{addr_spec, name_addr},
             generic_parameter::parser::generic_param,
         },
         headers::GenericHeader,
-        parser::{hcolon, semi, ParserResult},
-        GenericParameter, Header, NameAddress, ReplyToHeader, TokenString,
+        parser::{ParserResult, hcolon, semi},
     };
 
     #[inline]
@@ -129,11 +129,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, ReplyToHeader, Uri,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

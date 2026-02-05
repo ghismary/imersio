@@ -49,19 +49,19 @@ impl HeaderAccessor for SupportedHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list1,
-        Parser,
     };
 
     use crate::{
+        Header, SupportedHeader, TokenString,
         common::option_tag::parser::option_tag,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        Header, SupportedHeader, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn supported(input: &str) -> ParserResult<&str, Header> {
@@ -91,11 +91,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, SupportedHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 

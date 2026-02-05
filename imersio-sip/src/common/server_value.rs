@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
-use crate::common::value_collection::ValueCollection;
 use crate::Product;
+use crate::common::value_collection::ValueCollection;
 
 /// Representation of the list of server values in a `Server` or `User-Agent` header.
 ///
@@ -27,12 +27,12 @@ impl std::fmt::Display for ServerValue {
 }
 
 pub(crate) mod parser {
-    use nom::{branch::alt, combinator::map, error::context, Parser};
+    use nom::{Parser, branch::alt, combinator::map, error::context};
 
     use crate::{
-        common::product::parser::product,
-        parser::{comment, ParserResult},
         ServerValue,
+        common::product::parser::product,
+        parser::{ParserResult, comment},
     };
 
     pub(crate) fn server_val(input: &str) -> ParserResult<&str, ServerValue> {

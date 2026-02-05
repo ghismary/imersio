@@ -50,18 +50,18 @@ impl HeaderAccessor for AcceptHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map},
         error::context,
         multi::separated_list0,
-        Parser,
     };
 
     use crate::{
+        AcceptHeader, Header, TokenString,
         common::accept_range::parser::accept_range,
         headers::GenericHeader,
-        parser::{comma, hcolon, ParserResult},
-        AcceptHeader, Header, TokenString,
+        parser::{ParserResult, comma, hcolon},
     };
 
     pub(crate) fn accept(input: &str) -> ParserResult<&str, Header> {
@@ -88,12 +88,12 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
+        AcceptHeader, AcceptParameter, Header, TokenString,
         common::media_range::MediaRange,
         headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
             HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
         },
-        AcceptHeader, AcceptParameter, Header, TokenString,
     };
     use claims::assert_ok;
 

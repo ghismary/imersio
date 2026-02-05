@@ -50,17 +50,17 @@ impl HeaderAccessor for MaxForwardsHeader {
 
 pub(crate) mod parser {
     use nom::{
+        Parser,
         bytes::complete::tag_no_case,
         combinator::{consumed, cut, map, recognize},
         error::context,
         multi::many1,
-        Parser,
     };
 
     use crate::{
-        headers::GenericHeader,
-        parser::{digit, hcolon, ParserResult},
         Header, MaxForwardsHeader, TokenString,
+        headers::GenericHeader,
+        parser::{ParserResult, digit, hcolon},
     };
 
     pub(crate) fn max_forwards(input: &str) -> ParserResult<&str, Header> {
@@ -89,11 +89,11 @@ pub(crate) mod parser {
 #[cfg(test)]
 mod tests {
     use crate::{
-        headers::{
-            tests::{header_equality, header_inequality, invalid_header, valid_header},
-            HeaderAccessor,
-        },
         Header, MaxForwardsHeader,
+        headers::{
+            HeaderAccessor,
+            tests::{header_equality, header_inequality, invalid_header, valid_header},
+        },
     };
     use claims::assert_ok;
 
