@@ -69,7 +69,7 @@ pub use crate::common::{
 };
 pub use crate::error::SipError;
 pub use crate::headers::{
-    accept_encoding_header::AcceptEncodingHeader, accept_header::AcceptHeader,
+    Header, accept_encoding_header::AcceptEncodingHeader, accept_header::AcceptHeader,
     accept_language_header::AcceptLanguageHeader, alert_info_header::AlertInfoHeader,
     allow_header::AllowHeader, authentication_info_header::AuthenticationInfoHeader,
     authorization_header::AuthorizationHeader, call_id_header::CallIdHeader,
@@ -88,13 +88,13 @@ pub use crate::headers::{
     server_header::ServerHeader, subject_header::SubjectHeader, supported_header::SupportedHeader,
     timestamp_header::TimestampHeader, to_header::ToHeader, unsupported_header::UnsupportedHeader,
     user_agent_header::UserAgentHeader, via_header::ViaHeader, warning_header::WarningHeader,
-    www_authenticate_header::WWWAuthenticateHeader, Header,
+    www_authenticate_header::WWWAuthenticateHeader,
 };
 pub use crate::messages::{message::Message, request::Request, response::Response};
 pub use crate::uris::{
     absolute_uri::{AbsoluteUri, OpaquePartString},
     host::{Host, HostnameString},
-    sip_uri::SipUri,
+    sip_uri::{SipUri, SipUriBuilder},
     uri::Uri,
     uri_header::{UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders},
     uri_parameter::{UriParameter, UriParameterString, UriParameters},

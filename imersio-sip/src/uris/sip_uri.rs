@@ -1,5 +1,12 @@
 //! Parsing and generation of a SIP URI.
 
+use nom_language::error::convert_error;
+use serde::{
+    Deserialize,
+    de::{self, Deserializer, Visitor},
+};
+use std::str::FromStr;
+
 use crate::{
     Host, IntoHost, IntoPort, IntoSpecificString, IntoUriScheme, Method, PasswordString, SipError,
     Transport, UriHeader, UriHeaderNameString, UriHeaderValueString, UriHeaders, UriParameter,
@@ -66,6 +73,25 @@ impl SipUri {
         &self.headers
     }
 
+    /// Get the transport parameter of the sip uri.
+    pub fn transport(&self) -> Option<Transport> {
+        self.parameters()
+            .iter()
+            .find_map(|p| p.transport())
+            .cloned()
+    }
+
+    /// Tell whether this `SipUri` is secure or not.
+    pub fn is_secure(&self) -> bool {
+        (self.scheme() == &UriScheme::SIPS)
+            || (self.scheme() == &UriScheme::SIP && self.transport() == Some(Transport::Tls))
+    }
+
+    /// Get a `SipUriBuilder` from this `SipUri`.
+    pub fn into_builder(self) -> SipUriBuilder {
+        self.into()
+    }
+
     /// Get a `SipUri` builder.
     pub fn builder() -> SipUriBuilder {
         SipUriBuilder::default()
@@ -95,6 +121,64 @@ impl std::fmt::Display for SipUri {
     }
 }
 
+impl TryFrom<&str> for SipUri {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match parser::sip_uri(value) {
+            Ok((rest, uri)) => {
+                if !rest.is_empty() {
+                    Err(SipError::RemainingUnparsedData(rest.to_string()))
+                } else {
+                    Ok(uri)
+                }
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                Err(SipError::InvalidUri(convert_error(value, e)))
+            }
+            Err(nom::Err::Incomplete(_)) => Err(SipError::InvalidUri(format!(
+                "Incomplete sip uri `{}`",
+                value
+            ))),
+        }
+    }
+}
+
+impl FromStr for SipUri {
+    type Err = SipError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::try_from(value)
+    }
+}
+
+impl<'de> Deserialize<'de> for SipUri {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SipUriVisitor;
+
+        impl<'de> Visitor<'de> for SipUriVisitor {
+            type Value = SipUri;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("valid sip uri")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<SipUri, E>
+            where
+                E: de::Error,
+            {
+                SipUri::try_from(value).map_err(|err| de::Error::custom(err.to_string()))
+            }
+        }
+
+        deserializer.deserialize_identifier(SipUriVisitor)
+    }
+}
+
+/// Representation of a builder of `SipUri`.
 #[derive(Clone, Debug, Default)]
 pub struct SipUriBuilder {
     scheme: UriScheme,
@@ -107,6 +191,7 @@ pub struct SipUriBuilder {
 }
 
 impl SipUriBuilder {
+    /// Try to set the scheme.
     pub fn try_scheme<S: Into<IntoUriScheme>>(&mut self, scheme: S) -> Result<&mut Self, SipError> {
         let scheme = scheme.into();
         let scheme = scheme.try_into()?;
@@ -119,6 +204,7 @@ impl SipUriBuilder {
         }
     }
 
+    /// Try to set the user.
     pub fn try_user<U: Into<IntoSpecificString<UserString>>>(
         &mut self,
         user: U,
@@ -128,6 +214,7 @@ impl SipUriBuilder {
         Ok(self)
     }
 
+    /// Try to set the password.
     pub fn try_password<P: Into<IntoSpecificString<PasswordString>>>(
         &mut self,
         password: P,
@@ -137,39 +224,46 @@ impl SipUriBuilder {
         Ok(self)
     }
 
+    /// Try to set the host.
     pub fn try_host<H: Into<IntoHost>>(&mut self, host: H) -> Result<&mut Self, SipError> {
         let host = host.into();
         self.host = host.try_into()?;
         Ok(self)
     }
 
+    /// Set the port.
     pub fn port<P: Into<IntoPort>>(&mut self, port: P) -> &mut Self {
         let port = port.into();
         self.port = port.into();
         self
     }
 
+    /// Add a transport parameter.
     pub fn transport_parameter(&mut self, transport: Transport) -> &mut Self {
         self.parameters
             .add_parameter(UriParameter::Transport(transport));
         self
     }
 
+    /// Add a user parameter.
     pub fn user_parameter(&mut self, user: UserType) -> &mut Self {
         self.parameters.add_parameter(UriParameter::User(user));
         self
     }
 
+    /// Add a method parameter.
     pub fn method_parameter(&mut self, method: Method) -> &mut Self {
         self.parameters.add_parameter(UriParameter::Method(method));
         self
     }
 
+    /// Add a ttl parameter.
     pub fn ttl_parameter(&mut self, ttl: u8) -> &mut Self {
         self.parameters.add_parameter(UriParameter::Ttl(ttl));
         self
     }
 
+    /// Try to add a maddr parameter.
     pub fn try_maddr_parameter<H: Into<IntoHost>>(
         &mut self,
         maddr: H,
@@ -180,6 +274,7 @@ impl SipUriBuilder {
         Ok(self)
     }
 
+    /// Try to add a parameter.
     pub fn try_parameter<P: Into<IntoSpecificString<UriParameterString>>>(
         &mut self,
         name: P,
@@ -206,11 +301,13 @@ impl SipUriBuilder {
         Ok(self)
     }
 
+    /// Clear the list of already added parameters.
     pub fn clear_parameters(&mut self) -> &mut Self {
         self.parameters.clear();
         self
     }
 
+    /// Try to add a header.
     pub fn try_header<
         N: Into<IntoSpecificString<UriHeaderNameString>>,
         V: Into<IntoSpecificString<UriHeaderValueString>>,
@@ -226,11 +323,13 @@ impl SipUriBuilder {
         Ok(self)
     }
 
+    /// Clear the list of already added headers.
     pub fn clear_headers(&mut self) -> &mut Self {
         self.headers.clear();
         self
     }
 
+    /// Build the `SipUri`.
     pub fn build(&self) -> SipUri {
         let mut uri = SipUri {
             scheme: Clone::clone(&self.scheme),
@@ -250,26 +349,64 @@ impl SipUriBuilder {
     }
 }
 
+impl From<SipUri> for SipUriBuilder {
+    fn from(value: SipUri) -> Self {
+        let mut user: Option<UserString> = None;
+        let mut password: Option<PasswordString> = None;
+        if let Some(userinfo) = value.userinfo {
+            user = Some(userinfo.user().try_into().unwrap());
+            if let Some(userinfo_password) = userinfo.password() {
+                password = Some(userinfo_password.try_into().unwrap());
+            }
+        }
+        SipUriBuilder {
+            scheme: value.scheme,
+            user,
+            password,
+            host: value.host,
+            port: value.port,
+            parameters: value.parameters,
+            headers: value.headers,
+        }
+    }
+}
+
+impl TryFrom<&str> for SipUriBuilder {
+    type Error = SipError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(value.parse::<SipUri>()?.into())
+    }
+}
+
+impl FromStr for SipUriBuilder {
+    type Err = SipError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s)
+    }
+}
+
 pub(crate) mod parser {
     use nom::{
+        Parser,
         branch::alt,
         bytes::complete::tag_no_case,
         combinator::{cut, map, opt},
         error::context,
         sequence::pair,
-        Parser,
     };
 
     use crate::{
+        SipUri, UriScheme,
         parser::ParserResult,
         uris::{
             host::parser::hostport, uri_header::parser::headers,
             uri_parameter::parser::uri_parameters, user_info::parser::userinfo,
         },
-        SipUri, Uri, UriScheme,
     };
 
-    pub(crate) fn sip_uri(input: &str) -> ParserResult<&str, Uri> {
+    pub(crate) fn sip_uri(input: &str) -> ParserResult<&str, SipUri> {
         context(
             "sip_uri",
             map(
@@ -281,14 +418,14 @@ pub(crate) mod parser {
                     cut((opt(userinfo), hostport, uri_parameters, opt(headers))),
                 ),
                 |(scheme, (userinfo, (host, port), parameters, headers))| {
-                    Uri::Sip(SipUri::new(
+                    SipUri::new(
                         scheme,
                         userinfo,
                         host,
                         port,
                         parameters,
                         headers.unwrap_or_default(),
-                    ))
+                    )
                 },
             ),
         )

@@ -8,10 +8,8 @@ edition = "2021"
 cargo-fuzz = true
 
 [dependencies]
+imersio-sip = { path = ".." }
 libfuzzer-sys.workspace = true
-
-[dependencies.imersio-sip]
-path = ".."
 
 [[bin]]
 name = "fuzz_target_sip_messages"

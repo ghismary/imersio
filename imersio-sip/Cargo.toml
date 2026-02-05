@@ -9,8 +9,8 @@ rust-version.workspace = true
 description = "A generator and parser of SIP requests and responses."
 keywords = ["sip"]
 
-[lints.rust]
-unsafe_code = "forbid"
+[lints]
+workspace = true
 
 [dependencies]
 chrono.workspace = true
@@ -19,6 +19,7 @@ derive-partial-eq-extras.workspace = true
 itertools.workspace = true
 nom.workspace = true
 nom-language.workspace = true
+serde.workspace = true
 
 [dev-dependencies]
 claims.workspace = true
