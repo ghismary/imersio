@@ -32,6 +32,11 @@ impl ViaHeader {
     pub fn vias(&self) -> &Vias {
         &self.vias
     }
+
+    /// Get a mutable reference to the vias from the Via header.
+    pub fn vias_mut(&mut self) -> &mut Vias {
+        &mut self.vias
+    }
 }
 
 impl HeaderAccessor for ViaHeader {
@@ -129,6 +134,16 @@ mod tests {
                     first_via.parameters().first().unwrap().branch(),
                     Some("z9hG4bK87asdks7".to_string())
                 );
+                assert!(first_via.has_branch());
+                assert_eq!(first_via.branch(), Some("z9hG4bK87asdks7".to_string()));
+                assert!(!first_via.has_ttl());
+                assert_eq!(first_via.ttl(), None);
+                assert!(!first_via.has_maddr());
+                assert_eq!(first_via.maddr(), None);
+                assert!(!first_via.has_received());
+                assert_eq!(first_via.received(), None);
+                assert!(!first_via.has_rport());
+                assert_eq!(first_via.rport(), None);
             },
         );
     }
@@ -137,9 +152,9 @@ mod tests {
     fn test_valid_via_header_with_several_parameters() {
         valid_header(
             "Via: SIP/2.0/UDP 192.0.2.1:5060 ;received=192.0.2.207 ;branch=z9hG4bK77asjd",
-            |header| {
-                assert_eq!(header.vias().len(), 1);
-                let first_via = header.vias().first().unwrap();
+            |mut header| {
+                assert_eq!(header.vias_mut().len(), 1);
+                let first_via = header.vias_mut().first().unwrap();
                 assert_eq!(
                     first_via.protocol(),
                     &Protocol::new(
@@ -160,7 +175,20 @@ mod tests {
                 assert_eq!(
                     first_via.parameters().last().unwrap().branch(),
                     Some("z9hG4bK77asjd".to_string())
-                )
+                );
+                assert!(first_via.has_branch());
+                assert_eq!(first_via.branch(), Some("z9hG4bK77asjd".to_string()));
+                assert!(!first_via.has_ttl());
+                assert_eq!(first_via.ttl(), None);
+                assert!(!first_via.has_maddr());
+                assert_eq!(first_via.maddr(), None);
+                assert!(first_via.has_received());
+                assert_eq!(
+                    first_via.received(),
+                    Some(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 207)))
+                );
+                assert!(!first_via.has_rport());
+                assert_eq!(first_via.rport(), None);
             },
         );
     }
@@ -197,9 +225,94 @@ mod tests {
                 assert_eq!(
                     param.unwrap().branch(),
                     Some("z9hG4bKa7c6a8dlze.1".to_string())
-                )
+                );
+                assert!(first_via.has_branch());
+                assert_eq!(first_via.branch(), Some("z9hG4bKa7c6a8dlze.1".to_string()));
+                assert!(first_via.has_ttl());
+                assert_eq!(first_via.ttl(), Some(16));
+                assert!(first_via.has_maddr());
+                assert_eq!(
+                    first_via.maddr(),
+                    Some(Host::Ip(IpAddr::V4(Ipv4Addr::new(224, 2, 0, 1))))
+                );
+                assert!(!first_via.has_received());
+                assert_eq!(first_via.received(), None);
             },
         );
+    }
+
+    #[test]
+    fn test_valid_via_header_with_rport_with_value() {
+        valid_header(
+            "Via: SIP/2.0/UDP 10.1.1.1:4540;received=192.0.2.1;rport=9988;branch=z9hG4bKkjshdyff",
+            |header| {
+                assert_eq!(header.vias().len(), 1);
+                let first_via = header.vias().first().unwrap();
+                assert_eq!(
+                    first_via.protocol(),
+                    &Protocol::new(
+                        TokenString::new("SIP"),
+                        TokenString::new("2.0"),
+                        Transport::Udp
+                    )
+                );
+                assert_eq!(
+                    first_via.host(),
+                    &Host::Ip(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)))
+                );
+                assert_eq!(first_via.port(), Some(4540));
+                assert!(first_via.has_received());
+                assert_eq!(
+                    first_via.received(),
+                    Some(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1)))
+                );
+                assert!(first_via.has_rport());
+                assert_eq!(first_via.rport(), Some(9988));
+                assert!(first_via.has_branch());
+                assert_eq!(first_via.branch(), Some("z9hG4bKkjshdyff".to_string()));
+                assert!(!first_via.has_ttl());
+                assert_eq!(first_via.ttl(), None);
+                assert!(!first_via.has_maddr());
+                assert_eq!(first_via.maddr(), None);
+            },
+        )
+    }
+
+    #[test]
+    fn test_valid_via_header_with_rport_without_value() {
+        valid_header(
+            "Via: SIP/2.0/UDP 10.1.1.1:4540;received=192.0.2.1;rport;branch=z9hG4bKkjshdyff",
+            |header| {
+                assert_eq!(header.vias().len(), 1);
+                let first_via = header.vias().first().unwrap();
+                assert_eq!(
+                    first_via.protocol(),
+                    &Protocol::new(
+                        TokenString::new("SIP"),
+                        TokenString::new("2.0"),
+                        Transport::Udp
+                    )
+                );
+                assert_eq!(
+                    first_via.host(),
+                    &Host::Ip(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)))
+                );
+                assert_eq!(first_via.port(), Some(4540));
+                assert!(first_via.has_received());
+                assert_eq!(
+                    first_via.received(),
+                    Some(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1)))
+                );
+                assert!(first_via.has_rport());
+                assert_eq!(first_via.rport(), None);
+                assert!(first_via.has_branch());
+                assert_eq!(first_via.branch(), Some("z9hG4bKkjshdyff".to_string()));
+                assert!(!first_via.has_ttl());
+                assert_eq!(first_via.ttl(), None);
+                assert!(!first_via.has_maddr());
+                assert_eq!(first_via.maddr(), None);
+            },
+        )
     }
 
     #[test]

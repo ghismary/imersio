@@ -1,5 +1,6 @@
 use itertools::join;
 use std::hash::Hash;
+use std::net::IpAddr;
 
 use crate::common::value_collection::ValueCollection;
 use crate::utils::compare_vectors;
@@ -52,6 +53,56 @@ impl Via {
     /// Get a reference to the parameters contained in the via.
     pub fn parameters(&self) -> &Vec<ViaParameter> {
         &self.parameters
+    }
+
+    /// Tell whether the Via contains a `ttl` parameter.
+    pub fn has_ttl(&self) -> bool {
+        self.parameters.iter().any(|p| p.is_ttl())
+    }
+
+    /// Get the value of the ttl parameter if there is one.
+    pub fn ttl(&self) -> Option<u8> {
+        self.parameters.iter().find_map(|p| p.ttl())
+    }
+
+    /// Tell whether the Via contains a `maddr` parameter.
+    pub fn has_maddr(&self) -> bool {
+        self.parameters.iter().any(|p| p.is_m_addr())
+    }
+
+    /// Get the value of the maddr parameter if there is one.
+    pub fn maddr(&self) -> Option<Host> {
+        self.parameters.iter().find_map(|p| p.maddr())
+    }
+
+    /// Tell whether the Via contains a `received` parameter.
+    pub fn has_received(&self) -> bool {
+        self.parameters.iter().any(|p| p.is_received())
+    }
+
+    /// Get the value of the received parameter if there is one.
+    pub fn received(&self) -> Option<IpAddr> {
+        self.parameters.iter().find_map(|p| p.received())
+    }
+
+    /// Tell whether the Via contains a `branch` parameter.
+    pub fn has_branch(&self) -> bool {
+        self.parameters.iter().any(|p| p.is_branch())
+    }
+
+    /// Get the value of the branch parameter if there is one.
+    pub fn branch(&self) -> Option<String> {
+        self.parameters.iter().find_map(|p| p.branch())
+    }
+
+    /// Tell whether the Via contains an `rport` parameter.
+    pub fn has_rport(&self) -> bool {
+        self.parameters.iter().any(|p| p.is_r_port())
+    }
+
+    /// Get the value of the rport parameter if there is one.
+    pub fn rport(&self) -> Option<u16> {
+        self.parameters.iter().find_map(|p| p.rport())
     }
 }
 
