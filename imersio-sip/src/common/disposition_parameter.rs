@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 
 use crate::Handling;
+use crate::common::generic_parameter::generic_parameter_display;
 use crate::{GenericParameter, TokenString};
 
 /// Representation of a parameter of a `DispositionType`.
@@ -44,13 +45,7 @@ impl DispositionParameter {
 
 impl std::fmt::Display for DispositionParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.key(),
-            if self.value().is_some() { "=" } else { "" },
-            self.value().unwrap_or_default()
-        )
+        generic_parameter_display(self.key(), self.value(), f)
     }
 }
 
