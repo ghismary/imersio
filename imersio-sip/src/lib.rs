@@ -101,3 +101,12 @@ pub use crate::uris::{
     uri_scheme::{UriScheme, UriSchemeString},
     user_info::{PasswordString, UserInfo, UserString},
 };
+
+/// Default SIP port.
+pub const DEFAULT_SIP_PORT: u16 = 5060;
+
+/// Default SIPS port.
+pub const DEFAULT_SIPS_PORT: u16 = 5061;
+
+/// Default SCTP port.
+pub const DEFAULT_SCTP_PORT: u16 = 3868;
