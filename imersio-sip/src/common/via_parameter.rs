@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::net::IpAddr;
 
+use crate::common::generic_parameter::generic_parameter_display;
 use crate::uris::host::parser::host;
 use crate::{GenericParameter, Host, TokenString};
 
@@ -77,13 +78,7 @@ impl ViaParameter {
 
 impl std::fmt::Display for ViaParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{}{}",
-            self.key(),
-            if self.value().is_some() { "=" } else { "" },
-            self.value().unwrap_or_default()
-        )
+        generic_parameter_display(self.key(), self.value(), f)
     }
 }
 

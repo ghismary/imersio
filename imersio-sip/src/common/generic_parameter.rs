@@ -75,6 +75,20 @@ where
     }
 }
 
+pub(crate) fn generic_parameter_display(
+    key: &str,
+    value: Option<&str>,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    write!(
+        f,
+        "{}{}{}",
+        key,
+        if value.is_some() { "=" } else { "" },
+        value.unwrap_or_default()
+    )
+}
+
 impl<T> PartialEq for GenericParameter<T>
 where
     T: std::fmt::Display + AsRef<str>,
