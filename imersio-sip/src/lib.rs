@@ -102,11 +102,32 @@ pub use crate::uris::{
     user_info::{PasswordString, UserInfo, UserString},
 };
 
-/// Default SIP port.
-pub const DEFAULT_SIP_PORT: u16 = 5060;
+/// Default UDP port.
+///
+/// [[RFC3261, Section 18.1.1](https://datatracker.ietf.org/doc/html/rfc3261#section-18.1.1)]
+pub const DEFAULT_UDP_PORT: u16 = 5060;
 
-/// Default SIPS port.
-pub const DEFAULT_SIPS_PORT: u16 = 5061;
+/// Default TCP port.
+///
+/// [[RFC3261, Section 18.1.1](https://datatracker.ietf.org/doc/html/rfc3261#section-18.1.1)]
+pub const DEFAULT_TCP_PORT: u16 = 5060;
 
 /// Default SCTP port.
-pub const DEFAULT_SCTP_PORT: u16 = 3868;
+///
+/// [[RFC3261, Section 18.1.1](https://datatracker.ietf.org/doc/html/rfc3261#section-18.1.1)]
+pub const DEFAULT_SCTP_PORT: u16 = 5060;
+
+/// Default TLS port.
+///
+/// [[RFC3261, Section 18.1.1](https://datatracker.ietf.org/doc/html/rfc3261#section-18.1.1)]
+pub const DEFAULT_TLS_PORT: u16 = 5061;
+
+/// Default SIP port.
+///
+/// Convenience constant. Constants based on the transport should be preferred.
+pub const DEFAULT_SIP_PORT: u16 = DEFAULT_TCP_PORT;
+
+/// Default SIPS port.
+///
+/// Convenience constant. Constants based on the transport should be preferred.
+pub const DEFAULT_SIPS_PORT: u16 = DEFAULT_TLS_PORT;

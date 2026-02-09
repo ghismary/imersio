@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
 use std::hash::Hash;
 
-use crate::{DEFAULT_SCTP_PORT, DEFAULT_SIP_PORT, DEFAULT_SIPS_PORT, SipError, TokenString};
+use crate::{
+    DEFAULT_SCTP_PORT, DEFAULT_TCP_PORT, DEFAULT_TLS_PORT, DEFAULT_UDP_PORT, SipError, TokenString,
+};
 
 /// Representation of a transport contained in a Via header or in a transport uri parameter.
 #[derive(Clone, Debug, Eq, derive_more::IsVariant)]
@@ -43,9 +45,9 @@ impl Transport {
     /// Get the default port for this transport.
     pub const fn default_port(&self) -> Option<u16> {
         match self {
-            Self::Udp => Some(DEFAULT_SIP_PORT),
-            Self::Tcp => Some(DEFAULT_SIP_PORT),
-            Self::Tls => Some(DEFAULT_SIPS_PORT),
+            Self::Udp => Some(DEFAULT_UDP_PORT),
+            Self::Tcp => Some(DEFAULT_TCP_PORT),
+            Self::Tls => Some(DEFAULT_TLS_PORT),
             Self::Sctp => Some(DEFAULT_SCTP_PORT),
             Self::Other(_) => None,
         }
